@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include<string.h>
 #include <math.h>
 #include <argtable2.h>
 
@@ -8,14 +9,17 @@
 #define PAR_ERROR -1
 #define PAR_SUCCESS 0
 #define PAR_HELP 1
+#define PAR_INVALID 2
 
-#define CHECK_ERROR(error_status, error_func)\
+#define CHECK_POSITIVE(dest, source, progname, argument)\
 ({\
-	if(error_status!=PAR_SUCCESS)\
+	if(source < 0)\
 	{\
-			fprintf(stderr, "ERROR::%s:%d:%s: Function %s returned error %d!\n",\
-						__FILE__, __LINE__, __func__, error_func, error_status);\
-      return(error_status);\
+			fprintf(stderr, "%s: invalid argument to option %s. Please enter a positive value!\n",\
+						progname, argument);\
+      return PAR_INVALID;\
+	}else{\
+		dest = source;\
 	}\
 })
 
@@ -32,12 +36,12 @@ typedef struct cmd_line_args
 
 static void setup_argtable(cmd_args *args);
 static void setup_default_values(cmd_args *args);
-static void extract_args(cmd_args *args, mcmc *mcmc);
+static int extract_args(cmd_args *args, mcmc *mcmc);
 
 int parse_args(int an, char *av[], mcmc *mcmc)
 {
   cmd_args args;
-  int nerrors;
+  int nerrors, status;
   args.progname = av[0];
 
   setup_argtable(&args);
@@ -88,24 +92,42 @@ int parse_args(int an, char *av[], mcmc *mcmc)
     arg_print_errors(stdout, args.end, args.progname);
     printf("Try '%s --help' for more information.\n", args.progname);
     arg_freetable(argtable, sizeof(argtable)/sizeof(argtable));
-    return PAR_ERROR;
-  }
-
-  /* display message when no arguments are provided */
-  if (an == 1)
-  {
-    printf("Try '%s --help' for more information.\n", args.progname);
-    /* deallocate each non-null entry in argtable[] before return */
-    arg_freetable(argtable, sizeof(argtable)/sizeof(argtable));
-    return PAR_HELP;
+    return PAR_INVALID;
   }
 
   /* copy the parsed values to the appropriate program variables */
-  extract_args(&args, mcmc);
+	status = extract_args(&args, mcmc);
+  if (status == PAR_INVALID)
+  {
+    arg_freetable(argtable, sizeof(argtable)/sizeof(argtable));
+    return PAR_INVALID;
+  }
+
   /* destroy argtable */
   arg_freetable(argtable, sizeof(argtable)/sizeof(argtable[0]));
 
   return PAR_SUCCESS;
+}
+
+void print_parameters(mcmc mcmc)
+{
+	printf("--------------------------------- Metropolis-MCMC -------------------------------\n");
+
+	printf("%45s:\t%d\n", "Training set dimensionality", mcmc.train.dim);
+	printf("%45s:\t%d\n", "Number of training data", mcmc.train.Nd );
+	printf("%45s:\t%d\n", "Test set dimensionality", mcmc.test.dim);
+	printf("%45s:\t%d\n", "Number of test data", mcmc.test.Nd);
+
+	printf("%45s:\t%d\n", "Number of generated samples (post burn-in)", mcmc.metropolis.Ns);
+	printf("%45s:\t%d\n", "Burn in samples", mcmc.metropolis.Nburn);
+	printf("%45s:\t%f\n", "Standard deviation in random walk", mcmc.metropolis.rwsd);
+
+	printf("%45s:\t%s\n", "Filename of training datapoints", mcmc.train.fx);
+	printf("%45s:\t%s\n", "Filename of training labels", mcmc.train.fy);
+	printf("%45s:\t%s\n", "Filename of test datapoints", mcmc.test.fx);
+	printf("%45s:\t%s\n", "Filename of test labels", mcmc.test.fy);
+
+	printf("---------------------------------------------------------------------------------\n");
 }
 
 static void setup_argtable(cmd_args *args)
@@ -145,24 +167,25 @@ static void setup_default_values(cmd_args *args)
   args->train_y->filename[0] = "Y_train.csv";
   args->test_x->filename[0] = "X_test.csv";
   args->test_y->filename[0] = "Y_test.csv";
-
 }
 
 static int extract_args(cmd_args *args, mcmc *mcmc)
 {
-  int error_status = PAR_SUCCESS;
+	/* Checks each numerical entry if positive otherwise reports invalid and exits */
+	CHECK_POSITIVE(mcmc->train.dim, args->dim->ival[0], args->progname, "-d|--dim=<int>");
+	CHECK_POSITIVE(mcmc->train.Nd, args->train_n->ival[0], args->progname, "--train_n=<int>");
+	CHECK_POSITIVE(mcmc->test.dim, args->dim->ival[0], args->progname, "-d|--dim=<int>");
+	CHECK_POSITIVE(mcmc->test.Nd, args->test_n->ival[0], args->progname, "--test_n=<int>");
 
-  mcmc->train.dim = args->dim->ival[0];
-  mcmc->train.Nd = args->train_n->ival[0];
-  mcmc->test.dim = args->dim->ival[0];
-  mcmc->test.Nd = args->test_n->ival[0];
+	CHECK_POSITIVE(mcmc->metropolis.Ns, args->Ns->ival[0], args->progname, "-s|--samples=<int>");
+	CHECK_POSITIVE(mcmc->metropolis.Nburn, args->Nburn->ival[0], args->progname, "-b|--burn=<int>");
+	CHECK_POSITIVE(mcmc->metropolis.rwsd, args->rwsd->dval[0], args->progname, "-w|--rwsd=<int>");
 
-  mcmc->metropolis.Ns = args->Ns->ival[0];
-  mcmc->metropolis.Nburn = args->Nburn->ival[0];
-  mcmc->metropolis.rwsd = args->rwsd->dval[0];
+	/* Append directory to each filename */
+	sprintf(mcmc->train.fx, "%s/%s", args->datadir->sval[0], args->train_x->filename[0]);
+	sprintf(mcmc->train.fy, "%s/%s", args->datadir->sval[0], args->train_y->filename[0]);
+	sprintf(mcmc->test.fx, "%s/%s", args->datadir->sval[0], args->test_x->filename[0]);
+	sprintf(mcmc->test.fy, "%s/%s", args->datadir->sval[0], args->test_y->filename[0]);
 
-  // mcmc->train.fx = args->train_x->filename[0];
-  // mcmc->train.fy = args->train_y->filename[0];
-  // mcmc->test.fx = args->test_x->filename[0];
-  // mcmc->test.fy = args->test_y->filename[0];
+	return PAR_SUCCESS;
 }

@@ -1,8 +1,10 @@
-CC	=	gcc
-CCFLAGS	= -O2 -Wall -std=c99 \
-					-I${HOME}/include
+ARGTABLE_INC = ${HOME}/include
+ARGTABLE_LIB = ${HOME}/lib
 
-LDFLAGS = -L${HOME}/lib
+CC	=	gcc
+CCFLAGS	= -O2 -Wall -std=c99
+
+LDFLAGS = -L${ARGTABLE_LIB}
 LDLIBS= -largtable2 -lm
 
 SRC = src
@@ -21,7 +23,7 @@ UTIL=$(SRC)/util
 
 VPATH = $(SRC) $(STRUCTS) $(RNG) $(MCMC) $(IO) $(UTIL)
 
-INC_PATH = -I$(SRC) -I$(STRUCTS) -I$(RNG) -I$(MCMC) -I$(IO) -I$(UTIL)
+INC_PATH = -I$(SRC) -I$(STRUCTS) -I$(RNG) -I$(MCMC) -I$(IO) -I$(UTIL) -I$(ARGTABLE_INC)
 
 MAIN_OBJ = $(OBJ)/main.o
 # RNG_OBJ = $(OBJ_DIR)/rng_setup.o

@@ -4,13 +4,13 @@
 #include <stdlib.h>
 
 typedef double precision;
-
+#define FILENAME_SIZE 100
 typedef struct data_vectors
 {
   precision *x;
   int *y;
   int dim, Nd;
-  char **fx, **fy;
+  char fx[FILENAME_SIZE], fy[FILENAME_SIZE];
 } data;
 
 typedef struct sample
