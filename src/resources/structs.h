@@ -3,15 +3,18 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-typedef double precision;
-#define FILENAME_SIZE 100
+#ifdef FLOAT
+  typedef float precision;
+#else
+  typedef double precision;
+#endif
 
 typedef struct data_vectors
 {
   precision *x;
   int *y;
   int dim, Nd;
-  char fx[FILENAME_SIZE], fy[FILENAME_SIZE];
+  char fx[BUFSIZ], fy[BUFSIZ];
 } data;
 
 typedef struct sample

@@ -2,43 +2,8 @@
 #include <stdlib.h>
 
 #include "util.h"
-
-#define CHECK_ERROR(error_status, error_func)\
-({\
-	if(error_status!=SIM_SUCCESS)\
-	{\
-			fprintf(stderr, "ERROR::%s:%d:%s: Function %s returned error %d!\n",\
-						__FILE__, __LINE__, __func__, error_func, error_status);\
-		return(error_status);\
-	}\
-})
-
-#define CHECK_MALLOC(ptr) \
-({\
-	if(ptr == NULL)\
-	{\
-		fprintf(stderr, "ERROR::%s:%d:%s: Memory allocation did not complete successfully!\n", __FILE__, __LINE__,__func__);\
-		return(SIM_MEM_FAILURE);\
-	}\
-})
-
-#define CHECK_VALID_MEM_REQUEST(size) \
-({\
-	if(size == 0)\
-	{\
-		fprintf(stderr, "ERROR::%s:%d:%s: Cannot allocate memory with negative or zero elements!\n", __FILE__, __LINE__,__func__);\
-		return(SIM_ZERO_MEM_FAILURE);\
-	}\
-})
-
-#define FREE(ptr) \
-({\
-	if(ptr != NULL)\
-	{\
-		free(ptr);\
-		ptr = NULL;\
-	}\
-})
+#include "macros.h"
+#include "flags.h"
 
 static int malloc_precision(precision **array, int elements);
 static int malloc_integers(int **array, int elements);
@@ -50,7 +15,7 @@ static int malloc_integers(int **array, int elements);
 int allocate_data_vectors(data *train, data *test)
 {
   int status;
-  
+
   status = malloc_precision(&train->x, train->dim * train->Nd);
 	CHECK_ERROR(status, "malloc_precision()");
   status = malloc_integers(&train->y, train->dim * train->Nd);

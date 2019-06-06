@@ -4,17 +4,8 @@
 #include <argtable2.h>
 
 #include "util.h"
-
-#define CHECK_POSITIVE(dest, source, progname, argument)\
-({\
-	if(source < 0)\
-	{\
-			fprintf(stderr, "%s: invalid argument to option %s. Please enter a positive value!\n", progname, argument);\
-      return SIM_INVALID;\
-	}else{\
-		dest = source;\
-	}\
-})
+#include "macros.h"
+#include "flags.h"
 
 typedef struct cmd_line_args
 {
@@ -136,10 +127,10 @@ static void setup_argtable(cmd_args *args)
 
   args->datadir = arg_str0("l", "datadir", "<str>", "define a directory where the data will be read from (default is data/)");
 
-  args->train_x = arg_file0(NULL, "train_x", "<file>", "define the filename for train data (default is X_train.csv");
-  args->train_y = arg_file0(NULL, "train_y", "<file>", "define the filename for train labels (default is Y_train.csv");
-  args->test_x  = arg_file0(NULL, "test_x", "<file>", "define the filename for test data (default is X_test.csv");
-  args->test_y  = arg_file0(NULL, "test_y", "<file>", "define the filename for test labels (default is Y_test.csv");
+  args->train_x = arg_file0(NULL, "train_x", "<file>", "define the filename for train data (default is X_train_10000_3.csv)");
+  args->train_y = arg_file0(NULL, "train_y", "<file>", "define the filename for train labels (default is Y_train_10000_3.csv)");
+  args->test_x  = arg_file0(NULL, "test_x", "<file>", "define the filename for test data (default is X_test_10000_3.csv)");
+  args->test_y  = arg_file0(NULL, "test_y", "<file>", "define the filename for test labels (default is Y_test_10000_3.csv)");
 
   args->help    = arg_lit0("h", "help", "print this help and exit");
 
@@ -156,15 +147,17 @@ static void setup_default_values(cmd_args *args)
   args->Nburn->ival[0] = 5000;
   args->rwsd->dval[0] = 0.345;
   args->datadir->sval[0] = "./data";
-  args->train_x->filename[0] = "X_train.csv";
-  args->train_y->filename[0] = "Y_train.csv";
-  args->test_x->filename[0] = "X_test.csv";
-  args->test_y->filename[0] = "Y_test.csv";
+  args->train_x->filename[0] = "X_train_10000_3.csv";
+  args->train_y->filename[0] = "Y_train_10000_3.csv";
+  args->test_x->filename[0] = "X_test_10000_3.csv";
+  args->test_y->filename[0] = "Y_test_10000_3.csv";
 }
 
 static int extract_args(cmd_args *args, mcmc *mcmc)
 {
-	/* Checks each numerical entry if positive otherwise reports invalid and exits */
+	/* Checks each numerical entry if positive otherwise reports invalid and exits
+	 * If it is positive, append the value to the appropriate variable
+	 */
 	CHECK_POSITIVE(mcmc->train.dim, args->dim->ival[0], args->progname, "-d|--dim=<int>");
 	CHECK_POSITIVE(mcmc->train.Nd, args->train_n->ival[0], args->progname, "--train_n=<int>");
 	CHECK_POSITIVE(mcmc->test.dim, args->dim->ival[0], args->progname, "-d|--dim=<int>");

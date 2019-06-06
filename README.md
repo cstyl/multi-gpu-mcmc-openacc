@@ -17,7 +17,7 @@ See [here](./docs/installations/install.md) for installation directions.
 ### Serial Code
 [X] Parsing command line arguments
 [X] Allocation of data and sample arrays
-[ ] Read data from files
+[X] Read data from files
 [ ] Setup RNG
 [ ] Initialise samples
 [ ] Random walk & proposal step

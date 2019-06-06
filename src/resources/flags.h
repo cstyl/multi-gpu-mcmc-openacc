@@ -8,6 +8,8 @@ enum ERROR_FLAGS{
   SIM_INVALID=2,               /**< Error code returned when an invalid command line argument is passed.*/
   SIM_ZERO_MEM_FAILURE=3,			/**< Error code returned when trying to allocate memory with negative or zero value.*/
 	SIM_MEM_FAILURE=4,					/**< Error code returned when there is a failure in allocating memory.*/
+  SIM_INVALID_TYPE=5,          /**< Error code returned when there is a failure in choosing csv inputs type.*/
+  SIM_FILE_FAILURE=6					/**< Error code returned when incorrectly trying opening a file.*/
 };
 
 

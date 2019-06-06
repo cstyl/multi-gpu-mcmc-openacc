@@ -26,9 +26,15 @@ INC_PATH = -I$(SRC) -I$(RESOURCES) -I$(RNG) -I$(MCMC) -I$(UTIL) -I$(ARGTABLE_INC
 
 MAIN_OBJ = $(OBJ)/main.o
 # RNG_OBJ = $(OBJ_DIR)/rng_setup.o
-UTIL_OBJ = $(OBJ)/cmd_line_parser.o $(OBJ)/memory.o
+UTIL_OBJ = $(OBJ)/cmd_line_parser.o $(OBJ)/memory.o $(OBJ)/file_io.o
 
 all: dir $(BIN)/util
+
+run:
+	./$(BIN)/util --dim=5 --train_n=8 --test_n=2 --samples=5 --burn=5 \
+								--datadir=data \
+								--train_x=X_train_10_5.csv --train_y=Y_train_10_5.csv \
+								--test_x=X_test_10_5.csv --test_y=Y_test_10_5.csv
 
 $(OBJ)/%.o: %.c
 	$(CC) $(CCFLAGS) $(INC_PATH) -o $@ -c $<
