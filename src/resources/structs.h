@@ -5,6 +5,7 @@
 
 typedef double precision;
 #define FILENAME_SIZE 100
+
 typedef struct data_vectors
 {
   precision *x;
@@ -15,7 +16,7 @@ typedef struct data_vectors
 
 typedef struct sample
 {
-  precision *value;
+  precision *values;
   precision prior;
   precision likelihood;
 } sample;
@@ -23,9 +24,9 @@ typedef struct sample
 typedef struct mcmc_metropolis
 {
   precision *chain;
-  sample *proposed, *current;
+  sample proposed, current;
   precision acceptance_prob, acceptance_ratio;
-  int Ns, Nburn;
+  int Ns, Nburn, dim;
   precision rwsd;
 } metropolis;
 

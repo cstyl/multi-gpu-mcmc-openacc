@@ -1,23 +1,16 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include<string.h>
-#include <math.h>
 #include <argtable2.h>
 
-#include "cmd_line_parser.h"
-
-#define PAR_ERROR -1
-#define PAR_SUCCESS 0
-#define PAR_HELP 1
-#define PAR_INVALID 2
+#include "util.h"
 
 #define CHECK_POSITIVE(dest, source, progname, argument)\
 ({\
 	if(source < 0)\
 	{\
-			fprintf(stderr, "%s: invalid argument to option %s. Please enter a positive value!\n",\
-						progname, argument);\
-      return PAR_INVALID;\
+			fprintf(stderr, "%s: invalid argument to option %s. Please enter a positive value!\n", progname, argument);\
+      return SIM_INVALID;\
 	}else{\
 		dest = source;\
 	}\
@@ -61,7 +54,7 @@ int parse_args(int an, char *av[], mcmc *mcmc)
     printf("%s: insufficient memory\n", args.progname);
     /* deallocate each non-null entry in argtable[] before return */
     arg_freetable(argtable, sizeof(argtable)/sizeof(argtable[0]));
-    return PAR_ERROR;
+    return SIM_FAILURE;
   }
 
   /* setup default values */
@@ -82,7 +75,7 @@ int parse_args(int an, char *av[], mcmc *mcmc)
     arg_print_glossary(stdout, argtable,"  %-25s %s\n");
     /* deallocate each non-null entry in argtable[] before return */
     arg_freetable(argtable, sizeof(argtable)/sizeof(argtable[0]));
-    return PAR_HELP;
+    return SIM_HELP;
   }
 
   /* display errors */
@@ -92,21 +85,21 @@ int parse_args(int an, char *av[], mcmc *mcmc)
     arg_print_errors(stdout, args.end, args.progname);
     printf("Try '%s --help' for more information.\n", args.progname);
     arg_freetable(argtable, sizeof(argtable)/sizeof(argtable));
-    return PAR_INVALID;
+    return SIM_INVALID;
   }
 
   /* copy the parsed values to the appropriate program variables */
 	status = extract_args(&args, mcmc);
-  if (status == PAR_INVALID)
+  if (status == SIM_INVALID)
   {
     arg_freetable(argtable, sizeof(argtable)/sizeof(argtable));
-    return PAR_INVALID;
+    return SIM_INVALID;
   }
 
   /* destroy argtable */
   arg_freetable(argtable, sizeof(argtable)/sizeof(argtable[0]));
 
-  return PAR_SUCCESS;
+  return SIM_SUCCESS;
 }
 
 void print_parameters(mcmc mcmc)
@@ -179,6 +172,7 @@ static int extract_args(cmd_args *args, mcmc *mcmc)
 
 	CHECK_POSITIVE(mcmc->metropolis.Ns, args->Ns->ival[0], args->progname, "-s|--samples=<int>");
 	CHECK_POSITIVE(mcmc->metropolis.Nburn, args->Nburn->ival[0], args->progname, "-b|--burn=<int>");
+	CHECK_POSITIVE(mcmc->metropolis.dim, args->dim->ival[0], args->progname, "-d|--dim=<int>");
 	CHECK_POSITIVE(mcmc->metropolis.rwsd, args->rwsd->dval[0], args->progname, "-w|--rwsd=<int>");
 
 	/* Append directory to each filename */
@@ -187,5 +181,5 @@ static int extract_args(cmd_args *args, mcmc *mcmc)
 	sprintf(mcmc->test.fx, "%s/%s", args->datadir->sval[0], args->test_x->filename[0]);
 	sprintf(mcmc->test.fy, "%s/%s", args->datadir->sval[0], args->test_y->filename[0]);
 
-	return PAR_SUCCESS;
+	return SIM_SUCCESS;
 }

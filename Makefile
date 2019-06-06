@@ -2,7 +2,7 @@ ARGTABLE_INC = ${HOME}/include
 ARGTABLE_LIB = ${HOME}/lib
 
 CC	=	gcc
-CCFLAGS	= -O2 -Wall -std=c99
+CCFLAGS	= -O2 -Wall -g -std=c99
 
 LDFLAGS = -L${ARGTABLE_LIB}
 LDLIBS= -largtable2 -lm
@@ -15,26 +15,25 @@ DATA = data
 RES = res
 SCRIPTS = scripts
 
-STRUCTS=$(SRC)/structs
+RESOURCES=$(SRC)/resources
 RNG=$(SRC)/rng
 MCMC=$(SRC)/mcmc
-IO=$(SRC)/io
 UTIL=$(SRC)/util
 
-VPATH = $(SRC) $(STRUCTS) $(RNG) $(MCMC) $(IO) $(UTIL)
+VPATH = $(SRC) $(RESOURCES) $(RNG) $(MCMC) $(IO) $(UTIL)
 
-INC_PATH = -I$(SRC) -I$(STRUCTS) -I$(RNG) -I$(MCMC) -I$(IO) -I$(UTIL) -I$(ARGTABLE_INC)
+INC_PATH = -I$(SRC) -I$(RESOURCES) -I$(RNG) -I$(MCMC) -I$(UTIL) -I$(ARGTABLE_INC)
 
 MAIN_OBJ = $(OBJ)/main.o
 # RNG_OBJ = $(OBJ_DIR)/rng_setup.o
-ARGS_OBJ = $(OBJ)/cmd_line_parser.o
+UTIL_OBJ = $(OBJ)/cmd_line_parser.o $(OBJ)/memory.o
 
-all: dir $(BIN)/args
+all: dir $(BIN)/util
 
 $(OBJ)/%.o: %.c
 	$(CC) $(CCFLAGS) $(INC_PATH) -o $@ -c $<
 
-$(BIN)/args: $(ARGS_OBJ) $(MAIN_OBJ)
+$(BIN)/util: $(UTIL_OBJ) $(MAIN_OBJ)
 	$(CC) $(LDFLAGS) $^ -o $@ $(LDLIBS)
 
 .PHONY: dir
