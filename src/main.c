@@ -35,15 +35,7 @@ int main(int argc, char *argv[])
   CHECK(error_status, "setup_rng()");
 
   /* Initialise samples */
-  int reps,i;
-  for(reps = 0; reps<rng.count; reps++)
-  {
-    for(i=0; i<rng.count; i++)
-    {
-      printf("%f, ", gsl_rng_uniform(rng.instances[i]));
-    }
-    printf("\n");
-  }
+
 	/* Run mcmc */
 
 	error_status = destroy_data_vectors(&mcmc.train, &mcmc.test);

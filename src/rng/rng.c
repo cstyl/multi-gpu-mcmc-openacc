@@ -38,7 +38,7 @@ int destroy_rng(rng *rng)
 {
   /* Deallocate first each instance and then the structure */
   int i;
-  for(i=rng->count; i>0; i--)
+  for(i=0; i<rng->count; i++)
   {
     if(rng->instances[i]!=NULL)
     {
