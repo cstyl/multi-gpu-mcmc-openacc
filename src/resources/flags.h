@@ -23,4 +23,9 @@ enum RNG_TYPES{
   TAUS =  6
 };
 
+enum DOT_TYPES{
+  GSL_DOT = 0,
+  NAIVE = 1
+};
+
 #endif //__FLAGS_H__

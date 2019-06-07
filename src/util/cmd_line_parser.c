@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include<string.h>
 #include <argtable2.h>
+#include <math.h>
 
 #include "util.h"
 #include "macros.h"
@@ -123,7 +124,7 @@ static void setup_argtable(cmd_args *args)
   args->Ns = arg_int0("s", "samples", "<int>", "define an integer value for generated samples (default is 20000)");
   args->Nburn = arg_int0("b", "burn", "<int>", "define an integer value for burn samples (default is 5000)");
 
-  args->rwsd = arg_dbl0("w", "rwsd", "<double>", "define a real value for random walk step size (default is TBD)");
+  args->rwsd = arg_dbl0("w", "rwsd", "<double>", "define a real value for random walk step size (default is 1.374)");
 
   args->datadir = arg_str0("l", "datadir", "<str>", "define a directory where the data will be read from (default is data/)");
 
@@ -145,7 +146,7 @@ static void setup_default_values(cmd_args *args)
   args->test_n->ival[0] = 2000;
   args->Ns->ival[0] = 20000;
   args->Nburn->ival[0] = 5000;
-  args->rwsd->dval[0] = 0.345;
+  args->rwsd->dval[0] = 2.38 / sqrt(args->dim->ival[0]);
   args->datadir->sval[0] = "./data";
   args->train_x->filename[0] = "X_train_10000_3.csv";
   args->train_y->filename[0] = "Y_train_10000_3.csv";

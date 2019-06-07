@@ -7,6 +7,7 @@
 #include "macros.h"
 #include "util.h"
 #include "rng.h"
+#include "mcmc.h"
 
 int main(int argc, char *argv[])
 {
@@ -29,14 +30,16 @@ int main(int argc, char *argv[])
 	error_status = read_files(&mcmc.test);
 	CHECK(error_status, "read_files()");
 
-	/* Setup RNG */
-  rng.count = mcmc.metropolis.dim;
+	/* Setup RNG. We add +1 so that generator can be used at the acceptance step */
+  rng.count = mcmc.metropolis.dim + 1;
   error_status = setup_rng(&rng);
   CHECK(error_status, "setup_rng()");
-
+  // Set heuristically as proposed in Efficient Metropolis Jumping rules by Gelman et al.
+  mcmc.metropolis.rwsd = 2.38 / sqrt(mcmc.metropolis.dim);
   /* Initialise samples */
-
+  mcmc_init(&mcmc.metropolis, &mcmc.train, &rng, 0);
 	/* Run mcmc */
+  mcmc_run(&mcmc.metropolis, &mcmc.train, &rng);
 
 	error_status = destroy_data_vectors(&mcmc.train, &mcmc.test);
 	CHECK(error_status, "destroy_data_vectors()");

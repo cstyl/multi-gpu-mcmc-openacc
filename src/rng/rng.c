@@ -6,7 +6,8 @@
 #include "flags.h"
 
 #ifndef RNG_TYPE
-#define RNG_TYPE TAUS // default rng type
+// default rng type
+#define RNG_TYPE TAUS
 #endif
 
 static int allocate_rng(rng *rng);
@@ -15,9 +16,11 @@ static int malloc_rng(rng_i ***array, int elements);
 static void choose_rng_type(rng *rng);
 static void seed_instances(rng *rng);
 
-/* Allocates one dimensional arrays for train and test vectors
- * Note that one dimensional arrays are chosen so that
- * a contiguous block of memory is obtained
+/* Selects a type of rng to be used.
+ * Allocates an array of pointers of type rng_i, one for each rng instance
+ * Then each rng instance is allocated memory.
+ * Each instance is seeded with a different seed
+ * so that it generates a different sequence.
  */
 int setup_rng(rng *rng)
 {
@@ -46,6 +49,7 @@ int destroy_rng(rng *rng)
       rng->instances[i] = NULL;
     }
   }
+
   FREE(rng->instances);
 
   return SIM_SUCCESS;
@@ -55,7 +59,6 @@ int destroy_rng(rng *rng)
 static int allocate_rng(rng *rng)
 {
   int status;
-
   status = malloc_rng(&rng->instances, rng->count);
 	CHECK_ERROR(status, "malloc_rng()");
 
@@ -71,7 +74,7 @@ static int malloc_rng(rng_i ***array, int elements)
   CHECK_VALID_MEM_REQUEST(elements);
 
   *array = (rng_i **) malloc(elements * sizeof(rng_i));
-  CHECK_MALLOC(**array);
+  CHECK_MALLOC(*array);
 
   return SIM_SUCCESS;
 }

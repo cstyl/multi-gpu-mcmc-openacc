@@ -22,7 +22,7 @@ RNG=$(SRC)/rng
 MCMC=$(SRC)/mcmc
 UTIL=$(SRC)/util
 
-VPATH = $(SRC) $(RESOURCES) $(RNG) $(MCMC) $(IO) $(UTIL)
+VPATH = $(SRC) $(RESOURCES) $(RNG) $(MCMC) $(UTIL)
 
 INC_PATH = -I$(SRC) -I$(RESOURCES) -I$(RNG) -I$(MCMC) -I$(UTIL) \
 					-I$(ARGTABLE_INC) -I$(GSL_INC)
@@ -30,6 +30,7 @@ INC_PATH = -I$(SRC) -I$(RESOURCES) -I$(RNG) -I$(MCMC) -I$(UTIL) \
 MAIN_OBJ = $(OBJ)/main.o
 RNG_OBJ = $(OBJ)/rng.o
 UTIL_OBJ = $(OBJ)/cmd_line_parser.o $(OBJ)/memory.o $(OBJ)/file_io.o
+MCMC_OBJ = $(OBJ)/mcmc.o
 
 all: dir $(BIN)/util
 
@@ -42,7 +43,7 @@ run:
 $(OBJ)/%.o: %.c
 	$(CC) $(CCFLAGS) $(INC_PATH) -o $@ -c $<
 
-$(BIN)/util: $(RNG_OBJ) $(UTIL_OBJ) $(MAIN_OBJ)
+$(BIN)/util: $(MCMC_OBJ) $(RNG_OBJ) $(UTIL_OBJ) $(MAIN_OBJ)
 	$(CC) $(LDFLAGS) $^ -o $@ $(LDLIBS)
 
 .PHONY: dir

@@ -5,6 +5,7 @@
 #include "macros.h"
 #include "flags.h"
 
+static int malloc_sample(sample **array, int elements);
 static int malloc_precision(precision **array, int elements);
 static int malloc_integers(int **array, int elements);
 
@@ -43,9 +44,14 @@ int allocate_mcmc_vectors(metropolis *metropolis)
   status = malloc_precision(&metropolis->chain, (metropolis->Ns + metropolis->Nburn)* metropolis->dim);
 	CHECK_ERROR(status, "malloc_precision()");
 
-  status = malloc_precision(&metropolis->proposed.values, metropolis->dim);
+  status = malloc_sample(&metropolis->proposed, 1);
+  CHECK_ERROR(status, "malloc_sample()");
+  status = malloc_sample(&metropolis->current, 1);
+  CHECK_ERROR(status, "malloc_sample()");
+
+  status = malloc_precision(&metropolis->proposed->values, metropolis->dim);
 	CHECK_ERROR(status, "malloc_precision()");
-  status = malloc_precision(&metropolis->current.values, metropolis->dim);
+  status = malloc_precision(&metropolis->current->values, metropolis->dim);
   CHECK_ERROR(status, "malloc_precision()");
 
   return SIM_SUCCESS;
@@ -65,9 +71,12 @@ int destroy_data_vectors(data *train, data *test)
 int destroy_mcmc_vectors(metropolis *metropolis)
 {
   FREE(metropolis->chain);
-  
-  FREE(metropolis->proposed.values);
-  FREE(metropolis->current.values);
+
+  FREE(metropolis->proposed->values);
+  FREE(metropolis->current->values);
+
+  FREE(metropolis->proposed);
+  FREE(metropolis->current);
 
   return SIM_SUCCESS;
 }
@@ -79,6 +88,19 @@ static int malloc_precision(precision **array, int elements)
 	CHECK_VALID_MEM_REQUEST(elements);
 
 	*array = (precision *) malloc(elements * sizeof(precision));
+	CHECK_MALLOC(*array);
+
+
+	return SIM_SUCCESS;
+}
+
+static int malloc_sample(sample **array, int elements)
+{
+	*array = NULL;
+
+	CHECK_VALID_MEM_REQUEST(elements);
+
+	*array = (sample *) malloc(elements * sizeof(sample));
 	CHECK_MALLOC(*array);
 
 
