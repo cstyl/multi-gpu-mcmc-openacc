@@ -8,6 +8,7 @@
 
 #define SKIP_HEADER 1
 #define Y_DIM 1
+
 static void rmheader(char* line, FILE *file, int skip_num);
 static int csvread( char *filename, int rowSz, int colSz, int skip_header,
              const char *delimiter, const char *datatype,
@@ -19,6 +20,7 @@ int read_files(data *set)
 
   status =csvread(set->fx, set->dim, set->Nd, SKIP_HEADER, ",", "precision", set->x);
   CHECK_ERROR(status, "csvread()");
+
   status =csvread(set->fy, Y_DIM, set->Nd, SKIP_HEADER, ",", "int", set->y);
   CHECK_ERROR(status, "csvread()");
 
@@ -36,7 +38,6 @@ static int csvread( char *filename, int rowSz, int colSz, int skip_header,
 
     printf("Reading data from %s...\n", filename);
     fp = fopen(filename, "r");
-    printf("fp=%p\n", fp);
     CHECK_FILE_OPEN(fp, filename);
 
     rmheader(line, fp, skip_header);

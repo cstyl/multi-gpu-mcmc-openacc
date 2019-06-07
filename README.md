@@ -21,7 +21,7 @@ See [here](./docs/installations/install.md) for installation directions.
 
   * [X] Read data from files
 
-  * [ ] Setup RNG
+  * [X] Setup RNG
 
   * [ ] Initialise samples
 

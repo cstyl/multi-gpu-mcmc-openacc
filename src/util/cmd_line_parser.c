@@ -57,10 +57,10 @@ int parse_args(int an, char *av[], mcmc *mcmc)
   /* print help message */
   if (args.help->count > 0)
   {
-    printf("--------------------------------- Metropolis-MCMC -------------------------------\n");
+    printf("\n--------------------------------- Metropolis-MCMC -------------------------------\n");
     printf("This program implements the Metropolis Markov Chain Monte Carlo (Metropolis-MCMC)\n");
     printf("Accepts positive integers in decimal (123), positive real numbers and strings.   \n");
-    printf("---------------------------------------------------------------------------------\n");
+    printf("---------------------------------------------------------------------------------\n\n");
     printf("Usage: %s", args.progname);
     arg_print_syntax(stdout, argtable,"\n");
     arg_print_glossary(stdout, argtable,"  %-25s %s\n");

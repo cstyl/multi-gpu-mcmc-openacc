@@ -55,6 +55,7 @@ int destroy_data_vectors(data *train, data *test)
 {
   FREE(train->x);
   FREE(train->y);
+
   FREE(test->x);
   FREE(test->y);
 
@@ -64,6 +65,7 @@ int destroy_data_vectors(data *train, data *test)
 int destroy_mcmc_vectors(metropolis *metropolis)
 {
   FREE(metropolis->chain);
+  
   FREE(metropolis->proposed.values);
   FREE(metropolis->current.values);
 

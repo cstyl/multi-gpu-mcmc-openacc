@@ -6,10 +6,13 @@
 #include "flags.h"
 #include "macros.h"
 #include "util.h"
+#include "rng.h"
 
 int main(int argc, char *argv[])
 {
   mcmc mcmc;
+  rng  rng;
+
   int error_status = SIM_SUCCESS;
 
   error_status = parse_args(argc, argv, &mcmc);
@@ -27,13 +30,29 @@ int main(int argc, char *argv[])
 	CHECK(error_status, "read_files()");
 
 	/* Setup RNG */
-	/* Initialise samples */
+  rng.count = mcmc.metropolis.dim;
+  error_status = setup_rng(&rng);
+  CHECK(error_status, "setup_rng()");
+
+  /* Initialise samples */
+  int reps,i;
+  for(reps = 0; reps<rng.count; reps++)
+  {
+    for(i=0; i<rng.count; i++)
+    {
+      printf("%f, ", gsl_rng_uniform(rng.instances[i]));
+    }
+    printf("\n");
+  }
 	/* Run mcmc */
+
 	error_status = destroy_data_vectors(&mcmc.train, &mcmc.test);
 	CHECK(error_status, "destroy_data_vectors()");
 	error_status = destroy_mcmc_vectors(&mcmc.metropolis);
-	CHECK(error_status, "destroy_data_vectors()");
+	CHECK(error_status, "destroy_mcmc_vectors()");
 
+  error_status = destroy_rng(&rng);
+	CHECK(error_status, "destroy_rng()");
   return 0;
 
 }

@@ -13,4 +13,14 @@ enum ERROR_FLAGS{
 };
 
 
+enum RNG_TYPES{
+  MT19937 = 0,
+  RANLXS2 = 1,
+  RANLXD2 = 2,
+  RANLUXS389 = 3,
+  CMRG = 4,
+  MRG = 5,
+  TAUS =  6
+};
+
 #endif //__FLAGS_H__
