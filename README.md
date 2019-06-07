@@ -16,19 +16,33 @@ See [here](./docs/installations/install.md) for installation directions.
 
 ### Serial Code
 [X] Parsing command line arguments
+
 [X] Allocation of data and sample arrays
+
 [X] Read data from files
+
 [ ] Setup RNG
+
 [ ] Initialise samples
+
 [ ] Random walk & proposal step
+
 [ ] Prior evaluation
+
 [ ] Likelihood Implementation
+
 [ ] Evaluation of posteriors
+
 [ ] Accept Reject Sample
+
 [ ] Time sampler
+
 [ ] Write generated chain to file
+
 [ ] Evaluate autocorrelation and ESS
+
 [ ] Evaluate classification accuracy in test data
+
 
 ### Single-GPU code using OpenACC
 
