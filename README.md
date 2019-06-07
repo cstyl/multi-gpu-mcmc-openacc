@@ -10,40 +10,40 @@ See [here](./docs/installations/install.md) for installation directions.
 
 # Progress
 
-### Data Generators
+- [ ] **`Data Generators`**
 
-[ ]
+  * [ ]
 
-### Serial Code
-[X] Parsing command line arguments
+- [ ] **`Serial Code`**
+  * [X] Parsing command line arguments
 
-[X] Allocation of data and sample arrays
+  * [X] Allocation of data and sample arrays
 
-[X] Read data from files
+  * [X] Read data from files
 
-[ ] Setup RNG
+  * [ ] Setup RNG
 
-[ ] Initialise samples
+  * [ ] Initialise samples
 
-[ ] Random walk & proposal step
+  * [ ] Random walk & proposal step
 
-[ ] Prior evaluation
+  * [ ] Prior evaluation
 
-[ ] Likelihood Implementation
+  * [ ] Likelihood Implementation
 
-[ ] Evaluation of posteriors
+  * [ ] Evaluation of posteriors
 
-[ ] Accept Reject Sample
+  * [ ] Accept Reject Sample
 
-[ ] Time sampler
+  * [ ] Time sampler
 
-[ ] Write generated chain to file
+  * [ ] Write generated chain to file
 
-[ ] Evaluate autocorrelation and ESS
+  * [ ] Evaluate autocorrelation and ESS
 
-[ ] Evaluate classification accuracy in test data
+  * [ ] Evaluate classification accuracy in test data
 
 
-### Single-GPU code using OpenACC
+- [ ] **`Single-GPU code using OpenACC`**
 
-### Multi-GPU code using OpenACC
+- [ ] **`Multi-GPU code using OpenACC`**
