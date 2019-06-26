@@ -6,12 +6,12 @@ def parse_cmdline():
 	parser = argparse.ArgumentParser(description='Specify the parameters of the generated dataset')
 
 	parser.add_argument('-dim', dest='dim', type=int, help='an integer for dimensionality', default=10)
-	parser.add_argument('-N', dest='N', type=int, help='an integer for dataset size', default=1000)
-
-	parser.add_argument('-train', dest='train', type=float, help='Train data percentage', default=0.80)
+	parser.add_argument('-Ntrain', dest='Ntrain', type=int, help='an integer for training dataset size', default=1000)
+	parser.add_argument('-Ntest', dest='Ntest', type=int, help='an integer for test dataset size', default=200)
 
 	parser.add_argument('-precision', dest='precision', choices=['single', 'double'], help='Specify the precision to be used in the calculations', default='double')
 
+	parser.add_argument('-beta', dest='beta', type=float, nargs='*', default=(0))
 	args = parser.parse_args()
 
 	return args

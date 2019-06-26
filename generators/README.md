@@ -7,12 +7,13 @@ In this directory all the data generators to be used in the project are included
 #### Synthetic Data:
 To generate a synthetic data set, change the directory to be `synthetic/`. Then run:
 ```sh
-$ python generator.py -dim <int> -N <int> -train <float> -precision <type>
+$ python generator.py -dim <int> -Ntrain <int> -Ntest <int> -precision <type> -beta <tuple>
 ```
 where:
-- `N`: Is the number of generated data points. Default is 1000.
+- `Ntrain`: Is the number of generated training data points. Default is 1000.
+- `Ntest`: Is the number of generated test data points. Default is 1000.
 - `dim`: Is the dimensionality of each data point. Default is 10.
-- `train`: Is the percentage of train data from the whole data set. The remaining data are assigned to test set. Default is 0.8, i.e 80% of the generated data are the training set.
+- `beta`: The values of the actual model parameters. Set to zero if to be randomly generated. Default is 0.
 - `precision`: The type of the output data. Select between single or double precision. Default is double.
 
 Once `generator.py` is executed, the following files are generated in `synthetic/`:
@@ -92,4 +93,3 @@ $ ./infimnist patterns 0 999 > mnist1k-patterns-idx3-ubyte
 $ cd ../cleaner/
 $ python cleaner.py -data ../generator/mnist1k-patterns-idx3-ubyte -labels ../generator/mnist1k-labels-idx1-ubyte -classes 4 9 -dim 784 -N 1000 -train 0.8 -precision double -pca 10 -shuffle 1
 ```
-
