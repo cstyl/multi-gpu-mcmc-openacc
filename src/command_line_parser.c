@@ -11,7 +11,7 @@ typedef struct cmd_line_args_s cmd_args_t;
 
 struct cmd_line_args_s
 {
-  struct arg_int *dim, *train_n, *test_n, *Ns, *Nburn;
+  struct arg_int *dim, *train_n, *test_n, *Ns, *Nburn, *maxlag;
   struct arg_dbl *rwsd;
   struct arg_str *datadir;
   struct arg_file *train_x, *train_y, *test_x, *test_y;
@@ -76,7 +76,7 @@ int cmd_free(cmd_t *cmd){
   free(cmd);
 
   assert(cmd != NULL);
-  
+
   return CMD_SUCCESS;
 }
 
@@ -96,7 +96,7 @@ int cmd_parse(int an, char *av[], cmd_t *cmd){
   args.progname = av[0];
   cmd_setup_argtable(&args);
   void* argtable[] = {  args.dim, args.train_n, args.test_n,
-                        args.Ns, args.Nburn, args.rwsd,
+                        args.Ns, args.Nburn, args.rwsd, args.maxlag,
                         args.datadir,
                         args.train_x, args.train_y,
                         args.test_x, args.test_y,
@@ -131,7 +131,7 @@ int cmd_parse(int an, char *av[], cmd_t *cmd){
     arg_print_glossary(stdout, argtable,"  %-25s %s\n");
     /* deallocate each non-null entry in argtable[] before return */
     arg_freetable(argtable, sizeof(argtable)/sizeof(argtable[0]));
-    return CMD_HELP;
+    exit(CMD_SUCCESS);
   }
 
   /* display errors */
@@ -141,7 +141,7 @@ int cmd_parse(int an, char *av[], cmd_t *cmd){
     arg_print_errors(stdout, args.end, args.progname);
     printf("Try '%s --help' for more information.\n", args.progname);
     arg_freetable(argtable, sizeof(argtable)/sizeof(argtable));
-    return CMD_INVALID;
+    exit(CMD_SUCCESS);
   }
 
   /* copy the parsed values to the appropriate program variables */
@@ -182,7 +182,7 @@ int cmd_print_status(cmd_t *cmd){
 	printf("%45s:\t%d\n", "Number of generated samples (post burn-in)", cmd->Ns);
 	printf("%45s:\t%d\n", "Burn in samples", cmd->Nburn);
 	printf("%45s:\t%f\n", "Standard deviation in random walk", cmd->rwsd);
-
+	printf("%45s:\t%d\n", "Maximum allowed autocorrelation lag", cmd->maxlag);
 	printf("---------------------------------------------------------------------------------\n");
 
   return CMD_SUCCESS;
@@ -202,6 +202,7 @@ static void cmd_setup_argtable(cmd_args_t *args){
   args->test_n = arg_int0(NULL, "test_n", "<int>", "define an integer value for test samples (default is 2000)");
   args->Ns = arg_int0("s", "samples", "<int>", "define an integer value for generated samples (default is 20000)");
   args->Nburn = arg_int0("b", "burn", "<int>", "define an integer value for burn samples (default is 5000)");
+  args->maxlag = arg_int0("a", "maxlag", "<int>", "define an integer value for maximum allowed autocorrelation lag (default is 1)");
 
   args->rwsd = arg_dbl0("w", "rwsd", "<real>", "define a real value for random walk step size (default is 1.374)");
 
@@ -232,7 +233,8 @@ static void cmd_setup_default_values(cmd_args_t *args){
   args->test_n->ival[0] = 2000;
   args->Ns->ival[0] = 20000;
   args->Nburn->ival[0] = 5000;
-  args->rwsd->dval[0] = 2.38 / sqrt(args->dim->ival[0]);
+  args->rwsd->dval[0] = 0;
+  args->maxlag->ival[0] = (args->Ns->ival[0] / 2)-1;
   args->datadir->sval[0] = "./data";
   args->train_x->filename[0] = "X_train_10000_3.csv";
   args->train_y->filename[0] = "Y_train_10000_3.csv";
@@ -256,10 +258,18 @@ static int cmd_extract_args(cmd_args_t *args, cmd_t *cmd){
 	CHECK_POSITIVE(cmd->dim, args->dim->ival[0], args->progname, "-d|--dim=<int>");
 	CHECK_POSITIVE(cmd->Ns, args->Ns->ival[0], args->progname, "-s|--samples=<int>");
 	CHECK_POSITIVE(cmd->Nburn, args->Nburn->ival[0], args->progname, "-b|--burn=<int>");
+  CHECK_POSITIVE(cmd->maxlag, args->maxlag->ival[0], args->progname, "-l|--maxlag=<int>");
+  if(cmd->maxlag > (cmd->Ns/2) -1)
+  {
+    printf("Warning: Maximum autocorrelation lag set to %d exceeds %d. ",
+            cmd->maxlag, (cmd->Ns/2) - 1);
+    cmd->maxlag = (cmd->Ns/2) - 1;
+    printf("Value casted to %d. ", cmd->maxlag);
+  }
 	CHECK_POSITIVE(cmd->rwsd, args->rwsd->dval[0], args->progname, "-w|--rwsd=<int>");
   if(cmd->rwsd == 0)
   {
-    cmd->rwsd = 2.38 / sqrt(cmd->dim);
+    cmd->rwsd = 2.38 / sqrt(cmd->dim+1);
   }
 
   CHECK_POSITIVE(cmd->train.dim, args->dim->ival[0], args->progname, "-d|--dim=<int>");

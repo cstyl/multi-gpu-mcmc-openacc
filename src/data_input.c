@@ -17,16 +17,6 @@ enum data_error {DATA_SUCCESS = 0,
                  DATA_ERROR
 };
 
-
-#define CHECK_FILE_OPEN(fp, filename) \
-({\
-  if(fp == NULL)\
-  {\
-  fprintf(stderr, "ERROR::%s:%d:%s: Opening %s file failed!\n", __FILE__, __LINE__, __func__, filename);\
-  return(DATA_FILE_FAILURE);\
-  }\
-})
-
 #define CONVERT(in, type_t, out, pos)\
 ({\
   if(!strcmp(type_t,"int"))\
@@ -156,7 +146,7 @@ int data_print_file(data_t *data){
 static int data_csvread( char *filename, int rowSz, int colSz, int skip_header,
                     const char *delimiter, const char *datatype, void *data){
 
-  FILE* fp;
+  FILE* fp = NULL;
   char line[BUFSIZ];
   const char *tok;
   int i,j;
@@ -165,7 +155,7 @@ static int data_csvread( char *filename, int rowSz, int colSz, int skip_header,
 
   printf("Reading data from %s...", filename);
   fp = fopen(filename, "r");
-  CHECK_FILE_OPEN(fp, filename);
+  assert(fp);
 
   data_rmheader(line, fp, skip_header);
   for(i=0; i<colSz; i++)

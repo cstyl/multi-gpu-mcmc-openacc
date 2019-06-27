@@ -6,7 +6,6 @@
 
 #include "metropolis.h"
 #include "sample.h"
-#include "chain.h"
 
 struct met_s{
   cmd_t    *cmd;
@@ -14,7 +13,8 @@ struct met_s{
   data_t   *data;
   sample_t *current;
   sample_t *proposed;
-  chain_t  *chain;
+  chain_t  *bchain;     /* Chain during burn in period */
+  chain_t  *chain;      /* Chain during post-burn in in period */
 };
 
 enum metropolis_error {METROPOLIS_SUCCESS = 0,
@@ -47,8 +47,10 @@ int metropolis_create(cmd_t *cmd, rng_t *rng, data_t *data, met_t **pmet){
   met->rng = rng;
   met->data = data;
 
-  // lh_create(&cmd->params, &met->lhood);
-  chain_create(met->cmd, &met->chain);
+  /* TO-CHECK: form values <6000 of Nburn and Ns free leads to memory leak */
+  chain_create(cmd, &met->bchain, cmd->Nburn, cmd->dim);
+  chain_create(cmd, &met->chain, cmd->Ns, cmd->dim);
+  printf("chain: %p\n", met->chain);
   sample_create(met->cmd, &met->current);
   sample_create(met->cmd, &met->proposed);
 
@@ -70,11 +72,13 @@ int metropolis_free(met_t *met){
   sample_free(met->current);
   sample_free(met->proposed);
   chain_free(met->chain);
+  chain_free(met->bchain);
 
   free(met);
 
   assert(met->current != NULL);
   assert(met->proposed != NULL);
+  assert(met->bchain != NULL);
   assert(met->chain != NULL);
   assert(met != NULL);
 
@@ -91,19 +95,19 @@ int metropolis_init(met_t *met, int random){
 
   assert(met);
 
-  cmd_t    *cmd   = NULL;
-  sample_t *cur   = NULL;
-  rng_t    *rng   = NULL;
-  chain_t  *chain = NULL;
-  data_t   *data  = NULL;
+  cmd_t    *cmd    = NULL;
+  sample_t *cur    = NULL;
+  rng_t    *rng    = NULL;
+  chain_t  *bchain = NULL;
+  data_t   *data   = NULL;
 
-  cmd   = met->cmd;
-  cur   = met->current;
-  rng   = met->rng;
-  chain = met->chain;
-  data  = met->data;
+  cmd    = met->cmd;
+  cur    = met->current;
+  rng    = met->rng;
+  bchain = met->bchain;
+  data   = met->data;
 
-  sample_init(cmd, rng, data, chain, cur, random);
+  sample_init(cmd, rng, data, bchain, cur, random);
 
   return METROPOLIS_SUCCESS;
 }
@@ -120,6 +124,7 @@ int metropolis_run(met_t *met){
   sample_t *cur   = NULL;
   sample_t *pro   = NULL;
   rng_t    *rng   = NULL;
+  chain_t  *bchain = NULL;
   chain_t  *chain = NULL;
   data_t   *data  = NULL;
   int i;
@@ -131,22 +136,41 @@ int metropolis_run(met_t *met){
   pro   = met->proposed;
   rng   = met->rng;
   data  = met->data;
+  bchain = met->bchain;
   chain = met->chain;
 
-  chain->accepted[0] = 0;
-  for(i=1; i<cmd->Nburn; i++)
+  printf("\nStarting burn-in period of %d steps..\n", cmd->Nburn);
+  chain_init_stats(0, bchain);
+  for(i=1; i<=cmd->Nburn; i++)
+  {
+    sample_propose(cmd, rng, cur, pro);
+    bchain->probability[i] = sample_evaluate(cmd, rng, data, cur, pro);
+    sample_choose(i, cmd, rng, bchain, &cur, &pro);
+  }
+
+  printf("\nStarting post burn-in period of %d steps..\n", cmd->Ns);
+  chain_init_stats(0, chain);
+  for(i=1; i<=cmd->Ns; i++)
   {
     sample_propose(cmd, rng, cur, pro);
     chain->probability[i] = sample_evaluate(cmd, rng, data, cur, pro);
     sample_choose(i, cmd, rng, chain, &cur, &pro);
   }
 
-  for(i=cmd->Nburn; i<(cmd->Nburn + cmd->Ns); i++)
-  {
-    sample_propose(cmd, rng, cur, pro);
-    chain->probability[i] = sample_evaluate(cmd, rng, data, cur, pro);
-    sample_choose(i, cmd, rng, chain, &cur, &pro);
-  }
+  return METROPOLIS_SUCCESS;
+}
+
+/*****************************************************************************
+ *
+ *  metropolis_chain
+ *
+ *****************************************************************************/
+
+int metropolis_chain(met_t *met, chain_t **pchain){
+
+  assert(met);
+  printf("met chain %p\n", met->chain);
+  *pchain = met->chain;
 
   return METROPOLIS_SUCCESS;
 }

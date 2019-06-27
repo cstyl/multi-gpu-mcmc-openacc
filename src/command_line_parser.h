@@ -17,7 +17,9 @@ struct cmd_data_s
 struct cmd_s
 {
   int dim;
-  int Ns, Nburn;
+  int Ns;
+  int Nburn;
+  int maxlag;
   precision rwsd;
   cmd_data_t train;
   cmd_data_t test;

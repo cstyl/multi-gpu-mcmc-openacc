@@ -9,6 +9,10 @@
 #include "prior.h"
 #include "memory.h"
 
+#define PRINT_PROGRESS 1
+#define PRINT_FREQUENCY 5000
+#define VERBOSE 1
+
 struct sample_s{
   lh_t      *lhood;
   precision *values;
@@ -23,6 +27,9 @@ enum sample_error {SAMPLE_SUCCESS = 0,
 };
 
 static void sample_swap_ptrs(void **ptr1, void **ptr2);
+static int sample_print_progress(cmd_t *cmd, int dec, int idx, precision u,
+                                  sample_t *cur, sample_t *pro, chain_t *chain,
+                                  int verbose);
 
 /*****************************************************************************
  *
@@ -160,6 +167,7 @@ void sample_choose(int idx, cmd_t *cmd, rng_t *rng,
                    chain_t *chain, sample_t **pcur, sample_t **ppro){
 
   precision u;
+  int accepted = 0;
   sample_t *cur = NULL;
   sample_t *pro = NULL;
 
@@ -172,16 +180,6 @@ void sample_choose(int idx, cmd_t *cmd, rng_t *rng,
   pro = *ppro;
   cur = *pcur;
 
-  printf("iter:%d | theta:", idx);
-  int l;
-  for(l=0; l<cmd->dim+1; l++)
-    printf("\t%f", pro->values[l]);
-  printf("\n");
-  printf("        | current  \t prior=%f \t lhood=%f \t posterior=%f\n",
-          cur->prior, cur->likelihood, cur->posterior);
-  printf("        | proposed \t prior=%f \t lhood=%f \t posterior=%f\n",
-          pro->prior, pro->likelihood, pro->posterior);
-
   /* to stochastically accept/reject the proposed sample*/
   u = rng_uniform_prob(rng, cmd->dim+1);
 
@@ -189,7 +187,7 @@ void sample_choose(int idx, cmd_t *cmd, rng_t *rng,
   {
     /* accept the proposal, add the proposed sample to the chain */
     chain_append_sample(idx, pro->values, chain);
-    chain->accepted[idx] = chain->accepted[idx-1] + 1;
+    accepted = 1;
     /* swap pointers of two samples instead of copying the contents of each other */
     sample_swap_ptrs((void**)&cur, (void**)&pro);
   }else{
@@ -197,16 +195,71 @@ void sample_choose(int idx, cmd_t *cmd, rng_t *rng,
     chain_append_sample(idx, cur->values, chain);
   }
 
-  printf("%f < %f ? %s\n", log(u), chain->probability[idx], log(u)<=chain->probability[idx]? "accepted":"rejected");
-  printf("accepted samples = %d\tacceptance ratio = %f\n", chain->accepted[idx], chain->ratio[idx]);
+  chain_append_stats(idx, accepted, chain);
+
+#if PRINT_PROGRESS
+  if((idx==1) || idx%PRINT_FREQUENCY==0)
+    sample_print_progress(cmd, accepted, idx, log(u), cur, pro, chain, VERBOSE);
+#endif
 
   *ppro = pro;
   *pcur = cur;
 }
+
+/*****************************************************************************
+ *
+ *  sample_swap_ptrs
+ *
+ *****************************************************************************/
 
 static void sample_swap_ptrs(void **ptr1, void **ptr2)
 {
   void *ptr_temp = *ptr1;
 	*ptr1 = *ptr2;
 	*ptr2 = ptr_temp;
+}
+
+/*****************************************************************************
+ *
+ *  sample_print_progress
+ *
+ *****************************************************************************/
+
+static int sample_print_progress(cmd_t *cmd, int dec, int idx, precision u,
+                                  sample_t *cur, sample_t *pro, chain_t *chain,
+                                  int verbose){
+
+  assert(cmd);
+  assert(cur);
+  assert(pro);
+  assert(chain);
+
+  printf("Iteration %6d:\t", idx);
+  printf("%20s%6d\t", "Accepted Samples = ", chain->accepted[idx]);
+  printf("%20s%4.3f%s\n", "Acceptance Ratio = ",chain->ratio[idx]*100, "(%)");
+
+  if(verbose)
+  {
+    int i;
+    printf("\tCurrent Sample:\n\t\tValues:");
+    for(i=0; i<cmd->dim+1; i++) printf("\t%f", (dec != 0) ? pro->values[i] : cur->values[i]);
+    printf("\n\t\tStats:\tPrior = %f\tLikelihood = %f\tPosterior=%f\n",
+            dec==1 ? pro->prior:cur->prior,
+            dec==1 ? pro->likelihood:cur->likelihood,
+            dec==1 ? pro->posterior:cur->posterior
+          );
+
+    printf("\tProposed Sample:\n\t\tValues:");
+    for(i=0; i<cmd->dim+1; i++) printf("\t%f", dec==1 ? cur->values[i]:pro->values[i]);
+    printf("\n\t\tStats:\tPrior = %f\tLikelihood = %f\tPosterior=%f\n",
+            dec==1 ? cur->prior:pro->prior,
+            dec==1 ? cur->likelihood:pro->likelihood,
+            dec==1 ? cur->posterior:pro->posterior
+          );
+
+    printf("\tDecision: Proposed sample %s! (%f<%f)\n\n",
+            dec==1?"accepted":"rejected", u, chain->probability[idx]);
+  }
+
+  return SAMPLE_SUCCESS;
 }

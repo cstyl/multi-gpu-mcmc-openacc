@@ -12,6 +12,7 @@ int main(int argc, char *argv[]){
   mcmc_setup(argc, argv, mcmc);
 
   mcmc_sample(mcmc);
+  mcmc_statistics(mcmc);
   mcmc_infer(mcmc);
 
   mcmc_disassemble(mcmc);

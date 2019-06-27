@@ -17,33 +17,42 @@ DATA = data
 RES = res
 SCRIPTS = scripts
 
-RESOURCES=$(SRC)/resources
-RNG=$(SRC)/rng
-MCMC=$(SRC)/mcmc
-UTIL=$(SRC)/util
+VPATH = $(SRC)
 
-VPATH = $(SRC) $(RESOURCES) $(RNG) $(MCMC) $(UTIL)
+INC_PATH = -I$(SRC) -I$(ARGTABLE_INC) -I$(GSL_INC)
 
-INC_PATH = -I$(SRC) -I$(RESOURCES) -I$(RNG) -I$(MCMC) -I$(UTIL) \
-					-I$(ARGTABLE_INC) -I$(GSL_INC)
+OBJS = $(OBJ)/main.o \
+			 $(OBJ)/chain.o $(OBJ)/command_line_parser.o $(OBJ)/data_input.o \
+			 $(OBJ)/logistic_regression.o $(OBJ)/mcmc.o $(OBJ)/memory.o \
+			 $(OBJ)/metropolis.o $(OBJ)/prior.o $(OBJ)/random_number_generator.o \
+			 $(OBJ)/sample.o $(OBJ)/autocorrelation.o
 
-MAIN_OBJ = $(OBJ)/main.o
-RNG_OBJ = $(OBJ)/rng.o
-UTIL_OBJ = $(OBJ)/cmd_line_parser.o $(OBJ)/memory.o $(OBJ)/file_io.o
-MCMC_OBJ = $(OBJ)/mcmc.o
 
 all: dir $(BIN)/util
 
 run:
-	./$(BIN)/util --dim=5 --train_n=8 --test_n=2 --samples=5 --burn=5 \
-								--datadir=data \
-								--train_x=X_train_10_5.csv --train_y=Y_train_10_5.csv \
-								--test_x=X_test_10_5.csv --test_y=Y_test_10_5.csv
+	./$(BIN)/util --dim=2 --train_n=5000 --test_n=1000 --samples=500000 --burn=100000 \
+								--rwsd=0 --datadir=data/synthetic/6000_2 \
+								--maxlag=249999 \
+								--train_x=X_train.csv --train_y=Y_train.csv \
+								--test_x=X_test.csv --test_y=Y_test.csv
 
-$(OBJ)/%.o: %.c
+shortrun:
+	./$(BIN)/util --dim=2 --train_n=500 --test_n=100 --samples=35000 --burn=10000 \
+								--rwsd=0 --datadir=data/synthetic/600_2 \
+								--maxlag=17499 \
+								--train_x=X_train.csv --train_y=Y_train.csv \
+								--test_x=X_test.csv --test_y=Y_test.csv
+
+synthetic:
+	cd ./generators/synthetic/ && \
+	python generator.py -dim $(DIM) -N $(N) -train 0.8 -precision double && \
+	mv *.csv ../../data/
+
+$(OBJ)/%.o: $(SRC)/%.c
 	$(CC) $(CCFLAGS) $(INC_PATH) -o $@ -c $<
 
-$(BIN)/util: $(MCMC_OBJ) $(RNG_OBJ) $(UTIL_OBJ) $(MAIN_OBJ)
+$(BIN)/util: $(OBJS)
 	$(CC) $(LDFLAGS) $^ -o $@ $(LDLIBS)
 
 .PHONY: dir

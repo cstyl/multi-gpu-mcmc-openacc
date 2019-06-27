@@ -1,0 +1,300 @@
+#include <assert.h>
+#include <math.h>
+#include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
+
+#include "autocorrelation.h"
+#include "chain.h"
+#include "memory.h"
+
+enum autocorrelation_error {AUTOCOR_SUCCESS = 0,
+                            AUTOCOR_ERROR
+};
+
+typedef struct acr_1d_s acr_1d_t;
+
+struct acr_s{
+  cmd_t *cmd;
+  chain_t *chain;
+  acr_1d_t **acr_1d;
+};
+
+struct acr_1d_s{
+  int N;
+  int maxlag;
+  precision mean;
+  precision variance;
+  precision *X;
+  precision *lagk;
+  precision autocorrelation;
+};
+
+static int acr_create_1d(int N, int maxlag, acr_1d_t **pacr_1d);
+static precision acr_free_1d(acr_1d_t *acr1d);
+static int acr_load_X_array_1d(chain_t *chain, acr_1d_t *acr_1d, int N, int dim, int idx);
+static int acr_compute_acr_1d(acr_1d_t *acr_1d);
+static precision acr_compute_mean(precision *X, int N);
+static precision acr_compute_variance(precision *X, precision mean, int N);
+static precision acr_compute_acr_lagk(acr_1d_t *acr_1d, int lag);
+
+/*****************************************************************************
+ *
+ *  acr_create
+ *
+ *****************************************************************************/
+
+int acr_create(cmd_t *cmd, met_t *met, acr_t **pacr){
+
+  acr_t    *acr   = NULL;
+  acr_1d_t **acr1d = NULL;
+  int i;
+  assert(cmd);
+  assert(met);
+
+  acr = (acr_t *) calloc(1, sizeof(acr_t));
+  assert(acr);
+  if(acr == NULL)
+  {
+    printf("calloc(acr_t) failed\n");
+    exit(AUTOCOR_ERROR);
+  }
+
+  acr->cmd   = cmd;
+  metropolis_chain(met, &acr->chain);
+  printf("arc chain: %p\n", acr->chain);
+  acr1d = (acr_1d_t **) malloc((cmd->dim+1) * sizeof(acr_1d_t *));
+  assert(acr1d);
+  if(acr1d == NULL)
+  {
+    printf("malloc(acr_1d_t) failed\n");
+    exit(AUTOCOR_ERROR);
+  }
+
+  for(i=0; i<cmd->dim+1; i++) acr_create_1d(cmd->Ns, cmd->maxlag, &acr1d[i]);
+
+  acr->acr_1d = acr1d;
+  *pacr = acr;
+
+  return AUTOCOR_SUCCESS;
+}
+
+/*****************************************************************************
+ *
+ *  acr_free
+ *
+ *****************************************************************************/
+
+int acr_free(acr_t *acr){
+
+  assert(acr);
+
+  int i;
+
+  for(i=0; i<acr->cmd->dim+1; i++)
+    acr_free_1d(acr->acr_1d[i]);
+
+  free(acr->acr_1d);
+  free(acr);
+
+  assert(acr->acr_1d != NULL);
+  assert(acr != NULL);
+
+  return AUTOCOR_SUCCESS;
+}
+
+/*****************************************************************************
+ *
+ *  acr_compute_acr
+ *
+ *****************************************************************************/
+
+int acr_compute_acr(acr_t *acr){
+
+  assert(acr);
+
+  int i;
+
+  for(i=0; i<acr->cmd->dim+1; i++)
+  {
+    acr_load_X_array_1d(acr->chain, acr->acr_1d[i], acr->cmd->Ns, acr->cmd->dim+1, i);
+    acr_compute_acr_1d(acr->acr_1d[i]);
+  }
+
+  return AUTOCOR_SUCCESS;
+}
+
+/*****************************************************************************
+ *
+ *  acr_print_acr
+ *
+ *****************************************************************************/
+
+int acr_print_acr(acr_t *acr){
+
+  assert(acr);
+
+  int i,j;
+  printf("Autocorrelation Summary:\n");
+  for(i=0; i<acr->cmd->dim+1; i++)
+  {
+    // printf("\t%d: lagk:", i);
+    // for(j=0; j<acr->acr_1d[i]->maxlag; j++)
+    // {
+    //   printf("\t%2.4f", acr->acr_1d[i]->lagk[j]);
+    // }
+    printf("\n\tAutocorrelation:%f\tMean:%f\tVariance:%f\n",
+            acr->acr_1d[i]->autocorrelation, acr->acr_1d[i]->mean, acr->acr_1d[i]->variance);
+  }
+
+  return AUTOCOR_SUCCESS;
+}
+
+/*****************************************************************************
+ *
+ *  acr_create_1d
+ *
+ *****************************************************************************/
+
+static int acr_create_1d(int N, int maxlag, acr_1d_t **pacr_1d){
+
+  acr_1d_t *acr1d = NULL;
+
+  acr1d = (acr_1d_t *) calloc(1, sizeof(acr_1d_t));
+  assert(acr1d);
+  if(acr1d == NULL)
+  {
+    printf("calloc(acr_1d_t) failed\n");
+    exit(AUTOCOR_ERROR);
+  }
+
+  acr1d->N = N;
+  acr1d->maxlag = maxlag;
+  mem_malloc_precision(&acr1d->X, acr1d->N);
+  mem_malloc_precision(&acr1d->lagk, acr1d->maxlag);
+
+  *pacr_1d = acr1d;
+
+  return AUTOCOR_SUCCESS;
+}
+
+static precision acr_free_1d(acr_1d_t *acr1d){
+
+  assert(acr1d);
+
+  free(acr1d->X);
+  free(acr1d->lagk);
+  free(acr1d);
+
+  assert(acr1d->X != NULL);
+  assert(acr1d->lagk != NULL);
+  assert(acr1d != NULL);
+
+  return AUTOCOR_SUCCESS;
+}
+
+/*****************************************************************************
+ *
+ *  acr_load_array_1d
+ *
+ *****************************************************************************/
+
+static int acr_load_X_array_1d(chain_t *chain, acr_1d_t *acr_1d, int N, int dim, int idx){
+
+  assert(chain);
+  assert(acr_1d);
+
+  int i;
+  for(i=0; i<N; i++)
+    acr_1d->X[i] = chain->samples[i*dim+idx];
+
+  return AUTOCOR_SUCCESS;
+}
+
+/*****************************************************************************
+ *
+ *  acr_compute_acr_1d
+ *
+ *****************************************************************************/
+
+static int acr_compute_acr_1d(acr_1d_t *acr_1d){
+
+  int i;
+
+  assert(acr_1d);
+
+  acr_1d->mean = acr_compute_mean(acr_1d->X, acr_1d->N);
+  acr_1d->variance = acr_compute_variance(acr_1d->X, acr_1d->mean, acr_1d->N);
+
+  for(i=0; i<acr_1d->maxlag; i++)
+    acr_1d->lagk[i] = acr_compute_acr_lagk(acr_1d, i);
+
+  acr_1d->autocorrelation = 0.0;
+  for(i=0; i<acr_1d->maxlag; i++)
+    acr_1d->autocorrelation += acr_1d->lagk[i];
+
+  acr_1d->autocorrelation = acr_1d->N / (1 + 2 * acr_1d->autocorrelation);
+
+  return AUTOCOR_SUCCESS;
+}
+
+/*****************************************************************************
+ *
+ *  acr_compute_mean
+ *
+ *****************************************************************************/
+
+static precision acr_compute_mean(precision *X, int N){
+
+  int i;
+  precision mean = 0.0;
+  assert(X);
+
+  for(i=0; i<N; i++)
+    mean += X[i];
+
+  return (mean / N);
+}
+
+/*****************************************************************************
+ *
+ *  acr_compute_variance
+ *
+ *****************************************************************************/
+
+static precision acr_compute_variance(precision *X, precision mean, int N){
+
+  int i;
+  precision var = 0.0;
+  assert(X);
+
+  for(i=0; i<N; i++)
+    var += pow((X[i]-mean), 2.0);
+
+  return (var / N);
+}
+
+/*****************************************************************************
+ *
+ *  acr_compute_acr_lagk
+ *
+ *****************************************************************************/
+
+static precision acr_compute_acr_lagk(acr_1d_t *acr_1d, int lag){
+
+  int i;
+  precision acrk = 0.0;
+
+  assert(acr_1d);
+
+  for(i=0; i<acr_1d->N-lag; i++)
+  {
+    acrk += (acr_1d->X[i]-acr_1d->mean) * (acr_1d->X[i+lag]-acr_1d->mean);
+  }
+  acrk *= 1.0 / (acr_1d->N - lag);
+
+  /* Interested in monotonically decreasing positive autocorrelations
+   * Once values reach to -ve can be considered as noise and discarded
+   */
+  return (acrk >= 0) ? (acrk / acr_1d->variance) : 0.0;
+}

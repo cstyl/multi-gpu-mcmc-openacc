@@ -17,7 +17,7 @@ enum chain_error {CHAIN_SUCCESS = 0,
  *
  *****************************************************************************/
 
-int chain_create(cmd_t *cmd, chain_t **pchain){
+int chain_create(cmd_t *cmd, chain_t **pchain, int size, int dim){
 
   chain_t *chain = NULL;
 
@@ -33,11 +33,10 @@ int chain_create(cmd_t *cmd, chain_t **pchain){
 
   chain->cmd = cmd;
 
-  mem_malloc_precision(&chain->samples, (chain->cmd->Ns + chain->cmd->Nburn)
-                                        * (chain->cmd->dim + 1));
-  mem_malloc_precision(&chain->probability, chain->cmd->Ns + chain->cmd->Nburn);
-  mem_malloc_precision(&chain->ratio, chain->cmd->Ns + chain->cmd->Nburn);
-  mem_malloc_integers(&chain->accepted, chain->cmd->Ns + chain->cmd->Nburn);
+  mem_malloc_precision(&chain->samples, size * (dim+1));
+  mem_malloc_precision(&chain->probability, size);
+  mem_malloc_precision(&chain->ratio, size);
+  mem_malloc_integers(&chain->accepted, size);
 
   *pchain = chain;
 
@@ -54,10 +53,11 @@ int chain_free(chain_t *chain){
 
   assert(chain);
 
-  if(chain->samples) free(chain->samples);
-  if(chain->probability) free(chain->probability);
-  if(chain->ratio) free(chain->ratio);
-  if(chain->accepted) free(chain->accepted);
+  free(chain->samples);
+  free(chain->probability);
+  free(chain->ratio);
+  free(chain->accepted);
+  free(chain);
 
   assert(chain->samples != NULL);
   assert(chain->probability != NULL);
@@ -81,13 +81,9 @@ int chain_append_sample(int i, precision *sample, chain_t *chain){
   assert(sample);
 
   int idx;
-  cmd_t *cmd = NULL;
-  cmd = chain->cmd;
+  int size = chain->cmd->dim+1;
 
-  for(idx=0; idx<(cmd->dim+1); idx++)
-  {
-    chain->samples[i*(cmd->dim+1)+idx] = sample[idx];
-  }
+  for(idx=0; idx<size; idx++) chain->samples[i*size+idx] = sample[idx];
 
   return CHAIN_SUCCESS;
 }
@@ -98,14 +94,30 @@ int chain_append_sample(int i, precision *sample, chain_t *chain){
  *
  *****************************************************************************/
 
-int chain_append_stats(int i, precision probability, int accepted, chain_t *chain){
+int chain_append_stats(int i, int accepted, chain_t *chain){
 
   assert(chain);
   assert(i);
 
-  chain->accepted[i] = accepted;
-  chain->ratio[i] = accepted / i;
-  chain->probability[i] = probability;
+  chain->accepted[i] = chain->accepted[i-1] + accepted;
+  chain->ratio[i] = (precision)chain->accepted[i] / (precision)i;
+
+  return CHAIN_SUCCESS;
+}
+
+/*****************************************************************************
+ *
+ *  chain_init_stats
+ *
+ *****************************************************************************/
+
+int chain_init_stats(int i, chain_t *chain){
+
+  assert(chain);
+
+  chain->probability[i] = 0.0;
+  chain->accepted[i] = 0;
+  chain->ratio[i] = 0.0;
 
   return CHAIN_SUCCESS;
 }

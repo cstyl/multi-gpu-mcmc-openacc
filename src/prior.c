@@ -8,7 +8,7 @@
 #include "random_number_generator.h"
 
 // large to simulate non-informative prior
-#define PRIOR_SD 10
+#define PRIOR_SD 1000000
 
 precision pr_log_prob(cmd_t *cmd, precision *sample){
 
