@@ -57,3 +57,47 @@ int mem_malloc_integers(int **array, int elements){
 
 	return MEM_SUCCESS;
 }
+
+/*****************************************************************************
+ *
+ *  mem_copy
+ *
+ *****************************************************************************/
+
+int mem_copy_precision(precision *original, precision *copy, int n){
+
+  assert(original);
+  assert(copy);
+  int i;
+
+  for(i=0; i<n; i++)
+    copy[i] = original[i];
+
+  return MEM_SUCCESS;
+}
+
+/*****************************************************************************
+ *
+ *  mem_sort
+ *
+ *****************************************************************************/
+
+int mem_sort_precision(precision *array, int n){
+
+  assert(array);
+  int i,j;
+  precision temp = 0.0;
+
+  for(i=0; i<n; i++){
+    for(j=0; j<n-1; j++){
+      if(array[j] > array[j+1])
+      {
+        temp = array[j];
+        array[j] = array[j+1];
+        array[j+1] = temp;
+      }
+    }
+  }
+
+  return MEM_SUCCESS;
+}

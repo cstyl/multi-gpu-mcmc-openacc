@@ -25,7 +25,7 @@ OBJS = $(OBJ)/main.o \
 			 $(OBJ)/chain.o $(OBJ)/command_line_parser.o $(OBJ)/data_input.o \
 			 $(OBJ)/logistic_regression.o $(OBJ)/mcmc.o $(OBJ)/memory.o \
 			 $(OBJ)/metropolis.o $(OBJ)/prior.o $(OBJ)/random_number_generator.o \
-			 $(OBJ)/sample.o $(OBJ)/autocorrelation.o
+			 $(OBJ)/sample.o $(OBJ)/autocorrelation.o $(OBJ)/effective_sample_size.o
 
 
 all: dir $(BIN)/util

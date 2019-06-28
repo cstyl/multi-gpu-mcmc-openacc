@@ -50,7 +50,7 @@ int metropolis_create(cmd_t *cmd, rng_t *rng, data_t *data, met_t **pmet){
   /* TO-CHECK: form values <6000 of Nburn and Ns free leads to memory leak */
   chain_create(cmd, &met->bchain, cmd->Nburn, cmd->dim);
   chain_create(cmd, &met->chain, cmd->Ns, cmd->dim);
-  printf("chain: %p\n", met->chain);
+
   sample_create(met->cmd, &met->current);
   sample_create(met->cmd, &met->proposed);
 
@@ -169,7 +169,7 @@ int metropolis_run(met_t *met){
 int metropolis_chain(met_t *met, chain_t **pchain){
 
   assert(met);
-  printf("met chain %p\n", met->chain);
+
   *pchain = met->chain;
 
   return METROPOLIS_SUCCESS;

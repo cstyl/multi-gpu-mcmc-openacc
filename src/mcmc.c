@@ -9,7 +9,7 @@
 #include "random_number_generator.h"
 
 #include "metropolis.h"
-#include "autocorrelation.h"
+#include "effective_sample_size.h"
 #include "mcmc.h"
 
 #define RANDOM 0
@@ -20,7 +20,8 @@ struct mcmc_s{
   data_t *test;            /* Data for inferencing */
   rng_t  *rng;             /* Random Number Generator */
   met_t  *met;             /* Metropolis Sampling */
-  acr_t  *acr;             /* Autocorrelation statistics */
+  ess_t  *ess;             /* Effective Sample Size statistics */
+  // acr_t  *acr;             /* Autocorrelation statistics */
 };
 
 enum mcmc_error {MCMC_SUCCESS = 0,
@@ -86,7 +87,8 @@ int mcmc_setup(int an, char *av[], mcmc_t *mcmc){
    rng_setup(mcmc->rng);
 
    metropolis_create(mcmc->cmd, mcmc->rng, mcmc->train, &mcmc->met);
-   acr_create(mcmc->cmd, mcmc->met, &mcmc->acr);
+   ess_create(mcmc->cmd, mcmc->met, &mcmc->ess);
+   // acr_create(mcmc->cmd, mcmc->met, &mcmc->acr);
 
    return MCMC_SUCCESS;
 }
@@ -104,7 +106,8 @@ int mcmc_disassemble(mcmc_t *mcmc){
   if(mcmc->train) data_free(mcmc->train);
   if(mcmc->test)  data_free(mcmc->test);
   if(mcmc->met)   metropolis_free(mcmc->met);
-  if(mcmc->acr)   acr_free(mcmc->acr);
+  if(mcmc->ess)   ess_free(mcmc->ess);
+  // if(mcmc->acr)   acr_free(mcmc->acr);
 
   rng_free(mcmc->rng);
   cmd_free(mcmc->cmd);
@@ -131,8 +134,10 @@ int mcmc_statistics(mcmc_t *mcmc){
 
   assert(mcmc);
 
-  acr_compute_acr(mcmc->acr);
-  acr_print_acr(mcmc->acr);
+  ess_compute(mcmc->ess);
+  ess_print(mcmc->ess);
+  // acr_compute_acr(mcmc->acr);
+  // acr_print_acr(mcmc->acr);
 
   return MCMC_SUCCESS;
 }
