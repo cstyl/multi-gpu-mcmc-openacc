@@ -7,10 +7,6 @@
 #include "chain.h"
 #include "memory.h"
 
-enum chain_error {CHAIN_SUCCESS = 0,
-                  CHAIN_ERROR
-};
-
 /*****************************************************************************
  *
  *  chain_create
@@ -28,19 +24,19 @@ int chain_create(cmd_t *cmd, chain_t **pchain, int size, int dim){
   if(chain == NULL)
   {
     printf("calloc(chain_t) failed\n");
-    exit(CHAIN_ERROR);
+    exit(1);
   }
 
   chain->cmd = cmd;
 
-  mem_malloc_precision(&chain->samples, size * (dim+1));
-  mem_malloc_precision(&chain->probability, size);
-  mem_malloc_precision(&chain->ratio, size);
-  mem_malloc_integers(&chain->accepted, size);
+  mem_malloc_precision(&chain->samples, (size+1) * (dim+1));
+  mem_malloc_precision(&chain->probability, size+1);
+  mem_malloc_precision(&chain->ratio, size+1);
+  mem_malloc_integers(&chain->accepted, size+1);
 
   *pchain = chain;
 
-  return CHAIN_SUCCESS;
+  return 0;
 }
 
 /*****************************************************************************
@@ -66,7 +62,7 @@ int chain_free(chain_t *chain){
 
   assert(chain != NULL);
 
-  return CHAIN_SUCCESS;
+  return 0;
 }
 
 /*****************************************************************************
@@ -85,7 +81,7 @@ int chain_append_sample(int i, precision *sample, chain_t *chain){
 
   for(idx=0; idx<size; idx++) chain->samples[i*size+idx] = sample[idx];
 
-  return CHAIN_SUCCESS;
+  return 0;
 }
 
 /*****************************************************************************
@@ -102,7 +98,7 @@ int chain_append_stats(int i, int accepted, chain_t *chain){
   chain->accepted[i] = chain->accepted[i-1] + accepted;
   chain->ratio[i] = (precision)chain->accepted[i] / (precision)i;
 
-  return CHAIN_SUCCESS;
+  return 0;
 }
 
 /*****************************************************************************
@@ -119,5 +115,5 @@ int chain_init_stats(int i, chain_t *chain){
   chain->accepted[i] = 0;
   chain->ratio[i] = 0.0;
 
-  return CHAIN_SUCCESS;
+  return 0;
 }

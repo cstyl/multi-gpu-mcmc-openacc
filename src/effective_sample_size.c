@@ -10,10 +10,6 @@
 #include "chain.h"
 #include "memory.h"
 
-enum ess_error {ESS_SUCCESS = 0,
-                ESS_ERROR
-};
-
 struct ess_s{
   cmd_t *cmd;
   chain_t *chain;
@@ -46,7 +42,7 @@ int ess_create(cmd_t *cmd, met_t *met, ess_t **pess){
   if(ess == NULL)
   {
     printf("calloc(ess_t) failed\n");
-    exit(ESS_ERROR);
+    exit(1);
   }
 
   ess->cmd   = cmd;
@@ -55,7 +51,7 @@ int ess_create(cmd_t *cmd, met_t *met, ess_t **pess){
 
   *pess = ess;
 
-  return ESS_SUCCESS;
+  return 0;
 }
 
 /*****************************************************************************
@@ -75,7 +71,7 @@ int ess_free(ess_t *ess){
   assert(ess->acr);
   assert(ess);
 
-  return ESS_SUCCESS;
+  return 0;
 }
 
 /*****************************************************************************
@@ -92,7 +88,7 @@ int ess_compute(ess_t *ess){
   ess_median(ess);
   ess_mean(ess);
 
-  return ESS_SUCCESS;
+  return 0;
 }
 
 /*****************************************************************************
@@ -114,7 +110,7 @@ int ess_print(ess_t *ess){
   printf("\t%10.4f", ess->median);
   printf("\t%10.4f\n\n", ess->mean);
 
-  return ESS_SUCCESS;
+  return 0;
 }
 
 /*****************************************************************************
@@ -139,7 +135,7 @@ static int ess_max(ess_t *ess){
 
   ess->max = max;
 
-  return ESS_SUCCESS;
+  return 0;
 }
 
 /*****************************************************************************
@@ -164,7 +160,7 @@ static int ess_min(ess_t *ess){
 
   ess->min = min;
 
-  return ESS_SUCCESS;
+  return 0;
 }
 
 /*****************************************************************************
@@ -198,7 +194,7 @@ static int ess_median(ess_t *ess){
   free(sorted_ess);
   assert(sorted_ess != NULL);
 
-  return ESS_SUCCESS;
+  return 0;
 }
 
 /*****************************************************************************
@@ -220,5 +216,5 @@ static int ess_mean(ess_t *ess){
 
   ess->mean = mean / (ess->cmd->dim+1);
 
-  return ESS_SUCCESS;
+  return 0;
 }

@@ -10,13 +10,6 @@
 #define SKIP_HEADER 1
 #define Y_DIM 1
 
-enum data_error {DATA_SUCCESS = 0,
-                 DATA_HELP,
-                 DATA_INVALID_TYPE,
-                 DATA_FILE_FAILURE,
-                 DATA_ERROR
-};
-
 #define CONVERT(in, type_t, out, pos)\
 ({\
   if(!strcmp(type_t,"int"))\
@@ -28,7 +21,7 @@ enum data_error {DATA_SUCCESS = 0,
   }else{\
     fprintf(stderr, "ERROR::%s:%d:%s: Invalid type argument \"%s\"!\n",\
             __FILE__, __LINE__,__func__, type_t);\
-    assert(DATA_INVALID_TYPE);\
+    exit(1);\
   }\
 })
 
@@ -53,7 +46,7 @@ int data_create(cmd_data_t *cmd_data, data_t **pdata){
   if(data == NULL)
   {
     printf("calloc(data_t) failed\n");
-    exit(DATA_ERROR);
+    exit(1);
   }
 
   data->params = cmd_data;
@@ -63,7 +56,7 @@ int data_create(cmd_data_t *cmd_data, data_t **pdata){
 
   *pdata = data;
 
-  return DATA_SUCCESS;
+  return 0;
 }
 
 /*****************************************************************************
@@ -85,7 +78,7 @@ int data_free(data_t *data){
   assert(data->y != NULL);
   assert(data != NULL);
 
-  return DATA_SUCCESS;
+  return 0;
 }
 
 /*****************************************************************************
@@ -105,7 +98,7 @@ int data_read_file(data_t *data){
   data_csvread(params->fx, params->dim+1, params->N, SKIP_HEADER, ",", "precision", data->x);
   data_csvread(params->fy, Y_DIM, params->N, SKIP_HEADER, ",", "int", data->y);
 
-  return DATA_SUCCESS;
+  return 0;
 }
 
 /*****************************************************************************
@@ -134,7 +127,8 @@ int data_print_file(data_t *data){
   {
     printf("\t%2d\n", data->y[i]);
   }
-  return DATA_SUCCESS;
+
+  return 0;
 }
 
 /*****************************************************************************
@@ -180,7 +174,8 @@ static int data_csvread( char *filename, int rowSz, int colSz, int skip_header,
 
   fclose(fp);
   printf("\tDone\n");
-  return DATA_SUCCESS;
+
+  return 0;
 }
 
 /*****************************************************************************

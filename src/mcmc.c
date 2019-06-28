@@ -21,11 +21,6 @@ struct mcmc_s{
   rng_t  *rng;             /* Random Number Generator */
   met_t  *met;             /* Metropolis Sampling */
   ess_t  *ess;             /* Effective Sample Size statistics */
-  // acr_t  *acr;             /* Autocorrelation statistics */
-};
-
-enum mcmc_error {MCMC_SUCCESS = 0,
-                 MCMC_ERROR
 };
 
 /*****************************************************************************
@@ -43,12 +38,12 @@ int mcmc_create(mcmc_t **pmcmc){
     if(mcmc == NULL)
     {
       printf("calloc(mcmc) failed\n");
-      exit(MCMC_ERROR);
+      exit(1);
     }
 
     *pmcmc = mcmc;
 
-    return MCMC_SUCCESS;
+    return 0;
 }
 
 /*****************************************************************************
@@ -64,7 +59,7 @@ int mcmc_free(mcmc_t *mcmc){
 
   assert(mcmc != NULL);
 
-  return MCMC_SUCCESS;
+  return 0;
 }
 
 /*****************************************************************************
@@ -81,16 +76,14 @@ int mcmc_setup(int an, char *av[], mcmc_t *mcmc){
 
    data_create(&mcmc->cmd->train, &mcmc->train);
    data_read_file(mcmc->train);
-   // data_print_file(mcmc->train);
 
    rng_create(mcmc->cmd, &mcmc->rng);
    rng_setup(mcmc->rng);
 
    metropolis_create(mcmc->cmd, mcmc->rng, mcmc->train, &mcmc->met);
    ess_create(mcmc->cmd, mcmc->met, &mcmc->ess);
-   // acr_create(mcmc->cmd, mcmc->met, &mcmc->acr);
 
-   return MCMC_SUCCESS;
+   return 0;
 }
 
 /*****************************************************************************
@@ -107,11 +100,11 @@ int mcmc_disassemble(mcmc_t *mcmc){
   if(mcmc->test)  data_free(mcmc->test);
   if(mcmc->met)   metropolis_free(mcmc->met);
   if(mcmc->ess)   ess_free(mcmc->ess);
-  // if(mcmc->acr)   acr_free(mcmc->acr);
 
   rng_free(mcmc->rng);
   cmd_free(mcmc->cmd);
-  return MCMC_SUCCESS;
+
+  return 0;
 }
 
  /*****************************************************************************
@@ -127,7 +120,7 @@ int mcmc_sample(mcmc_t *mcmc){
   metropolis_init(mcmc->met, RANDOM);
   metropolis_run(mcmc->met);
 
-  return MCMC_SUCCESS;
+  return 0;
 }
 
 int mcmc_statistics(mcmc_t *mcmc){
@@ -136,10 +129,8 @@ int mcmc_statistics(mcmc_t *mcmc){
 
   ess_compute(mcmc->ess);
   ess_print(mcmc->ess);
-  // acr_compute_acr(mcmc->acr);
-  // acr_print_acr(mcmc->acr);
 
-  return MCMC_SUCCESS;
+  return 0;
 }
 
  /*****************************************************************************
@@ -152,5 +143,5 @@ int mcmc_infer(mcmc_t *mcmc){
 
   assert(mcmc);
 
-  return MCMC_SUCCESS;
+  return 0;
 }

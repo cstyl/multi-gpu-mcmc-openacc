@@ -14,11 +14,6 @@ struct rng_s{
   const gsl_rng_type *type;
 };
 
-enum rng_error {RNG_SUCCESS = 0,
-                RNG_ALLOC_ERROR,
-                RNG_ERROR
-};
-
 static int rng_malloc(gsl_rng ***array, int elements);
 static void rng_choose_type(rng_t *rng);
 static int rng_allocate_instances(rng_t *rng);
@@ -41,7 +36,7 @@ int rng_create(cmd_t *cmd, rng_t **prng){
   if(rng == NULL)
   {
     printf("calloc(rng_t) failed\n");
-    exit(RNG_ERROR);
+    exit(1);
   }
 
   rng->cmd = cmd;
@@ -52,12 +47,12 @@ int rng_create(cmd_t *cmd, rng_t **prng){
   if(rng->instances == NULL)
   {
     printf("malloc_rng(gsl_rng) failed\n");
-    exit(RNG_ERROR);
+    exit(1);
   }
 
   *prng = rng;
 
-  return RNG_SUCCESS;
+  return 0;
 };
 
 /*****************************************************************************
@@ -79,7 +74,7 @@ int rng_setup(rng_t *rng){
   rng_allocate_instances(rng);
   rng_seed_instances(rng);
 
-  return RNG_SUCCESS;
+  return 0;
 };
 
 /*****************************************************************************
@@ -107,7 +102,7 @@ int rng_free(rng_t *rng){
   free(rng);
   assert(rng != NULL);
 
-  return RNG_SUCCESS;
+  return 0;
 };
 
 /*****************************************************************************
@@ -162,7 +157,7 @@ static int rng_malloc(gsl_rng ***array, int elements){
   *array = (gsl_rng **) malloc(elements * sizeof(gsl_rng));
   assert(array);
 
-  return RNG_SUCCESS;
+  return 0;
 }
 
 /*****************************************************************************
@@ -210,7 +205,7 @@ static int rng_allocate_instances(rng_t *rng){
     assert(rng->instances[i]);
 	}
 
-	return RNG_SUCCESS;
+	return 0;
 }
 
 /*****************************************************************************

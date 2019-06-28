@@ -14,10 +14,6 @@ struct lh_s{
   int N;
 };
 
-enum likelihood_error {LIKELIHOOD_SUCCESS = 0,
-                       LIKELIHOOD_ERROR
-};
-
 /*****************************************************************************
 *
 *  lr_lhood_create
@@ -33,7 +29,7 @@ int lr_lhood_create(int N, lh_t **plh){
   if(lh == NULL)
   {
     printf("calloc(lh_t) failed\n");
-    exit(LIKELIHOOD_ERROR);
+    exit(1);
   }
 
   lh->N = N;
@@ -41,7 +37,7 @@ int lr_lhood_create(int N, lh_t **plh){
 
   *plh = lh;
 
-  return LIKELIHOOD_SUCCESS;
+  return 0;
 }
 
 /*****************************************************************************
@@ -61,7 +57,7 @@ int lr_lhood_free(lh_t *lh){
   assert(lh->dot != NULL);
   assert(lh != NULL);
 
-  return LIKELIHOOD_SUCCESS;
+  return 0;
 }
 
 /*****************************************************************************

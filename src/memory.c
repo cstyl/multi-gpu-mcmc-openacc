@@ -6,18 +6,12 @@
 
 #include "memory.h"
 
-enum mem_error {MEM_SUCCESS = 0,
-                MEM_HELP,
-                MEM_ZERO_MEM_FAILURE,
-                MEM_ERROR
-};
-
 #define CHECK_VALID_MEM_REQUEST(size) \
 ({\
 	if(size == 0)\
 	{\
 		fprintf(stderr, "ERROR::%s:%d:%s: Cannot allocate memory with negative or zero elements!\n", __FILE__, __LINE__,__func__);\
-		exit(MEM_ZERO_MEM_FAILURE);\
+		exit(1);\
 	}\
 })
 
@@ -37,7 +31,7 @@ int mem_malloc_precision(precision **array, int elements){
 	assert(*array);
 
 
-	return MEM_SUCCESS;
+	return 0;
 }
 
 /*****************************************************************************
@@ -55,25 +49,7 @@ int mem_malloc_integers(int **array, int elements){
 	*array = (int *) malloc(elements * sizeof(int));
   assert(*array);
 
-	return MEM_SUCCESS;
-}
-
-/*****************************************************************************
- *
- *  mem_copy
- *
- *****************************************************************************/
-
-int mem_copy_precision(precision *original, precision *copy, int n){
-
-  assert(original);
-  assert(copy);
-  int i;
-
-  for(i=0; i<n; i++)
-    copy[i] = original[i];
-
-  return MEM_SUCCESS;
+	return 0;
 }
 
 /*****************************************************************************
@@ -99,5 +75,5 @@ int mem_sort_precision(precision *array, int n){
     }
   }
 
-  return MEM_SUCCESS;
+  return 0;
 }

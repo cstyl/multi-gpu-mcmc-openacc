@@ -17,10 +17,6 @@ struct met_s{
   chain_t  *chain;      /* Chain during post-burn in in period */
 };
 
-enum metropolis_error {METROPOLIS_SUCCESS = 0,
-                       METROPOLIS_ERROR
-};
-
 /*****************************************************************************
  *
  *  metropolis_create
@@ -40,14 +36,13 @@ int metropolis_create(cmd_t *cmd, rng_t *rng, data_t *data, met_t **pmet){
   if(met == NULL)
   {
     printf("calloc(met_t) failed\n");
-    exit(METROPOLIS_ERROR);
+    exit(1);
   }
 
   met->cmd = cmd;
   met->rng = rng;
   met->data = data;
 
-  /* TO-CHECK: form values <6000 of Nburn and Ns free leads to memory leak */
   chain_create(cmd, &met->bchain, cmd->Nburn, cmd->dim);
   chain_create(cmd, &met->chain, cmd->Ns, cmd->dim);
 
@@ -56,7 +51,7 @@ int metropolis_create(cmd_t *cmd, rng_t *rng, data_t *data, met_t **pmet){
 
   *pmet = met;
 
-  return METROPOLIS_SUCCESS;
+  return 0;
 }
 
 /*****************************************************************************
@@ -71,8 +66,9 @@ int metropolis_free(met_t *met){
 
   sample_free(met->current);
   sample_free(met->proposed);
-  chain_free(met->chain);
-  chain_free(met->bchain);
+
+  if(met->chain) chain_free(met->chain);
+  if(met->bchain) chain_free(met->bchain);
 
   free(met);
 
@@ -82,7 +78,7 @@ int metropolis_free(met_t *met){
   assert(met->chain != NULL);
   assert(met != NULL);
 
-  return METROPOLIS_SUCCESS;
+  return 0;
 }
 
 /*****************************************************************************
@@ -109,7 +105,7 @@ int metropolis_init(met_t *met, int random){
 
   sample_init(cmd, rng, data, bchain, cur, random);
 
-  return METROPOLIS_SUCCESS;
+  return 0;
 }
 
 /*****************************************************************************
@@ -157,7 +153,7 @@ int metropolis_run(met_t *met){
     sample_choose(i, cmd, rng, chain, &cur, &pro);
   }
 
-  return METROPOLIS_SUCCESS;
+  return 0;
 }
 
 /*****************************************************************************
@@ -172,5 +168,5 @@ int metropolis_chain(met_t *met, chain_t **pchain){
 
   *pchain = met->chain;
 
-  return METROPOLIS_SUCCESS;
+  return 0;
 }

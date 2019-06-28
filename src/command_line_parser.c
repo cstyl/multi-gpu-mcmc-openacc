@@ -20,18 +20,12 @@ struct cmd_line_args_s
   const char* progname;
 };
 
-
-enum cmd_error {CMD_SUCCESS = 0,
-                CMD_HELP,
-                CMD_INVALID
-};
-
 #define CHECK_POSITIVE(dest, source, progname, argument)\
 ({\
 	if(source < 0)\
 	{\
 			fprintf(stderr, "%s: invalid argument to option %s. Please enter a positive value!\n", progname, argument);\
-      return CMD_INVALID;\
+      return 1;\
 	}else{\
 		dest = source;\
 	}\
@@ -61,7 +55,7 @@ int cmd_create(cmd_t **pcmd){
 
   *pcmd = cmd;
 
-  return CMD_SUCCESS;
+  return 0;
 }
 
 /*****************************************************************************
@@ -77,7 +71,7 @@ int cmd_free(cmd_t *cmd){
 
   assert(cmd != NULL);
 
-  return CMD_SUCCESS;
+  return 0;
 }
 
 /*****************************************************************************
@@ -110,7 +104,7 @@ int cmd_parse(int an, char *av[], cmd_t *cmd){
     printf("%s: insufficient memory\n", args.progname);
     /* deallocate each non-null entry in argtable[] before return */
     arg_freetable(argtable, sizeof(argtable)/sizeof(argtable[0]));
-    assert(CMD_SUCCESS);
+    exit(0);
   }
 
   /* setup default values */
@@ -131,7 +125,7 @@ int cmd_parse(int an, char *av[], cmd_t *cmd){
     arg_print_glossary(stdout, argtable,"  %-25s %s\n");
     /* deallocate each non-null entry in argtable[] before return */
     arg_freetable(argtable, sizeof(argtable)/sizeof(argtable[0]));
-    exit(CMD_SUCCESS);
+    exit(0);
   }
 
   /* display errors */
@@ -141,21 +135,21 @@ int cmd_parse(int an, char *av[], cmd_t *cmd){
     arg_print_errors(stdout, args.end, args.progname);
     printf("Try '%s --help' for more information.\n", args.progname);
     arg_freetable(argtable, sizeof(argtable)/sizeof(argtable));
-    exit(CMD_SUCCESS);
+    exit(0);
   }
 
   /* copy the parsed values to the appropriate program variables */
 	status = cmd_extract_args(&args, cmd);
-  if (status == CMD_INVALID)
+  if (status != 0)
   {
     arg_freetable(argtable, sizeof(argtable)/sizeof(argtable));
-    return CMD_INVALID;
+    exit(0);
   }
 
   /* destroy argtable */
   arg_freetable(argtable, sizeof(argtable)/sizeof(argtable[0]));
 
-  return CMD_SUCCESS;
+  return 0;
 }
 
 /*****************************************************************************
@@ -185,7 +179,7 @@ int cmd_print_status(cmd_t *cmd){
 	printf("%45s:\t%d\n", "Maximum allowed autocorrelation lag", cmd->maxlag);
 	printf("---------------------------------------------------------------------------------\n");
 
-  return CMD_SUCCESS;
+  return 0;
 }
 
 /*****************************************************************************
@@ -285,5 +279,5 @@ static int cmd_extract_args(cmd_args_t *args, cmd_t *cmd){
   sprintf(cmd->test.fx, "%s/%s", args->datadir->sval[0], args->test_x->filename[0]);
 	sprintf(cmd->test.fy, "%s/%s", args->datadir->sval[0], args->test_y->filename[0]);
 
-	return CMD_SUCCESS;
+	return 0;
 }

@@ -22,10 +22,6 @@ struct sample_s{
   int dim;
 };
 
-enum sample_error {SAMPLE_SUCCESS = 0,
-                   SAMPLE_ERROR
-};
-
 static void sample_swap_ptrs(void **ptr1, void **ptr2);
 static int sample_print_progress(cmd_t *cmd, int dec, int idx, precision u,
                                   sample_t *cur, sample_t *pro, chain_t *chain,
@@ -48,7 +44,7 @@ int sample_create(cmd_t *cmd, sample_t **psample){
   if(sample == NULL)
   {
     printf("calloc(sample_t) failed\n");
-    exit(SAMPLE_ERROR);
+    exit(1);
   }
 
   sample->dim = cmd->dim;
@@ -57,7 +53,7 @@ int sample_create(cmd_t *cmd, sample_t **psample){
 
   *psample = sample;
 
-  return SAMPLE_SUCCESS;
+  return 0;
 }
 
 /*****************************************************************************
@@ -78,7 +74,7 @@ int sample_free(sample_t *sample){
   assert(sample->values != NULL);
   assert(sample != NULL);
 
-  return SAMPLE_SUCCESS;
+  return 0;
 }
 
 /*****************************************************************************
@@ -110,7 +106,7 @@ int sample_init(cmd_t *cmd, rng_t *rng, data_t *data,
   cur->prior = pr_log_prob(cmd, cur->values);
   cur->posterior = cur->prior + cur->likelihood;
 
-  return SAMPLE_SUCCESS;
+  return 0;
 }
 
 /*****************************************************************************
@@ -132,7 +128,7 @@ int sample_propose(cmd_t *cmd, rng_t *rng, sample_t *cur, sample_t *pro){
     pro->values[i] = cur->values[i] + rng_normal(rng, i, cmd->rwsd);
 
 
-  return SAMPLE_SUCCESS;
+  return 0;
 }
 
 /*****************************************************************************
@@ -261,5 +257,5 @@ static int sample_print_progress(cmd_t *cmd, int dec, int idx, precision u,
             dec==1?"accepted":"rejected", u, chain->probability[idx]);
   }
 
-  return SAMPLE_SUCCESS;
+  return 0;
 }
