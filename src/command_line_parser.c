@@ -13,7 +13,7 @@ struct cmd_line_args_s
 {
   struct arg_int *dim, *train_n, *test_n, *Ns, *Nburn, *maxlag;
   struct arg_dbl *rwsd;
-  struct arg_str *datadir;
+  struct arg_str *datadir, *outdir, *dataset;
   struct arg_file *train_x, *train_y, *test_x, *test_y;
   struct arg_lit  *help;
   struct arg_end *end;
@@ -91,7 +91,7 @@ int cmd_parse(int an, char *av[], cmd_t *cmd){
   cmd_setup_argtable(&args);
   void* argtable[] = {  args.dim, args.train_n, args.test_n,
                         args.Ns, args.Nburn, args.rwsd, args.maxlag,
-                        args.datadir,
+                        args.datadir, args.outdir, args.dataset,
                         args.train_x, args.train_y,
                         args.test_x, args.test_y,
                         args.help, args.end
@@ -163,6 +163,7 @@ int cmd_print_status(cmd_t *cmd){
   assert(cmd);
   printf("--------------------------------- Metropolis-MCMC -------------------------------\n");
 
+	printf("%45s:\t%s\n", "Selected dataset", cmd->dataset);
 	printf("%45s:\t%d\n", "Training set dimensionality", cmd->train.dim);
 	printf("%45s:\t%d\n", "Number of training data", cmd->train.N );
   printf("%45s:\t%s\n", "Filename of training datapoints", cmd->train.fx);
@@ -177,6 +178,7 @@ int cmd_print_status(cmd_t *cmd){
 	printf("%45s:\t%d\n", "Burn in samples", cmd->Nburn);
 	printf("%45s:\t%f\n", "Standard deviation in random walk", cmd->rwsd);
 	printf("%45s:\t%d\n", "Maximum allowed autocorrelation lag", cmd->maxlag);
+  printf("%45s:\t%s\n", "Results Directory", cmd->outdir);
 	printf("---------------------------------------------------------------------------------\n");
 
   return 0;
@@ -201,6 +203,9 @@ static void cmd_setup_argtable(cmd_args_t *args){
   args->rwsd = arg_dbl0("w", "rwsd", "<real>", "define a real value for random walk step size (default is 1.374)");
 
   args->datadir = arg_str0("l", "datadir", "<str>", "define a directory where the data will be read from (default is data/)");
+  args->outdir = arg_str0("o", "outdir", "<str>", "define a directory where the results will be written to (default is out/)");
+  args->dataset = arg_str0(NULL, "dataset", "<str>", "define a dataset to be used. Currently supported choices are: 'synthetic', 'infiMnist', 'Flights' (default is 'synthetic')");
+
 
   args->train_x = arg_file0(NULL, "train_x", "<file>", "define the filename for train data (default is X_train_10000_3.csv)");
   args->train_y = arg_file0(NULL, "train_y", "<file>", "define the filename for train labels (default is Y_train_10000_3.csv)");
@@ -222,6 +227,7 @@ static void cmd_setup_argtable(cmd_args_t *args){
 static void cmd_setup_default_values(cmd_args_t *args){
 
   assert(args);
+
   args->dim->ival[0] = 2;
   args->train_n->ival[0] = 8000;
   args->test_n->ival[0] = 2000;
@@ -229,11 +235,14 @@ static void cmd_setup_default_values(cmd_args_t *args){
   args->Nburn->ival[0] = 5000;
   args->rwsd->dval[0] = 0;
   args->maxlag->ival[0] = (args->Ns->ival[0] / 2)-1;
-  args->datadir->sval[0] = "./data";
+
+  args->datadir->sval[0] = "./data/synthetic/8000_2";
+  args->dataset->sval[0] = "synthetic";
   args->train_x->filename[0] = "X_train_10000_3.csv";
   args->train_y->filename[0] = "Y_train_10000_3.csv";
   args->test_x->filename[0] = "X_test_10000_3.csv";
   args->test_y->filename[0] = "Y_test_10000_3.csv";
+
 }
 
 /*****************************************************************************
@@ -279,5 +288,14 @@ static int cmd_extract_args(cmd_args_t *args, cmd_t *cmd){
   sprintf(cmd->test.fx, "%s/%s", args->datadir->sval[0], args->test_x->filename[0]);
 	sprintf(cmd->test.fy, "%s/%s", args->datadir->sval[0], args->test_y->filename[0]);
 
+  sprintf(cmd->dataset, "%s", args->dataset->sval[0]);
+  // sprintf(cmd->outdir, "%s/%s/%d_%d",
+  //         args->outdir->sval[0], cmd->dataset,
+  //         args->train_n->ival[0], args->dim->ival[0]
+  //        );
+  sprintf(cmd->outdir, "%s/%d_%d",
+          args->outdir->sval[0],
+          args->train_n->ival[0], args->dim->ival[0]
+         );
 	return 0;
 }

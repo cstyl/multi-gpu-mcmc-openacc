@@ -83,6 +83,7 @@ int ess_free(ess_t *ess){
 int ess_compute(ess_t *ess){
 
   acr_compute_acr(ess->acr);
+  acr_write_acr(ess->acr);
   ess_max(ess);
   ess_min(ess);
   ess_median(ess);

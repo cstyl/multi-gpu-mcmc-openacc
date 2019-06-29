@@ -26,7 +26,7 @@ OBJS = $(OBJ)/main.o \
 			 $(OBJ)/logistic_regression.o $(OBJ)/mcmc.o $(OBJ)/memory.o \
 			 $(OBJ)/metropolis.o $(OBJ)/prior.o $(OBJ)/random_number_generator.o \
 			 $(OBJ)/sample.o $(OBJ)/autocorrelation.o $(OBJ)/effective_sample_size.o \
-			 $(OBJ)/inference.o $(OBJ)/timer.o
+			 $(OBJ)/inference.o $(OBJ)/timer.o $(OBJ)/util.o
 
 
 all: dir $(BIN)/util
@@ -34,14 +34,14 @@ all: dir $(BIN)/util
 run:
 	./$(BIN)/util --dim=2 --train_n=5000 --test_n=1000 --samples=500000 --burn=100000 \
 								--rwsd=0 --datadir=data/synthetic/6000_2 \
-								--maxlag=249999 \
+								--maxlag=249999 --outdir=./out --dataset=synthetic \
 								--train_x=X_train.csv --train_y=Y_train.csv \
 								--test_x=X_test.csv --test_y=Y_test.csv
 
 shortrun:
 	./$(BIN)/util --dim=2 --train_n=500 --test_n=100 --samples=35000 --burn=10000 \
 								--rwsd=0 --datadir=data/synthetic/600_2 \
-								--maxlag=17499 \
+								--maxlag=17499 --outdir=./out --dataset=synthetic \
 								--train_x=X_train.csv --train_y=Y_train.csv \
 								--test_x=X_test.csv --test_y=Y_test.csv
 

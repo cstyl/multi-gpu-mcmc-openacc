@@ -14,4 +14,6 @@ int metropolis_init(met_t *met, int random);
 int metropolis_run(met_t *met);
 int metropolis_free(met_t *met);
 int metropolis_chain(met_t *met, chain_t **pchain);
+int metropolis_write_chains(met_t *met);
+
 #endif // __METROPOLIS_H__

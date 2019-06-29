@@ -53,21 +53,21 @@ See [here](./docs/installations/install.md) for installation directions.
 
   * [X] Prior evaluation - Non informative prior
 
-  * [X] Likelihood Implementation
+  * [X] Likelihood Implementation - Logistic Regression
 
   * [X] Evaluation of posteriors
 
-  * [X] Accept Reject Sample
+  * [X] Accept-Reject Sample
 
   * [X] Time sampler
-
-  * [X] Write generated chain to file
 
   * [X] Evaluate autocorrelation and ESS
 
   * [X] Evaluate classification accuracy in test data (MC integration)
 
-  * [ ] Write autocorrelation, burn-in and post burn-in chain in files
+  * [X] Print progress and statistics on stdout
+
+  * [X] Write autocorrelation, burn-in and post burn-in chain in files
 
   * [ ] Switch to input file rather than command line (?)
 

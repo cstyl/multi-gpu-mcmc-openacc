@@ -29,5 +29,6 @@ int acr_free(acr_t *acr);
 
 int acr_compute_acr(acr_t *acr);
 int acr_print_acr(acr_t *acr);
+int acr_write_acr(acr_t *acr);
 
 #endif // __AUTOCORRELATION_H__

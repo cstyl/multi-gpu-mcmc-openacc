@@ -7,10 +7,7 @@
 #include "autocorrelation.h"
 #include "chain.h"
 #include "memory.h"
-
-enum autocorrelation_error {AUTOCOR_SUCCESS = 0,
-                            AUTOCOR_ERROR
-};
+#include "util.h"
 
 static int acr_create_1d(int N, int maxlag, acr_1d_t **pacr_1d);
 static precision acr_free_1d(acr_1d_t *acr1d);
@@ -39,7 +36,7 @@ int acr_create(cmd_t *cmd, met_t *met, acr_t **pacr){
   if(acr == NULL)
   {
     printf("calloc(acr_t) failed\n");
-    exit(AUTOCOR_ERROR);
+    exit(1);
   }
 
   acr->cmd   = cmd;
@@ -50,7 +47,7 @@ int acr_create(cmd_t *cmd, met_t *met, acr_t **pacr){
   if(acr1d == NULL)
   {
     printf("malloc(acr_1d_t) failed\n");
-    exit(AUTOCOR_ERROR);
+    exit(1);
   }
 
   for(i=0; i<cmd->dim+1; i++) acr_create_1d(cmd->Ns, cmd->maxlag, &acr1d[i]);
@@ -58,7 +55,7 @@ int acr_create(cmd_t *cmd, met_t *met, acr_t **pacr){
   acr->acr_1d = acr1d;
   *pacr = acr;
 
-  return AUTOCOR_SUCCESS;
+  return 0;
 }
 
 /*****************************************************************************
@@ -82,7 +79,7 @@ int acr_free(acr_t *acr){
   assert(acr->acr_1d != NULL);
   assert(acr != NULL);
 
-  return AUTOCOR_SUCCESS;
+  return 0;
 }
 
 /*****************************************************************************
@@ -103,7 +100,7 @@ int acr_compute_acr(acr_t *acr){
     acr_compute_acr_1d(acr->acr_1d[i]);
   }
 
-  return AUTOCOR_SUCCESS;
+  return 0;
 }
 
 /*****************************************************************************
@@ -130,7 +127,53 @@ int acr_print_acr(acr_t *acr){
   }
   printf("\n");
 
-  return AUTOCOR_SUCCESS;
+  return 0;
+}
+
+/*****************************************************************************
+ *
+ *  acr_write_acr
+ *
+ *****************************************************************************/
+
+int acr_write_acr(acr_t *acr){
+
+  cmd_t *cmd = NULL;
+  assert(acr);
+
+  cmd = acr->cmd;
+
+  char outdir[BUFSIZ], filename[BUFSIZ];
+  FILE *fp;
+
+  sprintf(outdir, "%s/%s", cmd->outdir, "autocorrelation");
+  util_create_dir(outdir);
+
+  printf("Writing autocorrelation files...");
+
+  int i,j;
+  for(i=0; i<cmd->dim+1; i++)
+  {
+    sprintf(filename, "%s/%s_%d.csv", outdir, "rho", i);
+    fp = fopen(filename, "w+");
+    assert(fp);
+
+    for(j=0; j<cmd->Ns; j++)
+    {
+#ifdef FLOAT
+      fprintf(fp, "%.7f\n", acr->acr_1d[i]->acr_lagk[j]);
+#else
+      fprintf(fp, "%.16f\n", acr->acr_1d[i]->acr_lagk[j]);
+#endif
+    }
+
+    fclose(fp);
+  }
+
+  printf("\tDone\n");
+
+  return 0;
+
 }
 
 /*****************************************************************************
@@ -148,7 +191,7 @@ static int acr_create_1d(int N, int maxlag, acr_1d_t **pacr_1d){
   if(acr1d == NULL)
   {
     printf("calloc(acr_1d_t) failed\n");
-    exit(AUTOCOR_ERROR);
+    exit(1);
   }
 
   acr1d->N = N;
@@ -158,8 +201,14 @@ static int acr_create_1d(int N, int maxlag, acr_1d_t **pacr_1d){
 
   *pacr_1d = acr1d;
 
-  return AUTOCOR_SUCCESS;
+  return 0;
 }
+
+/*****************************************************************************
+ *
+ *  acr_free_1d
+ *
+ *****************************************************************************/
 
 static precision acr_free_1d(acr_1d_t *acr1d){
 
@@ -173,7 +222,7 @@ static precision acr_free_1d(acr_1d_t *acr1d){
   assert(acr1d->acr_lagk != NULL);
   assert(acr1d != NULL);
 
-  return AUTOCOR_SUCCESS;
+  return 0;
 }
 
 /*****************************************************************************
@@ -191,7 +240,7 @@ static int acr_load_X_array_1d(chain_t *chain, acr_1d_t *acr_1d, int N, int dim,
   for(i=0; i<N; i++)
     acr_1d->X[i] = chain->samples[i*dim+idx];
 
-  return AUTOCOR_SUCCESS;
+  return 0;
 }
 
 /*****************************************************************************
@@ -218,7 +267,7 @@ static int acr_compute_acr_1d(acr_1d_t *acr_1d){
 
   acr_1d->ess = acr_1d->N / (1 + 2 * acr_1d->ess);
 
-  return AUTOCOR_SUCCESS;
+  return 0;
 }
 
 /*****************************************************************************

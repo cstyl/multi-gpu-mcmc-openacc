@@ -23,6 +23,8 @@ struct cmd_s
   precision rwsd;
   cmd_data_t train;
   cmd_data_t test;
+  char dataset[BUFSIZ];
+  char outdir[BUFSIZ];
 };
 
 int cmd_create(cmd_t **pcmd);

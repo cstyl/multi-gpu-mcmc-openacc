@@ -139,6 +139,8 @@ int mcmc_sample(mcmc_t *mcmc){
   metropolis_init(mcmc->met, RANDOM);
   metropolis_run(mcmc->met);
 
+  metropolis_write_chains(mcmc->met);
+  
   TIMER_stop(TIMER_MCMC_SAMPLER);
 
   return 0;

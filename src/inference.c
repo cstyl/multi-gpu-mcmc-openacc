@@ -157,7 +157,7 @@ static int infr_write_lr(infr_t *infr){
   FILE *fp = NULL;
 
   // sprintf(filename, "%s/infer_bin_labels.txt", cmd->test->params->datadir);
-  sprintf(filename, "%s/infer_bin_labels.txt", "./out");
+  sprintf(filename, "%s/infer_bin_labels.txt", infr->cmd->outdir);
   sprintf(header, "#%19s\t%20s\t%20s\t%20s\n",
           "Datapoint", "Probability", "Label", "Actual Label"
          );

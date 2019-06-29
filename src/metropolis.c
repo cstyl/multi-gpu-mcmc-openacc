@@ -6,6 +6,7 @@
 
 #include "metropolis.h"
 #include "sample.h"
+#include "util.h"
 #include "timer.h"
 
 struct met_s{
@@ -184,6 +185,30 @@ int metropolis_chain(met_t *met, chain_t **pchain){
   assert(met);
 
   *pchain = met->chain;
+
+  return 0;
+}
+
+/*****************************************************************************
+ *
+ *  metropolis_write_chains
+ *
+ *****************************************************************************/
+
+int metropolis_write_chains(met_t *met){
+
+  chain_t *chain  = NULL;
+  chain_t *bchain = NULL;
+  cmd_t   *cmd    = NULL;
+
+  assert(met);
+
+  chain  = met->chain;
+  bchain = met->bchain;
+  cmd    = met->cmd;
+
+  util_write_array(bchain->samples, cmd->Nburn, cmd->dim+1, cmd->outdir, "btheta");
+  util_write_array(chain->samples, cmd->Ns, cmd->dim+1, cmd->outdir, "theta");
 
   return 0;
 }
