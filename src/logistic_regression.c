@@ -6,6 +6,7 @@
 
 #include "logistic_regression.h"
 #include "memory.h"
+#include "timer.h"
 #include <gsl/gsl_cblas.h>    // to perform dot products and vector operations
 
 struct lh_s{
@@ -76,6 +77,8 @@ precision lr_lhood(lh_t *lh, precision *sample, data_t *data){
   assert(sample);
   assert(data);
 
+  TIMER_start(TIMER_LIKELIHOOD);
+
   params = data->params;
   int i,j;
 
@@ -89,6 +92,8 @@ precision lr_lhood(lh_t *lh, precision *sample, data_t *data){
     }
     lh->lhood -= log(1 + exp(-data->y[i] * lh->dot[i]));
   }
+
+  TIMER_stop(TIMER_LIKELIHOOD);
 
   return lh->lhood;
 }
@@ -106,6 +111,8 @@ precision lr_lhood_dot(lh_t *lh, precision *sample, data_t *data){
   assert(sample);
   assert(data);
 
+  TIMER_start(TIMER_LIKELIHOOD);
+
   params = data->params;
   int i;
 
@@ -119,6 +126,8 @@ precision lr_lhood_dot(lh_t *lh, precision *sample, data_t *data){
 #endif
     lh->lhood -= log(1 + exp(-data->y[i] * lh->dot[i]));
   }
+
+  TIMER_stop(TIMER_LIKELIHOOD);
 
   return lh->lhood;
 }
@@ -135,6 +144,8 @@ precision lr_lhood_mv(lh_t *lh, precision *sample, data_t *data){
 
   assert(sample);
   assert(data);
+
+  TIMER_start(TIMER_LIKELIHOOD);
 
   params = data->params;
   int i;
@@ -154,5 +165,31 @@ precision lr_lhood_mv(lh_t *lh, precision *sample, data_t *data){
     lh->lhood -= log(1+exp(-data->y[i] * lh->dot[i]));
   }
 
+  TIMER_stop(TIMER_LIKELIHOOD);
+
   return lh->lhood;
+}
+
+/*****************************************************************************
+*
+*  lr_logistic_regression
+*
+*****************************************************************************/
+
+precision lr_logistic_regression(precision *sample, precision *x, int dim){
+
+  assert(sample);
+  assert(x);
+
+  int i;
+  precision probability, dot=0.0;
+
+  for(i=0; i<dim; i++)
+  {
+    dot += sample[i] * x[i];
+  }
+
+  probability = 1.0 / (1.0 + exp(-dot));
+
+  return probability;
 }

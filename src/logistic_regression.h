@@ -13,5 +13,6 @@ int lr_lhood_free(lh_t *lh);
 precision lr_lhood(lh_t *lr, precision *sample, data_t *data);
 precision lr_lhood_dot(lh_t *lr, precision *sample, data_t *data);
 precision lr_lhood_mv(lh_t *lr, precision *sample, data_t *data);
+precision lr_logistic_regression(precision *sample, precision *x, int dim);
 
 #endif // __LOGISTIC_REGRESSION_H__

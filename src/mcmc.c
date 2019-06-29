@@ -9,8 +9,12 @@
 #include "random_number_generator.h"
 
 #include "metropolis.h"
+#include "chain.h"
+#include "inference.h"
 #include "effective_sample_size.h"
 #include "mcmc.h"
+#include "memory.h"
+#include "timer.h"
 
 #define RANDOM 0
 
@@ -21,6 +25,7 @@ struct mcmc_s{
   rng_t  *rng;             /* Random Number Generator */
   met_t  *met;             /* Metropolis Sampling */
   ess_t  *ess;             /* Effective Sample Size statistics */
+  infr_t *infr;            /* Inference Statistics */
 };
 
 /*****************************************************************************
@@ -70,20 +75,27 @@ int mcmc_free(mcmc_t *mcmc){
 
 int mcmc_setup(int an, char *av[], mcmc_t *mcmc){
 
-   cmd_create(&mcmc->cmd);
-   cmd_parse(an, av, mcmc->cmd);
-   cmd_print_status(mcmc->cmd);
+  assert(mcmc);
 
-   data_create(&mcmc->cmd->train, &mcmc->train);
-   data_read_file(mcmc->train);
+  TIMER_start(TIMER_MCMC_SETUP);
 
-   rng_create(mcmc->cmd, &mcmc->rng);
-   rng_setup(mcmc->rng);
+  cmd_create(&mcmc->cmd);
+  cmd_parse(an, av, mcmc->cmd);
+  cmd_print_status(mcmc->cmd);
 
-   metropolis_create(mcmc->cmd, mcmc->rng, mcmc->train, &mcmc->met);
-   ess_create(mcmc->cmd, mcmc->met, &mcmc->ess);
+  data_create(&mcmc->cmd->train, &mcmc->train);
+  data_read_file(mcmc->train);
 
-   return 0;
+  rng_create(mcmc->cmd, &mcmc->rng);
+  rng_setup(mcmc->rng);
+
+  metropolis_create(mcmc->cmd, mcmc->rng, mcmc->train, &mcmc->met);
+
+  ess_create(mcmc->cmd, mcmc->met, &mcmc->ess);
+
+  TIMER_stop(TIMER_MCMC_SETUP);
+
+  return 0;
 }
 
 /*****************************************************************************
@@ -96,13 +108,18 @@ int mcmc_disassemble(mcmc_t *mcmc){
 
   assert(mcmc);
 
+  TIMER_start(TIMER_MCMC_DISSASEMBLE);
+
   if(mcmc->train) data_free(mcmc->train);
   if(mcmc->test)  data_free(mcmc->test);
   if(mcmc->met)   metropolis_free(mcmc->met);
   if(mcmc->ess)   ess_free(mcmc->ess);
+  if(mcmc->infr)  infr_free(mcmc->infr);
 
   rng_free(mcmc->rng);
   cmd_free(mcmc->cmd);
+
+  TIMER_stop(TIMER_MCMC_DISSASEMBLE);
 
   return 0;
 }
@@ -117,8 +134,12 @@ int mcmc_sample(mcmc_t *mcmc){
 
   assert(mcmc);
 
+  TIMER_start(TIMER_MCMC_SAMPLER);
+
   metropolis_init(mcmc->met, RANDOM);
   metropolis_run(mcmc->met);
+
+  TIMER_stop(TIMER_MCMC_SAMPLER);
 
   return 0;
 }
@@ -127,8 +148,12 @@ int mcmc_statistics(mcmc_t *mcmc){
 
   assert(mcmc);
 
+  TIMER_start(TIMER_MCMC_STATISTICS);
+
   ess_compute(mcmc->ess);
   ess_print(mcmc->ess);
+
+  TIMER_stop(TIMER_MCMC_STATISTICS);
 
   return 0;
 }
@@ -141,7 +166,24 @@ int mcmc_statistics(mcmc_t *mcmc){
 
 int mcmc_infer(mcmc_t *mcmc){
 
+  chain_t *chain = NULL;
+  cmd_t *cmd = NULL;
   assert(mcmc);
+
+  TIMER_start(TIMER_MCMC_INFERENCE);
+
+  data_create(&mcmc->cmd->test, &mcmc->test);
+  data_read_file(mcmc->test);
+
+  metropolis_chain(mcmc->met, &chain);
+  cmd = chain->cmd;
+
+  infr_create(cmd, chain, mcmc->test, &mcmc->infr);
+
+  infr_mc_integration_lr(mcmc->infr);
+  infr_print(mcmc->infr, LOGISTIC_REGRESSION);
+
+  TIMER_stop(TIMER_MCMC_INFERENCE);
 
   return 0;
 }

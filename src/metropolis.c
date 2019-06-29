@@ -6,6 +6,7 @@
 
 #include "metropolis.h"
 #include "sample.h"
+#include "timer.h"
 
 struct met_s{
   cmd_t    *cmd;
@@ -136,22 +137,38 @@ int metropolis_run(met_t *met){
   chain = met->chain;
 
   printf("\nStarting burn-in period of %d steps..\n", cmd->Nburn);
+  TIMER_start(TIMER_BURN_IN);
+
   chain_init_stats(0, bchain);
   for(i=1; i<=cmd->Nburn; i++)
   {
+    TIMER_start(TIMER_SAMPLER_STEP);
+
     sample_propose(cmd, rng, cur, pro);
     bchain->probability[i] = sample_evaluate(cmd, rng, data, cur, pro);
     sample_choose(i, cmd, rng, bchain, &cur, &pro);
+
+    TIMER_stop(TIMER_SAMPLER_STEP);
   }
 
+  TIMER_stop(TIMER_BURN_IN);
+
   printf("\nStarting post burn-in period of %d steps..\n", cmd->Ns);
+  TIMER_start(TIMER_POST_BURN_IN);
+
   chain_init_stats(0, chain);
   for(i=1; i<=cmd->Ns; i++)
   {
+    TIMER_start(TIMER_SAMPLER_STEP);
+
     sample_propose(cmd, rng, cur, pro);
     chain->probability[i] = sample_evaluate(cmd, rng, data, cur, pro);
     sample_choose(i, cmd, rng, chain, &cur, &pro);
+
+    TIMER_stop(TIMER_SAMPLER_STEP);
   }
+
+  TIMER_stop(TIMER_POST_BURN_IN);
 
   return 0;
 }

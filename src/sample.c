@@ -8,6 +8,7 @@
 #include "logistic_regression.h"
 #include "prior.h"
 #include "memory.h"
+#include "timer.h"
 
 #define PRINT_PROGRESS 1
 #define PRINT_FREQUENCY 5000
@@ -123,10 +124,12 @@ int sample_propose(cmd_t *cmd, rng_t *rng, sample_t *cur, sample_t *pro){
   assert(pro);
 
   int i;
+  TIMER_start(TIMER_PROPOSE);
 
   for(i=0; i<pro->dim+1; i++)
     pro->values[i] = cur->values[i] + rng_normal(rng, i, cmd->rwsd);
 
+  TIMER_stop(TIMER_PROPOSE);
 
   return 0;
 }
