@@ -12,7 +12,31 @@ See [here](./docs/installations/install.md) for installation directions.
 
 - [ ] **`Data Generators`**
 
-  * [ ]
+  * [X] Synthetic Generator
+
+    * [X] Set betas through command line or generate them in random
+
+    * [X] Generate data points
+
+    * [X] Normalise data points
+
+    * [X] Produce Binary Labels
+
+  * [X] Infimnist Generator
+
+    * [X] Compile generator & generate datasets
+
+    * [X] Preprocess data sets(normalise, choose classes, generate binary labels)
+
+    * [X] Generate new data and label files
+
+  * [ ] Flights Dataset
+
+    * [ ] Download and clean
+
+    * [ ] Generate new features
+
+    * [ ] Generate new data and label files
 
 - [ ] **`Serial Code`**
   * [X] Parsing command line arguments
@@ -23,25 +47,29 @@ See [here](./docs/installations/install.md) for installation directions.
 
   * [X] Setup RNG
 
-  * [ ] Initialise samples
+  * [X] Initialise samples
 
-  * [ ] Random walk & proposal step
+  * [X] Random walk & proposal step
 
-  * [ ] Prior evaluation
+  * [X] Prior evaluation - Non informative prior
 
-  * [ ] Likelihood Implementation
+  * [X] Likelihood Implementation
 
-  * [ ] Evaluation of posteriors
+  * [X] Evaluation of posteriors
 
-  * [ ] Accept Reject Sample
+  * [X] Accept Reject Sample
 
-  * [ ] Time sampler
+  * [X] Time sampler
 
-  * [ ] Write generated chain to file
+  * [X] Write generated chain to file
 
-  * [ ] Evaluate autocorrelation and ESS
+  * [X] Evaluate autocorrelation and ESS
 
-  * [ ] Evaluate classification accuracy in test data
+  * [X] Evaluate classification accuracy in test data (MC integration)
+
+  * [ ] Write autocorrelation, burn-in and post burn-in chain in files
+
+  * [ ] Switch to input file rather than command line (?)
 
 
 - [ ] **`Single-GPU code using OpenACC`**
