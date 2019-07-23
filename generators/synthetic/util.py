@@ -11,7 +11,7 @@ def parse_cmdline():
 
 	parser.add_argument('-precision', dest='precision', choices=['single', 'double'], help='Specify the precision to be used in the calculations', default='double')
 
-	parser.add_argument('-beta', dest='beta', type=float, nargs='*', default=(0))
+	parser.add_argument('-beta', dest='beta', type=float, nargs='*', default=(0.0))
 	args = parser.parse_args()
 
 	return args

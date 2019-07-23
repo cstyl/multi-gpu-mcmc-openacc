@@ -30,7 +30,6 @@ int mem_malloc_precision(precision **array, int elements){
 	*array = (precision *) malloc(elements * sizeof(precision));
 	assert(*array);
 
-
 	return 0;
 }
 
@@ -76,4 +75,35 @@ int mem_sort_precision(precision *array, int n){
   }
 
   return 0;
+}
+
+/*****************************************************************************
+ *
+ *  mem_free
+ *
+ *****************************************************************************/
+int mem_free(void **ptr){
+
+	if(*ptr!=NULL)
+	{
+		free(*ptr);
+		*ptr=NULL;
+	}
+
+	return 0;
+}
+
+/*****************************************************************************
+ *
+ *  mem_swap_ptrs
+ *
+ *****************************************************************************/
+
+int mem_swap_ptrs(void **ptr1, void **ptr2)
+{
+  void *ptr_temp = *ptr1;
+	*ptr1 = *ptr2;
+	*ptr2 = ptr_temp;
+
+	return 0;
 }

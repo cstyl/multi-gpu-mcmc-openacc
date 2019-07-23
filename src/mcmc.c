@@ -4,188 +4,117 @@
 #include <string.h>
 #include <stdlib.h>
 
-#include "command_line_parser.h"
-#include "data_input.h"
-#include "random_number_generator.h"
+#include "definitions.h"
 
-#include "metropolis.h"
+#include "pe.h"
+#include "runtime.h"
+
 #include "chain.h"
-#include "inference.h"
-#include "effective_sample_size.h"
+#include "metropolis.h"
+
+// #include "timer.h"
+
 #include "mcmc.h"
-#include "memory.h"
-#include "timer.h"
 
-#define RANDOM 0
-
+typedef struct mcmc_s mcmc_t;
+// struct mcmc_s{
+//   pe_t    *pe;         /* Parallel Environment */
+//   rt_t    *rt;         /* Run time input handler */
+//   met_t   *met;        /* Metropolis algorithm structure */
+//   chain_t *burn;       /* Chain structure for burn-in samples */
+//   chain_t *chain;      /* Chain structure for post burn-in samples */
+//   stats_t *stats;      /* Statistics data structure */
+//   infr_t  *infr;       /* Inference data structure */
+// };
 struct mcmc_s{
-  cmd_t  *cmd;             /* Command line arguments */
-  data_t *train;           /* Input data for training */
-  data_t *test;            /* Data for inferencing */
-  rng_t  *rng;             /* Random Number Generator */
-  met_t  *met;             /* Metropolis Sampling */
-  ess_t  *ess;             /* Effective Sample Size statistics */
-  infr_t *infr;            /* Inference Statistics */
+  pe_t *pe;        /* Parallel Environment */
+  rt_t *rt;        /* Run time input handler */
+  ch_t *burn;      /* Chain of burn-in samples */
+  ch_t *chain;     /* Chain of post burn-in samples */
+  met_t *met;      /* Metropolis MCMC */
 };
 
-/*****************************************************************************
- *
- * mcmc_create
- *
- *****************************************************************************/
+static const char ALGORITHM_DEFAULT[BUFSIZ] = "metropolis";
 
-int mcmc_create(mcmc_t **pmcmc){
-
-    mcmc_t *mcmc = NULL;
-
-    mcmc = (mcmc_t *) calloc(1, sizeof(mcmc_t));
-    assert(mcmc);
-    if(mcmc == NULL)
-    {
-      printf("calloc(mcmc) failed\n");
-      exit(1);
-    }
-
-    *pmcmc = mcmc;
-
-    return 0;
-}
+static int mcmc_rt(mcmc_t *mcmc);
 
 /*****************************************************************************
  *
- *  mcmc_free
+ *  mcmc_run
  *
  *****************************************************************************/
 
-int mcmc_free(mcmc_t *mcmc){
+ void mcmc_run(const char *inputfile){
 
-  assert(mcmc);
-  free(mcmc);
+   mcmc_t *mcmc = NULL;
+   MPI_Comm comm;
 
-  assert(mcmc != NULL);
+   mcmc = (mcmc_t*) calloc(1, sizeof(mcmc_t));
+   assert(mcmc);
 
-  return 0;
-}
+   pe_create(MPI_COMM_WORLD, PE_VERBOSE, &mcmc->pe);
+   pe_mpi_comm(mcmc->pe, &comm);
 
-/*****************************************************************************
- *
- *  mcmc_setup
- *
- *****************************************************************************/
+   rt_create(mcmc->pe, &mcmc->rt);
+   rt_read_input_file(mcmc->rt, inputfile);
+   rt_info(mcmc->rt);
 
-int mcmc_setup(int an, char *av[], mcmc_t *mcmc){
+   mcmc_rt(mcmc);
 
-  assert(mcmc);
+   if(mcmc->met)
+   {
+     met_init(mcmc->pe, mcmc->met);
+     met_run(mcmc->pe, mcmc->met);
+   }
 
-  TIMER_start(TIMER_MCMC_SETUP);
+   if(mcmc->met) met_free(mcmc->met);
+   ch_free(mcmc->burn);
+   ch_free(mcmc->chain);
 
-  cmd_create(&mcmc->cmd);
-  cmd_parse(an, av, mcmc->cmd);
-  cmd_print_status(mcmc->cmd);
+   rt_free(mcmc->rt);
+   pe_free(mcmc->pe);
 
-  data_create(&mcmc->cmd->train, &mcmc->train);
-  data_read_file(mcmc->train);
-
-  rng_create(mcmc->cmd, &mcmc->rng);
-  rng_setup(mcmc->rng);
-
-  metropolis_create(mcmc->cmd, mcmc->rng, mcmc->train, &mcmc->met);
-
-  ess_create(mcmc->cmd, mcmc->met, &mcmc->ess);
-
-  TIMER_stop(TIMER_MCMC_SETUP);
-
-  return 0;
-}
-
-/*****************************************************************************
- *
- *  mcmc_disassemble
- *
- *****************************************************************************/
-
-int mcmc_disassemble(mcmc_t *mcmc){
-
-  assert(mcmc);
-
-  TIMER_start(TIMER_MCMC_DISSASEMBLE);
-
-  if(mcmc->train) data_free(mcmc->train);
-  if(mcmc->test)  data_free(mcmc->test);
-  if(mcmc->met)   metropolis_free(mcmc->met);
-  if(mcmc->ess)   ess_free(mcmc->ess);
-  if(mcmc->infr)  infr_free(mcmc->infr);
-
-  rng_free(mcmc->rng);
-  cmd_free(mcmc->cmd);
-
-  TIMER_stop(TIMER_MCMC_DISSASEMBLE);
-
-  return 0;
-}
+   return;
+ }
 
  /*****************************************************************************
-  *
-  *  mcmc_sample
-  *
-  *****************************************************************************/
+ *
+ *  mcmc_rt
+ *
+ *  Digest the run-time arguments for different parts of the code.
+ *  Allocate memory where needed.
+ *
+ *****************************************************************************/
 
-int mcmc_sample(mcmc_t *mcmc){
+ static int mcmc_rt(mcmc_t *mcmc){
 
-  assert(mcmc);
+   pe_t  *pe  = NULL;
+   rt_t  *rt  = NULL;
+   char algorithm_value[BUFSIZ];
 
-  TIMER_start(TIMER_MCMC_SAMPLER);
+   assert(mcmc);
 
-  metropolis_init(mcmc->met, RANDOM);
-  metropolis_run(mcmc->met);
+   pe = mcmc->pe;
+   rt = mcmc->rt;
 
-  metropolis_write_chains(mcmc->met);
-  
-  TIMER_stop(TIMER_MCMC_SAMPLER);
+   sprintf(algorithm_value, "%s", ALGORITHM_DEFAULT);
 
-  return 0;
-}
+   ch_create(pe, &mcmc->burn);
+   ch_init_burn_rt(rt, mcmc->burn);
+   ch_burn_info(pe, mcmc->burn);
 
-int mcmc_statistics(mcmc_t *mcmc){
+   ch_create(pe, &mcmc->chain);
+   ch_init_chain_rt(rt, mcmc->chain);
+   ch_chain_info(pe, mcmc->chain);
 
-  assert(mcmc);
+   rt_string_parameter(rt, "mcmc_algorithm", algorithm_value, BUFSIZ);
+   if(strcmp(algorithm_value, "metropolis") == 0)
+   {
+     met_create(pe, mcmc->burn, mcmc->chain, &mcmc->met);
+     met_init_rt(pe, rt, mcmc->met);
+     met_info_rt(pe, mcmc->met);
+   }
 
-  TIMER_start(TIMER_MCMC_STATISTICS);
 
-  ess_compute(mcmc->ess);
-  ess_print(mcmc->ess);
-
-  TIMER_stop(TIMER_MCMC_STATISTICS);
-
-  return 0;
-}
-
- /*****************************************************************************
-  *
-  *  mcmc_infer
-  *
-  *****************************************************************************/
-
-int mcmc_infer(mcmc_t *mcmc){
-
-  chain_t *chain = NULL;
-  cmd_t *cmd = NULL;
-  assert(mcmc);
-
-  TIMER_start(TIMER_MCMC_INFERENCE);
-
-  data_create(&mcmc->cmd->test, &mcmc->test);
-  data_read_file(mcmc->test);
-
-  metropolis_chain(mcmc->met, &chain);
-  cmd = chain->cmd;
-
-  infr_create(cmd, chain, mcmc->test, &mcmc->infr);
-
-  infr_mc_integration_lr(mcmc->infr);
-  infr_print(mcmc->infr, LOGISTIC_REGRESSION);
-
-  TIMER_stop(TIMER_MCMC_INFERENCE);
-
-  return 0;
-}
+   return 0;
+ }

@@ -6,12 +6,12 @@
 
 #include "logistic_regression.h"
 #include "memory.h"
-#include "timer.h"
-#include <gsl/gsl_cblas.h>    // to perform dot products and vector operations
 
-struct lh_s{
-  precision lhood;
+struct lr_s{
+  data_t *data;
   precision *dot;
+  precision lhood;
+  int dim;
   int N;
 };
 
@@ -21,22 +21,24 @@ struct lh_s{
 *
 *****************************************************************************/
 
-int lr_lhood_create(int N, lh_t **plh){
+int lr_lhood_create(pe_t *pe, data_t *data, lr_t **plr){
 
-  lh_t *lh = NULL;
+  lr_t *lr = NULL;
 
-  lh = (lh_t *) calloc(1, sizeof(lh_t));
-  assert(lh);
-  if(lh == NULL)
-  {
-    printf("calloc(lh_t) failed\n");
-    exit(1);
-  }
+  assert(pe);
+  assert(data);
 
-  lh->N = N;
-  mem_malloc_precision(&lh->dot, lh->N);
+  lr = (lr_t *) calloc(1, sizeof(lr_t));
+  assert(lr);
+  if(lr == NULL) pe_fatal(pe, "calloc(lr_t) failed\n");
 
-  *plh = lh;
+  lr->data = data;
+
+  data_dimx(data, &lr->dim);
+  data_N(data, &lr->N);
+
+  mem_malloc_precision(&lr->dot, lr->dim+1);
+  *plr = lr;
 
   return 0;
 }
@@ -47,16 +49,12 @@ int lr_lhood_create(int N, lh_t **plh){
 *
 *****************************************************************************/
 
-int lr_lhood_free(lh_t *lh){
+int lr_lhood_free(lr_t *lr){
 
-  assert(lh);
+  assert(lr);
 
-  if(lh->dot) free(lh->dot);
-
-  free(lh);
-
-  assert(lh->dot != NULL);
-  assert(lh != NULL);
+  mem_free((void**)&lr->dot);
+  mem_free((void**)&lr);
 
   return 0;
 }
@@ -70,126 +68,39 @@ int lr_lhood_free(lh_t *lh){
 *
 *****************************************************************************/
 
-precision lr_lhood(lh_t *lh, precision *sample, data_t *data){
+precision lr_lhood(lr_t *lr, precision *sample){
 
-  cmd_data_t *params = NULL;
-
-  assert(sample);
-  assert(data);
-
-  TIMER_start(TIMER_LIKELIHOOD);
-
-  params = data->params;
   int i,j;
+  precision *x = NULL;
+  int *y = NULL;
 
-  lh->lhood = 0.0;
-  for(i=0; i<params->N; i++)
+  data_x(lr->data, &x);
+  data_y(lr->data, &y);
+
+  assert(lr);
+
+  // TIMER_start(TIMER_LIKELIHOOD);
+
+  lr->lhood = 0.0;
+  for(i=0; i<lr->N; i++)
   {
-    lh->dot[i] = 0.0;
-    for(j=0; j<(params->dim+1); j++)
+    lr->dot[i] = 0.0;
+  }
+
+  for(i=0; i<lr->N; i++)
+  {
+    for(j=0; j<lr->dim; j++)
     {
-      lh->dot[i] += sample[j] * data->x[i*(params->dim+1)+j];
+      lr->dot[i] += sample[j] * x[i*lr->dim+j];
     }
-    lh->lhood -= log(1 + exp(-data->y[i] * lh->dot[i]));
   }
 
-  TIMER_stop(TIMER_LIKELIHOOD);
-
-  return lh->lhood;
-}
-
-/*****************************************************************************
-*
-*  lr_lhood_dot
-*
-*****************************************************************************/
-
-precision lr_lhood_dot(lh_t *lh, precision *sample, data_t *data){
-
-  cmd_data_t *params = NULL;
-
-  assert(sample);
-  assert(data);
-
-  TIMER_start(TIMER_LIKELIHOOD);
-
-  params = data->params;
-  int i;
-
-  lh->lhood = 0.0;
-  for(i=0; i<params->N; i++)
+  for(i=0; i<lr->N; i++)
   {
-#if FLOAT
-    lh->dot[i] = cblas_sdot((params->dim+1), &data->x[i*(params->dim+1)], 1, sample, 1);
-#else
-    lh->dot[i] = cblas_ddot((params->dim+1), &data->x[i*(params->dim+1)], 1, sample, 1);
-#endif
-    lh->lhood -= log(1 + exp(-data->y[i] * lh->dot[i]));
+    lr->lhood -= log(1 + exp(-y[i] * lr->dot[i]));
   }
 
-  TIMER_stop(TIMER_LIKELIHOOD);
+  // TIMER_stop(TIMER_LIKELIHOOD);
 
-  return lh->lhood;
-}
-
-/*****************************************************************************
-*
-*  lr_lhood_mv
-*
-*****************************************************************************/
-
-precision lr_lhood_mv(lh_t *lh, precision *sample, data_t *data){
-
-  cmd_data_t *params = NULL;
-
-  assert(sample);
-  assert(data);
-
-  TIMER_start(TIMER_LIKELIHOOD);
-
-  params = data->params;
-  int i;
-  precision alpha = 1.0, beta=0.0;
-  int m=params->N, n=(params->dim+1), lda=params->N, incx=1, incy=1;
-
-#if FLOAT
-  cblas_sgemv(CblasColMajor, CblasNoTrans, m, n, alpha, data->x, lda,
-              sample, incx, beta, lh->dot, incy);
-#else
-  cblas_dgemv(CblasColMajor, CblasNoTrans, m, n, alpha, data->x, lda,
-              sample, incx, beta, lh->dot, incy);
-#endif
-
-  lh->lhood = 0.0;
-  for(i=0; i<params->N; i++){
-    lh->lhood -= log(1+exp(-data->y[i] * lh->dot[i]));
-  }
-
-  TIMER_stop(TIMER_LIKELIHOOD);
-
-  return lh->lhood;
-}
-
-/*****************************************************************************
-*
-*  lr_logistic_regression
-*
-*****************************************************************************/
-
-precision lr_logistic_regression(precision *sample, precision *x, int dim){
-
-  assert(sample);
-  assert(x);
-
-  int i;
-  precision probability, dot=0.0;
-
-  for(i=0; i<dim; i++)
-  {
-    dot += sample[i] * x[i];
-  }
-
-  probability = 1.0 / (1.0 + exp(-dot));
-
-  return probability;
+  return lr->lhood;
 }

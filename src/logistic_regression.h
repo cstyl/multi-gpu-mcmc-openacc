@@ -2,17 +2,13 @@
 #define __LOGISTIC_REGRESSION_H__
 
 #include "definitions.h"
-#include "command_line_parser.h"
+#include "pe.h"
 #include "data_input.h"
 
-typedef struct lh_s lh_t;
+typedef struct lr_s lr_t;
 
-int lr_lhood_create(int N, lh_t **plh);
-int lr_lhood_free(lh_t *lh);
-
-precision lr_lhood(lh_t *lr, precision *sample, data_t *data);
-precision lr_lhood_dot(lh_t *lr, precision *sample, data_t *data);
-precision lr_lhood_mv(lh_t *lr, precision *sample, data_t *data);
-precision lr_logistic_regression(precision *sample, precision *x, int dim);
+int lr_lhood_create(pe_t *pe, data_t *data, lr_t **plr);
+int lr_lhood_free(lr_t *lr);
+precision lr_lhood(lr_t *lr, precision *sample);
 
 #endif // __LOGISTIC_REGRESSION_H__

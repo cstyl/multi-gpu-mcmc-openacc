@@ -5,27 +5,24 @@
 #include <stdlib.h>
 
 #include "prior.h"
-#include "random_number_generator.h"
-#include "timer.h"
 
 // large to simulate non-informative prior
-#define PRIOR_SD 1000000
+#define PRIOR_SD 100000
+// #define PRIOR_SD 10
+#define PI 3.14159265359
 
-precision pr_log_prob(cmd_t *cmd, precision *sample){
+precision pr_log_prob(precision *sample, int dim){
 
-  assert(cmd);
-
-  TIMER_start(TIMER_PRIOR);
+  assert(sample);
 
   int i;
   precision priorProb = 0.0;
 
-  for(i=0; i<cmd->dim+1; i++)
+  for(i=0; i<dim; i++)
   {
-    priorProb += log(rng_normal_prob(&sample[i], PRIOR_SD));
+    // priorProb += log(rng_normal_prob(&sample[i], PRIOR_SD));
+    priorProb += log(exp(-(pow(sample[i],2.0)/(2*pow(PRIOR_SD, 2.0))))/sqrt(2*PI*pow(PRIOR_SD, 2.0)));
   }
-
-  TIMER_stop(TIMER_PRIOR);
 
   return priorProb;
 }

@@ -1,0 +1,164 @@
+##############################################################################
+#
+#  MCMC input file
+#  Reference.
+#
+#  Lines introduced with # and blank lines are ignored.
+#
+#  The file is made up of a series of (case-sensitive) keyword value
+#  pairs which should be separated by a space:
+#
+#  keyword value
+#
+#  Components of vector values are separated by an underscore, e.g.,
+#  force 0.01_0.00_0.00
+#
+#  If a given keyword does not appear, or is commented out, a default
+#  value will be used.
+#
+#
+##############################################################################
+
+##############################################################################
+#
+#  Data related
+#
+#  train_x          Filename of the training datapoints
+#  train_y          Filename of the training labels
+#  train_dimx       Training set datapoints dimensionality (including bias)
+#  train_dimy       Training set labels dimensionality
+#  train_N          Number of training datapoints
+#
+#  test_x           Filename of the test datapoints
+#  test_y           Filename of the test labels
+#  test_dimx        Test set datapoints dimensionality (including bias)
+#  test_dimy        Training set labels dimensionality
+#  test_N           Number of test datapoints
+#
+#  data_format      Data format of input files.
+#                   CSV or BINARY [BINARY]
+#
+###############################################################################
+
+train_x          ../data/synthetic/500_3_100/X_train.csv
+train_y          ../data/synthetic/500_3_100/Y_train.csv
+train_dimx       3
+train_dimy       1
+train_N          500
+
+test_x           ../data/synthetic/500_3_100/X_test.csv
+test_y           ../data/synthetic/500_3_100/Y_test.csv
+test_dimx        3
+test_dimy        1
+test_N           100
+
+data_format      CSV
+
+##############################################################################
+#
+#  MCMC algorithm (Sampling)
+#
+#  algorithm metropolis   Select which mcmc algorithm to run. Currently supporting metropolis.
+#  sample_dim             Dimensionality of the generated samples (Excluding bias).
+#  random_init            [0|1] Initialise first sample to random state. Default 0.
+#  burn_N                 Number of burn-in steps to perform.
+#  postburn_N             Number of post burn-in to perform.
+#
+###############################################################################
+
+algorithm   metropolis
+sample_dim  3
+random_init 0
+burn_N      5000
+postburn_N  25000
+
+##############################################################################
+#
+#  Proposal Kernel
+#
+#  kernel mvn_block   Multivariate normal proposal kernel with block update [the default]
+#
+#  Future additions:
+#  kernel             mvn_precond
+#
+#  tune_rw_sd         [0|1] Select if tuning of the rw_sd is required. Default is 0 and
+#                     a heuristic value for standard deviation is used.
+#
+###############################################################################
+
+kernel  mvn_block
+tune_sd 0
+
+##############################################################################
+#
+#  Likelihood
+#
+#  lhood logistic_regression  Logistic regression likelihood for binary classification
+#                             [the default]
+#
+#  Future additions:
+#  lhood                      softmax (for multi-class classification)
+#
+###############################################################################
+
+lhood logistic_regression
+
+##############################################################################
+#
+#  Statistics
+#
+#  max_lag                        Threshold for maximum autocorrelation lag
+#
+#  ess max                        Evaluate maximum Effective Sample Size [the default]
+#
+#  Otherwise
+#  ess                            min
+#                                 mean
+#                                 median
+#
+#  inference                      [0|1] Select if inference on test data should performed.
+#
+#  mc_integ logistic_regression   Perform binary classification using logistic regression
+#                                 [the default]
+#
+# Future additions:
+# mc_integ                        mean
+#                                 variance
+#
+###############################################################################
+
+max_lag   0.0
+ess       max
+inference 1
+mc_integ  logistic_regression
+
+###############################################################################
+#
+#  Output frequency and output directory
+#
+#  freq_burn       N        Output diagnostics every N steps during sampling burn-in period
+#  freq_postburn   N        Output diagnostics every N steps during sampling post burn-in period
+#  freq_autocorr   N        Output diagnostics every N steps during autocorrelation evaluation
+#  freq_ess        N        Output diagnostics every N steps during ESS evaluation
+#  freq_mc_integ   N        Output diagnostics every N steps during mc integration evaluation
+#
+#  outdir                   Directory to dump any output file
+#
+###############################################################################
+
+freq_burn       1000
+freq_postburn   5000
+freq_autocorr   2000
+freq_ess        2000
+freq_mc_integ   100
+outdir          ../out/500_2_100
+
+###############################################################################
+#
+#  Miscellaneous
+#
+#  random_seed  +ve integer is the random number generator seed
+#
+###############################################################################
+
+random_seed 7361237

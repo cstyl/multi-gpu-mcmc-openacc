@@ -1,5 +1,7 @@
 import numpy as np
 from sklearn.decomposition import PCA
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
 import preprocessing
 import argparse
 import util
@@ -12,45 +14,35 @@ if args.precision == 'double':
 else:
 	type = 'f4'
 
-print("Decompressing the dataset...", end='')
+# print("Decompressing the dataset...", end=" ")
+print("Decompressing the dataset...")
 images = util.convert(args.data, args.labels, args.N)
-print("\tDone")
-
-print("Extracting data set with digits {0} or {1}...".format(args.classes[0], args.classes[1]))
 images = preprocessing.filter_classes(images, args.classes, type)
-print("Data set extracted.")
-
-if args.shuffle != 0:
-	print("Shuffling the data set...", end='')
-	np.random.shuffle(images)
-	print("\tDone")
 
 Y = preprocessing.get_binary_labels(images, args.classes)
 X = preprocessing.get_data(images, type)
+X_tr, X_ts, Y_tr, Y_ts = train_test_split(X, Y, test_size=(1-args.train), random_state=4)
 
-N = X.shape[0]
-N_train = int(N * args.train)
+mean = X_tr.mean()
+std  = X_tr.std()
+X_tr = (X_tr - mean) / std
+X_ts = (X_ts - mean) / std
 
-print("Splitting data set into train and test set...", end='')
-X_train, Y_train, X_test, Y_test = preprocessing.split_dataset(X, Y, N_train)
-print("\tDone.")
+print(X_tr.mean(), X_tr.std())
+print(X_ts.mean(), X_ts.std())
 
-X_train, X_test = preprocessing.normazile_sets(X_train, X_test)
+pca = PCA(args.pca).fit(X_tr)
+# print(pca.explained_variance_ratio_)
+# print(pca.explained_variance_ratio_.sum())
+# print(pca.get_covariance())
 
-# perform pca
-if args.pca != 0:
-	print("Gennerating PCA components...", end='')
-	pca = PCA(n_components=min(X_train.shape[0], args.pca))
-	pca.fit(X_train)
-	X_train = pca.transform(X_train)
-	X_test  = pca.transform(X_test)
-	print("\tDone.")
+X_tr_pca = pca.transform(X_tr)
+X_ts_pca = pca.transform(X_ts)
 
-util.write_csv('../X_train{0}_{1}.csv'.format(args.classes[0], args.classes[1]), 'x', X_train, args.precision)
-util.write_csv('../Y_train{0}_{1}.csv'.format(args.classes[0], args.classes[1]), 'y', Y_train, args.precision)
-util.write_csv('../X_test{0}_{1}.csv'.format(args.classes[0], args.classes[1]), 'x', X_test, args.precision)
-util.write_csv('../Y_test{0}_{1}.csv'.format(args.classes[0], args.classes[1]), 'y', Y_test, args.precision)
+X_tr_pca, X_ts_pca = preprocessing.append_bias(X_tr_pca, X_ts_pca)
+print(X_tr_pca.shape)
 
-
-
-
+util.write_csv('../X_train_{0}_{1}_{2}_{3}.csv'.format(args.classes[0], args.classes[1], X_tr_pca.shape[0], X_tr_pca.shape[1]-1), 'x', X_tr_pca, args.precision)
+util.write_csv('../Y_train_{0}_{1}_{2}_{3}.csv'.format(args.classes[0], args.classes[1], X_tr_pca.shape[0], X_tr_pca.shape[1]-1), 'y', Y_tr, args.precision)
+util.write_csv('../X_test_{0}_{1}_{2}_{3}.csv'.format(args.classes[0], args.classes[1], X_ts_pca.shape[0], X_ts_pca.shape[1]-1), 'x', X_ts_pca, args.precision)
+util.write_csv('../Y_test_{0}_{1}_{2}_{3}.csv'.format(args.classes[0], args.classes[1], X_ts_pca.shape[0], X_ts_pca.shape[1]-1), 'y', Y_ts, args.precision)

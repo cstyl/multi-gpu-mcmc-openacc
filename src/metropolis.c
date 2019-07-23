@@ -5,210 +5,241 @@
 #include <stdlib.h>
 
 #include "metropolis.h"
+#include "data_input.h"
+#include "multivariate_normal.h"
+#include "logistic_regression.h"
 #include "sample.h"
-#include "util.h"
-#include "timer.h"
+#include "prior.h"
+#include "ran.h"
 
 struct met_s{
-  cmd_t    *cmd;
-  rng_t    *rng;
-  data_t   *data;
-  sample_t *current;
-  sample_t *proposed;
-  chain_t  *bchain;     /* Chain during burn in period */
-  chain_t  *chain;      /* Chain during post-burn in in period */
+  pe_t *pe;
+  rt_t *rt;
+  ch_t *burn;        /* Chain during burn in period */
+  ch_t *chain;       /* Chain during post-burn in in period */
+  data_t *data;         /* Data structure to be used during sampling */
+  mvnb_t *mvnb;         /* Multivariate Normal Proposal kernel with block update */
+  lr_t *lr;             /* Logistic Regression Likelihood */
+  sample_t *current;    /* Current sample */
+  sample_t *proposed;   /* Proposed sample */
+  int random_init;
 };
 
-/*****************************************************************************
- *
- *  metropolis_create
- *
- *****************************************************************************/
+static const char KERNEL_DEFAULT[BUFSIZ] = "mvn_block";
+static const char LHOOD_DEFAULT[BUFSIZ] = "logistic_regression";
+static const int RAND_INIT_DEFAULT = 0;
+// static const int SEED_DEFAULT = 7361237;
 
-int metropolis_create(cmd_t *cmd, rng_t *rng, data_t *data, met_t **pmet){
+int met_create(pe_t *pe, ch_t *burn, ch_t *chain, met_t **pmet){
 
   met_t *met = NULL;
 
-  assert(cmd);
-  assert(rng);
-  assert(data);
+  assert(pe);
+  assert(burn);
+  assert(chain);
 
   met = (met_t *) calloc(1, sizeof(met_t));
   assert(met);
-  if(met == NULL)
-  {
-    printf("calloc(met_t) failed\n");
-    exit(1);
-  }
+  if(met == NULL) pe_fatal(pe, "calloc(met_t) failed\n");
 
-  met->cmd = cmd;
-  met->rng = rng;
-  met->data = data;
+  met->pe = pe;
+  met->burn = burn;
+  met->chain = chain;
 
-  chain_create(cmd, &met->bchain, cmd->Nburn, cmd->dim);
-  chain_create(cmd, &met->chain, cmd->Ns, cmd->dim);
-
-  sample_create(met->cmd, &met->current);
-  sample_create(met->cmd, &met->proposed);
+  met_random_init_set(met, RAND_INIT_DEFAULT); /* Default initialize to zero */
 
   *pmet = met;
 
   return 0;
 }
 
-/*****************************************************************************
- *
- *  metropolis_free
- *
- *****************************************************************************/
-
-int metropolis_free(met_t *met){
+int met_free(met_t *met){
 
   assert(met);
 
+  if(met->mvnb) mvn_block_free(met->mvnb);
+  if(met->lr) lr_lhood_free(met->lr);
   sample_free(met->current);
   sample_free(met->proposed);
-
-  if(met->chain) chain_free(met->chain);
-  if(met->bchain) chain_free(met->bchain);
-
-  free(met);
-
-  assert(met->current != NULL);
-  assert(met->proposed != NULL);
-  assert(met->bchain != NULL);
-  assert(met->chain != NULL);
-  assert(met != NULL);
+  data_free(met->data);
 
   return 0;
 }
 
-/*****************************************************************************
- *
- *  metropolis_init
- *
- *****************************************************************************/
+/* Assign data, choose and assign proposal kernel and lhood, assign samples*/
+int met_init_rt(pe_t *pe, rt_t *rt, met_t *met){
 
-int metropolis_init(met_t *met, int random){
+  char kernel_value[BUFSIZ];
+  char lhood_value[BUFSIZ];
+  int rinit = 0;
 
+  assert(rt);
   assert(met);
 
-  cmd_t    *cmd    = NULL;
-  sample_t *cur    = NULL;
-  rng_t    *rng    = NULL;
-  chain_t  *bchain = NULL;
-  data_t   *data   = NULL;
+  sprintf(kernel_value, "%s", KERNEL_DEFAULT);
+  sprintf(lhood_value, "%s", LHOOD_DEFAULT);
 
-  cmd    = met->cmd;
-  cur    = met->current;
-  rng    = met->rng;
-  bchain = met->bchain;
-  data   = met->data;
+  ran_init_rt(pe, rt); /* initialize state of the random number generator */
 
-  sample_init(cmd, rng, data, bchain, cur, random);
+  sample_create(pe, &met->current);
+  sample_create(pe, &met->proposed);
 
-  return 0;
-}
+  sample_init_rt(rt, met->current);
+  sample_init_rt(rt, met->proposed);
 
-/*****************************************************************************
- *
- *  metropolis_run
- *
- *****************************************************************************/
+  data_create_train(pe, &met->data);
+  data_init_train_rt(rt, met->data);
+  data_input_train_info(pe, met->data);
 
-int metropolis_run(met_t *met){
-
-  cmd_t    *cmd   = NULL;
-  sample_t *cur   = NULL;
-  sample_t *pro   = NULL;
-  rng_t    *rng   = NULL;
-  chain_t  *bchain = NULL;
-  chain_t  *chain = NULL;
-  data_t   *data  = NULL;
-  int i;
-
-  assert(met);
-
-  cmd   = met->cmd;
-  cur   = met->current;
-  pro   = met->proposed;
-  rng   = met->rng;
-  data  = met->data;
-  bchain = met->bchain;
-  chain = met->chain;
-
-  printf("\nStarting burn-in period of %d steps..\n", cmd->Nburn);
-  TIMER_start(TIMER_BURN_IN);
-
-  chain_init_stats(0, bchain);
-  for(i=1; i<=cmd->Nburn; i++)
+  rt_string_parameter(rt, "kernel", kernel_value, BUFSIZ);
+  if(strcmp(kernel_value, "mvn_block") == 0)
   {
-    TIMER_start(TIMER_SAMPLER_STEP);
-
-    sample_propose(cmd, rng, cur, pro);
-    bchain->probability[i] = sample_evaluate(cmd, rng, data, cur, pro);
-    sample_choose(i, cmd, rng, bchain, &cur, &pro);
-
-    TIMER_stop(TIMER_SAMPLER_STEP);
+    mvn_block_create(pe, &met->mvnb);
+    mvn_block_init_rt(rt, met->mvnb);
   }
 
-  TIMER_stop(TIMER_BURN_IN);
-
-  printf("\nStarting post burn-in period of %d steps..\n", cmd->Ns);
-  TIMER_start(TIMER_POST_BURN_IN);
-
-  chain_init_stats(0, chain);
-  for(i=1; i<=cmd->Ns; i++)
+  rt_string_parameter(rt, "lhood", lhood_value, BUFSIZ);
+  if(strcmp(lhood_value, "logistic_regression") == 0)
   {
-    TIMER_start(TIMER_SAMPLER_STEP);
-
-    sample_propose(cmd, rng, cur, pro);
-    chain->probability[i] = sample_evaluate(cmd, rng, data, cur, pro);
-    sample_choose(i, cmd, rng, chain, &cur, &pro);
-
-    TIMER_stop(TIMER_SAMPLER_STEP);
+    lr_lhood_create(pe, met->data, &met->lr);
   }
 
-  TIMER_stop(TIMER_POST_BURN_IN);
+  if(rt_switch(rt, "random_init"))
+  {
+    rinit = 1;
+    met_random_init_set(met, rinit);
+  }
 
   return 0;
 }
 
-/*****************************************************************************
- *
- *  metropolis_chain
- *
- *****************************************************************************/
+int met_info_rt(pe_t *pe, met_t *met){
 
-int metropolis_chain(met_t *met, chain_t **pchain){
-
+  int dim, random_init, tune_rw_sd;
+  double rwsd;
+  assert(pe);
   assert(met);
 
-  *pchain = met->chain;
+  sample_dim(met->current, &dim);
+  mvn_block_rwsd(met->mvnb, &rwsd);
+  mvn_block_tune(met->mvnb, &tune_rw_sd);
+  met_random_init(met, &random_init);
+
+  pe_info(pe, "\n");
+  pe_info(pe, "Metropolis Properties\n");
+  pe_info(pe, "---------------------\n");
+  pe_info(pe, "%30s\t\t%d\n", "Sample Dimensionality:", dim);
+  pe_info(pe, "%30s\t\t%s\n", "Random Initialisation:", random_init>0 ? "True" : "False");
+  if(met->mvnb)
+  {
+    pe_info(pe, "%30s\n", "Proposal Kernel:");
+    pe_info(pe, "%30s\t\t%s\n", "Type ", "Multivariate Normal (Block)");
+    pe_info(pe, "%30s\t\t%f\n", "Step Size ", rwsd);
+    pe_info(pe, "%30s\t\t%s\n", "Tune ", tune_rw_sd>0 ? "True" : "False");
+  }
+  if(met->lr) pe_info(pe, "%30s\t\t%s\n", "Likelihood:", "Logistic Regression");
+
 
   return 0;
 }
 
-/*****************************************************************************
- *
- *  metropolis_write_chains
- *
- *****************************************************************************/
+int met_init(pe_t *pe, met_t *met){
 
-int metropolis_write_chains(met_t *met){
+  precision *sample = NULL;
+  precision lhood=0.0, prior=0.0, posterior=0.0;
+  int dim;
 
-  chain_t *chain  = NULL;
-  chain_t *bchain = NULL;
-  cmd_t   *cmd    = NULL;
+  assert(pe);
+  assert(met);
+
+  /* Load data */
+  data_read_file(pe, met->data);
+  // data_print_file(met->data);
+
+  /* Initialise first sample */
+  sample_init_zero(met->current);
+  printf("Sample zero initialised\n");
+  if(met->random_init)
+  {
+    if(met->mvnb)
+    {
+      mvn_block_init(met->mvnb);
+      sample_propose_mvnb(met->mvnb, met->current, met->current);
+    }
+  }
+
+  sample_values(met->current, &sample);
+  sample_dim(met->current, &dim);
+
+  ch_append_sample(0, sample, met->burn);
+  ch_init_stats(0, met->burn);
+
+  if(met->lr) lhood = lr_lhood(met->lr, sample);
+  prior = pr_log_prob(sample, dim);
+  posterior = prior + lhood;
+
+  sample_prior_set(met->current, prior);
+  sample_likelihood_set(met->current, lhood);
+  sample_posterior_set(met->current, posterior);
+
+  return 0;
+}
+
+int met_run(pe_t *pe, met_t *met){
+
+  int bsteps, psteps, i;
+  precision probability=0.0;
+  precision *sample = NULL;
+
+  assert(pe);
+  assert(met);
+
+  /* Loop over burn-in */
+  ch_N(met->burn, &bsteps);
+  pe_info(pe, "\nStarting burn-in period of %d steps..\n", bsteps);
+  for(i=1; i<bsteps+1; i++)
+  {
+    if(met->mvnb) sample_propose_mvnb(met->mvnb, met->current, met->proposed);
+    if(met->lr) probability = sample_evaluate_lr(met->lr, met->current, met->proposed);
+
+    ch_append_probability(i, probability, met->burn);
+    sample_choose(i, met->burn, &met->current, &met->proposed);
+  }
+
+  /* Reset stats for post burn-in chain */
+  sample_values(met->current, &sample);
+  ch_append_sample(0, sample, met->chain);
+  ch_init_stats(0, met->chain);
+
+  /* Loop over post burn-in */
+  ch_N(met->chain, &psteps);
+  pe_info(pe, "\nStarting burn-in period of %d steps..\n", psteps);
+  for(i=1; i<psteps+1; i++)
+  {
+    if(met->mvnb) sample_propose_mvnb(met->mvnb, met->current, met->proposed);
+    if(met->lr) probability = sample_evaluate_lr(met->lr, met->current, met->proposed);
+
+    ch_append_probability(i, probability, met->chain);
+    sample_choose(i, met->chain, &met->current, &met->proposed);
+  }
+
+  return 0;
+}
+
+int met_random_init_set(met_t *met, int random_init){
 
   assert(met);
 
-  chain  = met->chain;
-  bchain = met->bchain;
-  cmd    = met->cmd;
+  met->random_init = random_init;
 
-  util_write_array(bchain->samples, cmd->Nburn, cmd->dim+1, cmd->outdir, "btheta");
-  util_write_array(chain->samples, cmd->Ns, cmd->dim+1, cmd->outdir, "theta");
+  return 0;
+}
+
+int met_random_init(met_t *met, int *random_init){
+
+  assert(met);
+
+  *random_init = met->random_init;
 
   return 0;
 }

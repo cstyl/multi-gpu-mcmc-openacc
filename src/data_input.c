@@ -6,9 +6,9 @@
 
 #include "data_input.h"
 #include "memory.h"
+#include "definitions.h"
 
 #define SKIP_HEADER 1
-#define Y_DIM 1
 
 #define CONVERT(in, type_t, out, pos)\
 ({\
@@ -25,39 +25,84 @@
   }\
 })
 
-static int data_csvread( char *filename, int rowSz, int colSz, int skip_header,
+struct data_s{
+  int dimx;
+  int dimy;
+  int N;
+  precision *x;
+  int *y;
+  char fx[FILENAME_MAX];
+  char fy[FILENAME_MAX];
+};
+
+static const int DIMX_DEFAULT = 3;
+static const int DIMY_DEFAULT = 1;
+static const int N_TRAIN_DEFAULT = 500;
+static const int N_TEST_DEFAULT = 100;
+static const char TRAIN_X_DEFAULT[FILENAME_MAX] = "../data/synthetic/default/X_train.csv";
+static const char TRAIN_Y_DEFAULT[FILENAME_MAX] = "../data/synthetic/default/Y_train.csv";
+static const char TEST_X_DEFAULT[FILENAME_MAX] = "../data/synthetic/default/X_test.csv";
+static const char TEST_Y_DEFAULT[FILENAME_MAX] = "../data/synthetic/default/Y_test.csv";
+
+static int data_csvread(pe_t *pe, char *filename, int rowSz, int colSz, int skip_header,
                     const char *delimiter, const char *datatype, void *data);
 static void data_rmheader(char* line, FILE *fp, int skip_num);
+static int data_allocate_x(data_t *data);
+static int data_allocate_y(data_t *data);
 
 /*****************************************************************************
  *
- *  data_create
+ *  data_create_train
  *
  *****************************************************************************/
 
-int data_create(cmd_data_t *cmd_data, data_t **pdata){
+int data_create_train(pe_t *pe, data_t **pdata){
 
   data_t *data = NULL;
 
-  assert(cmd_data);
+  assert(pe);
 
   data = (data_t *) calloc(1, sizeof(data_t));
   assert(data);
-  if(data == NULL)
-  {
-    printf("calloc(data_t) failed\n");
-    exit(1);
-  }
+  if(data == NULL) pe_fatal(pe, "calloc(data_t) failed\n");
 
-  data->params = cmd_data;
-
-  mem_malloc_precision(&data->x, (data->params->dim+1) * data->params->N);
-  mem_malloc_integers(&data->y, Y_DIM * data->params->N);
+  data_dimx_set(data, DIMX_DEFAULT);
+  data_dimy_set(data, DIMY_DEFAULT);
+  data_N_set(data, N_TRAIN_DEFAULT);
+  data_fx_set(data, TRAIN_X_DEFAULT);
+  data_fy_set(data, TRAIN_Y_DEFAULT);
 
   *pdata = data;
 
   return 0;
 }
+
+/*****************************************************************************
+ *
+ *  data_create_test
+ *
+ *****************************************************************************/
+
+int data_create_test(pe_t *pe, data_t **pdata){
+
+   data_t *data = NULL;
+
+   assert(pe);
+
+   data = (data_t *) calloc(1, sizeof(data_t));
+   assert(data);
+   if(data == NULL) pe_fatal(pe, "calloc(data_t) failed\n");
+
+   data_dimx_set(data, DIMX_DEFAULT);
+   data_dimy_set(data, DIMY_DEFAULT);
+   data_N_set(data, N_TEST_DEFAULT);
+   data_fx_set(data, TEST_X_DEFAULT);
+   data_fy_set(data, TEST_Y_DEFAULT);
+
+   *pdata = data;
+
+   return 0;
+ }
 
 /*****************************************************************************
  *
@@ -67,16 +112,377 @@ int data_create(cmd_data_t *cmd_data, data_t **pdata){
 
 int data_free(data_t *data){
 
+   assert(data);
+
+   mem_free((void**)&data->x);
+   mem_free((void**)&data->y);
+
+   mem_free((void**)&data);
+
+   return 0;
+ }
+
+/*****************************************************************************
+ *
+ *  data_init_train_rt
+ *
+ *****************************************************************************/
+
+int data_init_train_rt(rt_t *rt, data_t *train){
+
+  int dimx, dimy, N;
+  char x[FILENAME_MAX], y[FILENAME_MAX];
+
+  assert(rt);
+  assert(train);
+
+  if(rt_int_parameter(rt, "train_dimx", &dimx))
+  {
+    data_dimx_set(train, dimx);
+  }
+
+  if(rt_int_parameter(rt, "train_dimy", &dimy))
+  {
+    data_dimy_set(train, dimy);
+  }
+
+  if(rt_int_parameter(rt, "train_N", &N))
+  {
+    data_N_set(train, N);
+  }
+
+  if(rt_string_parameter(rt, "train_x", x, FILENAME_MAX))
+  {
+    data_fx_set(train, x);
+  }
+
+  if(rt_string_parameter(rt, "train_y", y, FILENAME_MAX))
+  {
+    data_fy_set(train, y);
+  }
+
+  data_allocate_x(train);
+  data_allocate_y(train);
+
+  return 0;
+}
+
+/*****************************************************************************
+ *
+ *  data_init_test_rt
+ *
+ *****************************************************************************/
+
+int data_init_test_rt(rt_t *rt, data_t *test){
+
+  int dimx, dimy, N;
+  char x[FILENAME_MAX], y[FILENAME_MAX];
+
+  assert(rt);
+  assert(test);
+
+  if(rt_int_parameter(rt, "test_dimx", &dimx))
+  {
+    data_dimx_set(test, dimx);
+  }
+
+  if(rt_int_parameter(rt, "test_dimy", &dimy))
+  {
+    data_dimy_set(test, dimy);
+  }
+
+  if(rt_int_parameter(rt, "test_N", &N))
+  {
+    data_N_set(test, N);
+  }
+
+  if(rt_string_parameter(rt, "test_x", x, FILENAME_MAX))
+  {
+    data_fx_set(test, x);
+  }
+
+  if(rt_string_parameter(rt, "test_y", y, FILENAME_MAX))
+  {
+    data_fy_set(test, y);
+  }
+
+  data_allocate_x(test);
+  data_allocate_y(test);
+
+  return 0;
+}
+
+/*****************************************************************************
+ *
+ *  data_input_train_info
+ *
+ *****************************************************************************/
+
+int data_input_train_info(pe_t *pe, data_t *train){
+
+  int dimx, dimy, N;
+  char fx[FILENAME_MAX], fy[FILENAME_MAX];
+
+  assert(pe);
+  assert(train);
+
+  data_dimx(train, &dimx);
+  data_dimy(train, &dimy);
+  data_N(train, &N);
+  data_fx(train, fx);
+  data_fy(train, fy);
+
+  pe_info(pe, "\n");
+  pe_info(pe, "Training Set Properties\n");
+  pe_info(pe, "-----------------------\n");
+  pe_info(pe, "%30s\t\t%d\n", "Number of Datapoints:", N);
+  pe_info(pe, "%30s\t\t%d %s\n", "Datapoints Dimensionality:", dimx, "(includes bias)");
+  pe_info(pe, "%30s\t\t%d\n", "Labels Dimensionality:", dimy);
+  pe_info(pe, "%30s\t\t%s\n", "Datapoints Filename:", fx);
+  pe_info(pe, "%30s\t\t%s\n", "Labels Filename:", fy);
+
+  return 0;
+}
+
+/*****************************************************************************
+ *
+ *  data_input_test_info
+ *
+ *****************************************************************************/
+
+int data_input_test_info(pe_t *pe, data_t *test){
+
+  int dimx, dimy, N;
+  char fx[FILENAME_MAX], fy[FILENAME_MAX];
+
+  assert(pe);
+  assert(test);
+
+  data_dimx(test, &dimx);
+  data_dimy(test, &dimy);
+  data_N(test, &N);
+  data_fx(test, fx);
+  data_fy(test, fy);
+
+  pe_info(pe, "\n");
+  pe_info(pe, "Test Set Properties\n");
+  pe_info(pe, "-------------------\n");
+  pe_info(pe, "%30s\t\t%d\n", "Number of Datapoints:", N);
+  pe_info(pe, "%30s\t\t%d %s\n", "Datapoints Dimensionality:", dimx, "(includes bias)");
+  pe_info(pe, "%30s\t\t%d\n", "Labels Dimensionality:", dimy);
+  pe_info(pe, "%30s\t\t%s\n", "Datapoints Filename:", fx);
+  pe_info(pe, "%30s\t\t%s\n", "Labels Filename:", fy);
+
+  return 0;
+}
+
+/*****************************************************************************
+ *
+ *  data_dimx_set
+ *
+ *****************************************************************************/
+
+int data_dimx_set(data_t *data, int dimx){
+
   assert(data);
 
-  if(data->x) free(data->x);
-  if(data->y) free(data->y);
+  data->dimx = dimx;
 
-  free(data);
+  return 0;
+}
 
-  assert(data->x != NULL);
-  assert(data->y != NULL);
-  assert(data != NULL);
+/*****************************************************************************
+ *
+ *  data_dimy_set
+ *
+ *****************************************************************************/
+
+int data_dimy_set(data_t *data, int dimy){
+
+  assert(data);
+
+  data->dimy = dimy;
+
+  return 0;
+}
+
+/*****************************************************************************
+ *
+ *  data_N_set
+ *
+ *****************************************************************************/
+
+int data_N_set(data_t *data, int N){
+
+  assert(data);
+
+  data->N = N;
+
+  return 0;
+}
+
+/*****************************************************************************
+ *
+ *  data_fx_set
+ *
+ *****************************************************************************/
+
+int data_fx_set(data_t *data, const char *filename){
+
+  assert(data);
+
+  sprintf(data->fx, "%s", filename);
+
+  return 0;
+}
+
+/*****************************************************************************
+ *
+ *  data_fy_set
+ *
+ *****************************************************************************/
+
+int data_fy_set(data_t *data, const char *filename){
+
+  assert(data);
+
+  sprintf(data->fy, "%s", filename);
+
+  return 0;
+}
+
+/*****************************************************************************
+ *
+ *  data_x_set
+ *
+ *****************************************************************************/
+
+int data_x_set(data_t *data, precision *x){
+
+  assert(data);
+
+  data->x = x;
+
+  return 0;
+}
+
+/*****************************************************************************
+ *
+ *  data_y_set
+ *
+ *****************************************************************************/
+
+int data_y_set(data_t *data, int *y){
+
+  assert(data);
+
+  data->y = y;
+
+  return 0;
+}
+
+
+/*****************************************************************************
+ *
+ *  data_dimx
+ *
+ *****************************************************************************/
+
+int data_dimx(data_t *data, int *dimx){
+
+  assert(data);
+
+  *dimx = data->dimx;
+
+  return 0;
+}
+
+/*****************************************************************************
+ *
+ *  data_dimy
+ *
+ *****************************************************************************/
+
+int data_dimy(data_t *data, int *dimy){
+
+  assert(data);
+
+  *dimy = data->dimy;
+
+  return 0;
+}
+
+/*****************************************************************************
+ *
+ *  data_N
+ *
+ *****************************************************************************/
+
+int data_N(data_t *data, int *N){
+
+  assert(data);
+
+  *N = data->N;
+
+  return 0;
+}
+
+/*****************************************************************************
+ *
+ *  data_fx
+ *
+ *****************************************************************************/
+
+int data_fx(data_t *data, char *fx){
+
+  assert(data);
+
+  sprintf(fx, "%s", data->fx);
+
+  return 0;
+}
+
+/*****************************************************************************
+ *
+ *  data_fy
+ *
+ *****************************************************************************/
+
+int data_fy(data_t *data, char *fy){
+
+  assert(data);
+
+  sprintf(fy, "%s", data->fy);
+
+  return 0;
+}
+
+/*****************************************************************************
+ *
+ *  data_x
+ *
+ *****************************************************************************/
+
+int data_x(data_t *data, precision **px){
+
+  assert(data);
+
+  *px = data->x;
+
+  return 0;
+}
+
+/*****************************************************************************
+ *
+ *  data_y
+ *
+ *****************************************************************************/
+
+int data_y(data_t *data, int **py){
+
+  assert(data);
+
+  *py = data->y;
 
   return 0;
 }
@@ -87,16 +493,14 @@ int data_free(data_t *data){
  *
  *****************************************************************************/
 
-int data_read_file(data_t *data){
+int data_read_file(pe_t *pe, data_t *data){
 
-  cmd_data_t *params = NULL;
   assert(data);
   assert(data->x);
   assert(data->y);
 
-  params = data->params;
-  data_csvread(params->fx, params->dim+1, params->N, SKIP_HEADER, ",", "precision", data->x);
-  data_csvread(params->fy, Y_DIM, params->N, SKIP_HEADER, ",", "int", data->y);
+  data_csvread(pe, data->fx, data->dimx, data->N, SKIP_HEADER, ",", "precision", data->x);
+  data_csvread(pe, data->fy, data->dimy, data->N, SKIP_HEADER, ",", "int", data->y);
 
   return 0;
 }
@@ -112,20 +516,24 @@ int data_print_file(data_t *data){
   int i, j;
   assert(data);
 
-  printf("Printing %s:\n", data->params->fx);
-  for(i=0; i<data->params->N; i++)
+  printf("Printing %s:\n", data->fx);
+  for(i=0; i<data->N; i++)
   {
-    for(j=0; j<data->params->dim; j++)
+    for(j=0; j<data->dimx-1; j++)
     {
-      printf("\t%f", data->x[i*(data->params->dim+1) + j]);
+      printf("\t%f", data->x[i*(data->dimx) + j]);
     }
-    printf("\t%f\n", data->x[i*(data->params->dim+1) + data->params->dim]);
+    printf("\t%f\n", data->x[i*(data->dimx) + data->dimx-1]);
   }
 
-  printf("Printing %s:\n", data->params->fy);
-  for(i=0; i<data->params->N; i++)
+  printf("Printing %s:\n", data->fy);
+  for(i=0; i<data->N; i++)
   {
-    printf("\t%2d\n", data->y[i]);
+    for(j=0; j<data->dimy-1; j++)
+    {
+      printf("\t%2d", data->y[i*(data->dimy) + j]);
+    }
+    printf("\t%2d\n", data->y[i*(data->dimy) + data->dimy-1]);
   }
 
   return 0;
@@ -137,7 +545,7 @@ int data_print_file(data_t *data){
  *
  *****************************************************************************/
 
-static int data_csvread( char *filename, int rowSz, int colSz, int skip_header,
+static int data_csvread(pe_t *pe, char *filename, int rowSz, int colSz, int skip_header,
                     const char *delimiter, const char *datatype, void *data){
 
   FILE* fp = NULL;
@@ -147,7 +555,7 @@ static int data_csvread( char *filename, int rowSz, int colSz, int skip_header,
 
   assert(data);
 
-  printf("Reading data from %s...", filename);
+  pe_info(pe, "Reading data from %s...", filename);
   fp = fopen(filename, "r");
   assert(fp);
 
@@ -173,7 +581,7 @@ static int data_csvread( char *filename, int rowSz, int colSz, int skip_header,
   }
 
   fclose(fp);
-  printf("\tDone\n");
+  pe_info(pe, "\tDone\n");
 
   return 0;
 }
@@ -191,4 +599,34 @@ static void data_rmheader(char* line, FILE *fp, int skip_num){
   {
     fgets(line, BUFSIZ, fp);
   }
+}
+
+/*****************************************************************************
+ *
+ *  data_allocate_x
+ *
+ *****************************************************************************/
+
+static int data_allocate_x(data_t *data){
+
+  assert(data);
+
+  mem_malloc_precision(&data->x, data->dimx * data->N);
+
+  return 0;
+}
+
+/*****************************************************************************
+ *
+ *  data_allocate_y
+ *
+ *****************************************************************************/
+
+static int data_allocate_y(data_t *data){
+
+  assert(data);
+
+  mem_malloc_integers(&data->y, data->dimy * data->N);
+
+  return 0;
 }

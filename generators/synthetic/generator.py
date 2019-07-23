@@ -15,9 +15,10 @@ N_test = int(args.Ntest)
 N = N_train + N_test
 
 # choose model parameters from the command line
-beta = np.array(args.beta)
-beta = np.reshape(beta, (1, beta.shape[0]))
-if beta[0,0] == 0 and beta.shape == (1,1):
+if args.beta == 0.0:
+    beta = np.array(args.beta)
+    beta = np.reshape(beta, (1, beta.shape[0]))
+else:
     # generate model parameters
     beta = s.get_model_parameters(beta_range, args.dim+1)
 
@@ -33,7 +34,7 @@ Y_train = s.get_labels(X_train, beta)
 Y_test = s.get_labels(X_test, beta)
 
 util.write_csv('./beta_{0}.csv'.format(args.dim), 'beta', beta, args.precision)
-util.write_csv('./X_train_{0}_{1}.csv'.format(N, args.dim), 'x', X_train, args.precision)
-util.write_csv('./Y_train_{0}_{1}.csv'.format(N, args.dim), 'y', Y_train, args.precision)
-util.write_csv('./X_test_{0}_{1}.csv'.format(N, args.dim), 'x', X_test, args.precision)
-util.write_csv('./Y_test_{0}_{1}.csv'.format(N, args.dim), 'y', Y_test, args.precision)
+util.write_csv('./X_train.csv', 'x', X_train, args.precision)
+util.write_csv('./Y_train.csv', 'y', Y_train, args.precision)
+util.write_csv('./X_test.csv', 'x', X_test, args.precision)
+util.write_csv('./Y_test.csv', 'y', Y_test, args.precision)

@@ -1,31 +1,26 @@
 #include <stdio.h>
-#include <stdlib.h>
-#include <math.h>
 
+#include "pe.h"
 #include "mcmc.h"
-#include "timer.h"
 
-int main(int argc, char *argv[]){
+/*****************************************************************************
+ *
+ *  main
+ *
+ *****************************************************************************/
 
-  mcmc_t *mcmc;
+int main(int argc, char ** argv) {
 
-  TIMER_init();
-  TIMER_start(TIMER_TOTAL);
+  char inputfile[FILENAME_MAX] = "input";
 
-  mcmc_create(&mcmc);
-  mcmc_setup(argc, argv, mcmc);
 
-  mcmc_sample(mcmc);
+  MPI_Init(&argc, &argv);
 
-  mcmc_statistics(mcmc);
+  if (argc > 1) sprintf(inputfile, "%s", argv[1]);
 
-  mcmc_infer(mcmc);
+  mcmc_run(inputfile);
 
-  mcmc_disassemble(mcmc);
-  mcmc_free(mcmc);
-
-  TIMER_stop(TIMER_TOTAL);
-  TIMER_statistics();
+  MPI_Finalize();
 
   return 0;
 }
