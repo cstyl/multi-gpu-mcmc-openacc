@@ -63,7 +63,12 @@ static int mcmc_rt(mcmc_t *mcmc);
 
    if(mcmc->met)
    {
+     /* Burn in */
      met_init(mcmc->pe, mcmc->met);
+     met_run(mcmc->pe, mcmc->met);
+     /* Post burn-in */
+     met_chain_set(mcmc->met, mcmc->chain);
+     met_init_post_burn(mcmc->pe, mcmc->met);
      met_run(mcmc->pe, mcmc->met);
    }
 
@@ -110,7 +115,7 @@ static int mcmc_rt(mcmc_t *mcmc);
    rt_string_parameter(rt, "mcmc_algorithm", algorithm_value, BUFSIZ);
    if(strcmp(algorithm_value, "metropolis") == 0)
    {
-     met_create(pe, mcmc->burn, mcmc->chain, &mcmc->met);
+     met_create(pe, mcmc->burn, &mcmc->met);
      met_init_rt(pe, rt, mcmc->met);
      met_info_rt(pe, mcmc->met);
    }

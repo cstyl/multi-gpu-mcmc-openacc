@@ -12,8 +12,7 @@
 struct met_s{
   pe_t *pe;
   rt_t *rt;
-  ch_t *burn;           /* Chain during burn in period */
-  ch_t *chain;          /* Chain during post-burn in in period */
+  ch_t *chain;          /* Generated Chain */
   data_t *data;         /* Data structure to be used during sampling */
   mvnb_t *mvnb;         /* Multivariate Normal Proposal kernel with block update */
   lr_t *lr;             /* Logistic Regression Likelihood */
@@ -27,12 +26,11 @@ static const char LHOOD_DEFAULT[BUFSIZ] = "logistic_regression";
 static const int RAND_INIT_DEFAULT = 0;
 // static const int SEED_DEFAULT = 7361237;
 
-int met_create(pe_t *pe, ch_t *burn, ch_t *chain, met_t **pmet){
+int met_create(pe_t *pe, ch_t *chain, met_t **pmet){
 
   met_t *met = NULL;
 
   assert(pe);
-  assert(burn);
   assert(chain);
 
   met = (met_t *) calloc(1, sizeof(met_t));
@@ -40,7 +38,6 @@ int met_create(pe_t *pe, ch_t *burn, ch_t *chain, met_t **pmet){
   if(met == NULL) pe_fatal(pe, "calloc(met_t) failed\n");
 
   met->pe = pe;
-  met->burn = burn;
   met->chain = chain;
 
   met_random_init_set(met, RAND_INIT_DEFAULT); /* Default initialize to zero */
@@ -94,6 +91,7 @@ int met_init_rt(pe_t *pe, rt_t *rt, met_t *met){
   {
     mvn_block_create(pe, &met->mvnb);
     mvn_block_init_rt(rt, met->mvnb);
+    mvn_block_init(met->mvnb);
   }
 
   rt_string_parameter(rt, "lhood", lhood_value, BUFSIZ);
@@ -160,7 +158,6 @@ int met_init(pe_t *pe, met_t *met){
   {
     if(met->mvnb)
     {
-      mvn_block_init(met->mvnb);
       sample_propose_mvnb(met->mvnb, met->current, met->current);
     }
   }
@@ -168,8 +165,8 @@ int met_init(pe_t *pe, met_t *met){
   sample_values(met->current, &sample);
   sample_dim(met->current, &dim);
 
-  ch_append_sample(0, sample, met->burn);
-  ch_init_stats(0, met->burn);
+  ch_append_sample(0, sample, met->chain);
+  ch_init_stats(0, met->chain);
 
   if(met->lr) lhood = lr_lhood(met->lr, sample);
   prior = pr_log_prob(sample, dim);
@@ -182,39 +179,36 @@ int met_init(pe_t *pe, met_t *met){
   return 0;
 }
 
-int met_run(pe_t *pe, met_t *met){
+int met_init_post_burn(pe_t *pe, met_t *met){
 
-  int bsteps, psteps, i;
-  precision probability=0.0;
   precision *sample = NULL;
 
   assert(pe);
   assert(met);
-
-  /* Loop over burn-in */
-  ch_N(met->burn, &bsteps);
-  pe_info(pe, "\nStarting burn-in period of %d steps..\n", bsteps);
-  for(i=1; i<bsteps+1; i++)
-  {
-    if(met->mvnb) sample_propose_mvnb(met->mvnb, met->current, met->proposed);
-    if(met->lr) probability = sample_evaluate_lr(met->lr, met->current, met->proposed);
-    ch_append_probability(i, probability, met->burn);
-    sample_choose(i, met->burn, &met->current, &met->proposed);
-  }
 
   /* Reset stats for post burn-in chain */
   sample_values(met->current, &sample);
   ch_append_sample(0, sample, met->chain);
   ch_init_stats(0, met->chain);
 
-  /* Loop over post burn-in */
-  ch_N(met->chain, &psteps);
-  pe_info(pe, "\nStarting post burn-in period of %d steps..\n", psteps);
-  for(i=1; i<psteps+1; i++)
+  return 0;
+}
+
+int met_run(pe_t *pe, met_t *met){
+
+  int steps, i;
+  precision probability = 0.0;
+
+  assert(pe);
+  assert(met);
+
+  ch_N(met->chain, &steps);
+  pe_info(pe, "\nStarting metropolis run for %d steps..\n", steps);
+
+  for(i=1; i<steps+1; i++)
   {
     if(met->mvnb) sample_propose_mvnb(met->mvnb, met->current, met->proposed);
     if(met->lr) probability = sample_evaluate_lr(met->lr, met->current, met->proposed);
-
     ch_append_probability(i, probability, met->chain);
     sample_choose(i, met->chain, &met->current, &met->proposed);
   }
@@ -240,11 +234,11 @@ int met_random_init(met_t *met, int *random_init){
   return 0;
 }
 
-int met_burn(met_t *met, ch_t **pburn){
+int met_chain_set(met_t *met, ch_t *chain){
 
   assert(met);
 
-  *pburn = met->burn;
+  met->chain = chain;
 
   return 0;
 }

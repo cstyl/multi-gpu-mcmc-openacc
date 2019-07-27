@@ -16,9 +16,8 @@ static int test_metropolis_rt_default(pe_t *pe);
 static int test_metropolis_rt(pe_t *pe);
 static int test_metropolis_init_zero(pe_t *pe);
 static int test_metropolis_init_rand(pe_t *pe);
-// static int test_sample_propose_mvnb(pe_t *pe);
-// static int test_sample_evaluate_lr(pe_t *pe);
-// static int test_sample_choose(pe_t *pe);
+static int test_metropolist_init_post_burn(pe_t *pe);
+static int test_metropolis_run(pe_t *pe);
 
 int test_metropolis_suite(void){
 
@@ -33,10 +32,8 @@ int test_metropolis_suite(void){
   test_metropolis_rt(pe);
   test_metropolis_init_zero(pe);
   test_metropolis_init_rand(pe);
-  // test_sample_init(pe);
-  // test_sample_propose_mvnb(pe);
-  // test_sample_evaluate_lr(pe);
-  // test_sample_choose(pe);
+  test_metropolist_init_post_burn(pe);
+  test_metropolis_run(pe);
 
   pe_info(pe, "PASS\t./unit/test_metropolis\n");
   pe_free(pe);
@@ -52,7 +49,6 @@ static int test_metropolis_create(pe_t *pe){
 
   rt_t *rt = NULL;
   met_t *met = NULL;
-  ch_t *burn = NULL;
   ch_t *chain = NULL;
   data_t *data = NULL;
   mvnb_t *mvnb = NULL;
@@ -62,12 +58,10 @@ static int test_metropolis_create(pe_t *pe){
 
   rt_create(pe, &rt);
   assert(rt);
-  ch_create(pe, &burn);
-  assert(burn);
   ch_create(pe, &chain);
   assert(chain);
 
-  met_create(pe, burn, chain, &met);
+  met_create(pe, chain, &met);
   assert(met);
   test_assert(1);
 
@@ -75,8 +69,6 @@ static int test_metropolis_create(pe_t *pe){
   test_assert(rand_init == 0);
 
   /* Check that upon met creation only the chain structures are assigned */
-  met_burn(met, &burn);
-  test_assert(burn != NULL);
   met_chain(met, &chain);
   test_assert(chain != NULL);
 
@@ -93,7 +85,6 @@ static int test_metropolis_create(pe_t *pe){
   test_assert(pro == NULL);
 
   met_free(met);
-  ch_free(burn);
   ch_free(chain);
   rt_free(rt);
 
@@ -110,7 +101,6 @@ static int test_metropolis_rt_default(pe_t *pe)
 
   rt_t *rt = NULL;
   met_t *met = NULL;
-  ch_t *burn = NULL;
   ch_t *chain = NULL;
   data_t *data = NULL;
   mvnb_t *mvnb = NULL;
@@ -120,12 +110,10 @@ static int test_metropolis_rt_default(pe_t *pe)
 
   rt_create(pe, &rt);
   assert(rt);
-  ch_create(pe, &burn);
-  assert(burn);
   ch_create(pe, &chain);
   assert(chain);
 
-  met_create(pe, burn, chain, &met);
+  met_create(pe, chain, &met);
   assert(met);
   test_assert(1);
 
@@ -207,7 +195,6 @@ static int test_metropolis_rt_default(pe_t *pe)
   test_assert(rand_init == 0);
 
   met_free(met);
-  ch_free(burn);
   ch_free(chain);
   rt_free(rt);
 
@@ -223,7 +210,6 @@ static int test_metropolis_rt(pe_t *pe)
 
   rt_t *rt = NULL;
   met_t *met = NULL;
-  ch_t *burn = NULL;
   ch_t *chain = NULL;
   data_t *data = NULL;
   mvnb_t *mvnb = NULL;
@@ -235,12 +221,10 @@ static int test_metropolis_rt(pe_t *pe)
   assert(rt);
   rt_read_input_file(rt, "test.dat");
 
-  ch_create(pe, &burn);
-  assert(burn);
   ch_create(pe, &chain);
   assert(chain);
 
-  met_create(pe, burn, chain, &met);
+  met_create(pe, chain, &met);
   assert(met);
   test_assert(1);
 
@@ -322,7 +306,6 @@ static int test_metropolis_rt(pe_t *pe)
   test_assert(rand_init == 1);
 
   met_free(met);
-  ch_free(burn);
   ch_free(chain);
   rt_free(rt);
 
@@ -337,7 +320,6 @@ static int test_metropolis_init_zero(pe_t *pe){
 
   rt_t *rt = NULL;
   met_t *met = NULL;
-  ch_t *burn = NULL;
   ch_t *chain = NULL;
 
   precision xref[30] = {1.0000000000000000,1.4648106502470808,-1.5701058145856399,
@@ -366,15 +348,12 @@ static int test_metropolis_init_zero(pe_t *pe){
   assert(rt);
   rt_read_input_file(rt, "test.dat");
 
-  ch_create(pe, &burn);
-  assert(burn);
+
   ch_create(pe, &chain);
   assert(chain);
-  /* Assumes these have already been tested */
-  ch_init_burn_rt(rt, burn);
   ch_init_chain_rt(rt, chain);
 
-  met_create(pe, burn, chain, &met);
+  met_create(pe, chain, &met);
   assert(met);
   test_assert(1);
 
@@ -426,19 +405,18 @@ static int test_metropolis_init_zero(pe_t *pe){
   precision *ratio = NULL;
   int *accepted = NULL;
 
-  ch_samples(burn, &samples);
+  ch_samples(chain, &samples);
   for(i=0; i<s_dim; i++)
     test_assert(fabs(samples[0*s_dim+i] - 0.0) < TEST_PRECISION_TOLERANCE);
 
-  ch_probability(burn, &probability);
+  ch_probability(chain, &probability);
   test_assert(fabs(probability[0] - 0.0) < TEST_PRECISION_TOLERANCE);
-  ch_ratio(burn, &ratio);
-  test_assert(fabs(samples[0] - 0.0) < TEST_PRECISION_TOLERANCE);
-  ch_accepted(burn, &accepted);
-  test_assert(fabs(samples[0] - 0.0) < TEST_PRECISION_TOLERANCE);
+  ch_ratio(chain, &ratio);
+  test_assert(fabs(ratio[0] - 0.0) < TEST_PRECISION_TOLERANCE);
+  ch_accepted(chain, &accepted);
+  test_assert(fabs(accepted[0] - 0.0) < TEST_PRECISION_TOLERANCE);
 
   met_free(met);
-  ch_free(burn);
   ch_free(chain);
   rt_free(rt);
 
@@ -451,22 +429,17 @@ static int test_metropolis_init_rand(pe_t *pe){
 
   rt_t *rt = NULL;
   met_t *met = NULL;
-  ch_t *burn = NULL;
   ch_t *chain = NULL;
 
   rt_create(pe, &rt);
   assert(rt);
   rt_read_input_file(rt, "test.dat");
 
-  ch_create(pe, &burn);
-  assert(burn);
   ch_create(pe, &chain);
   assert(chain);
-  /* Assumes these have already been tested */
-  ch_init_burn_rt(rt, burn);
   ch_init_chain_rt(rt, chain);
 
-  met_create(pe, burn, chain, &met);
+  met_create(pe, chain, &met);
   assert(met);
   test_assert(1);
 
@@ -485,8 +458,135 @@ static int test_metropolis_init_rand(pe_t *pe){
   test_assert(fabs(s_values[2] - 0.7482249943117055) < TEST_PRECISION_TOLERANCE);
 
   met_free(met);
-  ch_free(burn);
   ch_free(chain);
+  rt_free(rt);
+
+  return 0;
+}
+
+static int test_metropolist_init_post_burn(pe_t *pe){
+
+  assert(pe);
+
+  int i, dim;
+  sample_t *sample = NULL;
+  precision *values = NULL;
+  precision *chain_samples = NULL;
+  precision *probability = NULL;
+  precision *ratio = NULL;
+  int *accepted = NULL;
+
+  rt_t *rt = NULL;
+  met_t *met = NULL;
+  ch_t *burn = NULL;
+  ch_t *chain = NULL;
+
+  rt_create(pe, &rt);
+  assert(rt);
+  rt_read_input_file(rt, "test.dat");
+
+  ch_create(pe, &burn);
+  assert(burn);
+  ch_init_burn_rt(rt, burn);
+
+  ch_create(pe, &chain);
+  assert(chain);
+  ch_init_chain_rt(rt, chain);
+
+  met_create(pe, burn, &met);
+  assert(met);
+  test_assert(1);
+
+  met_init_rt(pe, rt, met);
+  /* Assuming metropolis has been initialised with burn chain
+  *  when post burn-in chain is initialised it should contain
+  *  the current sample in met, and stats should be set to zero
+  */
+  met_init(pe, met);
+  met_current(met, &sample);
+  sample_dim(sample, &dim);
+  sample_values(sample, &values);
+
+  met_chain_set(met, chain);
+  met_init_post_burn(pe, met);
+  ch_samples(chain, &chain_samples);
+
+  for(i=0; i<dim; i++)
+    test_assert(fabs(chain_samples[0*dim+i] - values[i]) < TEST_PRECISION_TOLERANCE);
+
+  ch_probability(chain, &probability);
+  test_assert(fabs(probability[0] - 0.0) < TEST_PRECISION_TOLERANCE);
+  ch_ratio(chain, &ratio);
+  test_assert(fabs(ratio[0] - 0.0) < TEST_PRECISION_TOLERANCE);
+  ch_accepted(chain, &accepted);
+  test_assert(fabs(accepted[0] - 0.0) < TEST_PRECISION_TOLERANCE);
+
+  met_free(met);
+  ch_free(chain);
+  ch_free(burn);
+  rt_free(rt);
+
+  return 0;
+}
+
+static int test_metropolis_run(pe_t *pe){
+
+  assert(pe);
+
+  int i, j, dim, N;
+  precision ratio_ref;
+  precision *samples = NULL;
+  precision *ratio = NULL;
+  int *accepted = NULL;
+
+  rt_t *rt = NULL;
+  met_t *met = NULL;
+  ch_t *burn = NULL;
+
+  rt_create(pe, &rt);
+  assert(rt);
+  rt_read_input_file(rt, "test.dat");
+
+  ch_create(pe, &burn);
+  assert(burn);
+  ch_init_burn_rt(rt, burn);
+
+  met_create(pe, burn, &met);
+  assert(met);
+  test_assert(1);
+
+  met_init_rt(pe, rt, met);
+  met_init(pe, met);
+
+  met_run(pe, met);
+
+  ch_dim(burn, &dim);
+  ch_N(burn, &N);
+  ch_samples(burn, &samples);
+  ch_ratio(burn, &ratio);
+  ch_accepted(burn, &accepted);
+
+  /* An accepted sample should be different from the previous one */
+  for(i=1; i<N+1; i++)
+  {
+    if(accepted[i] != accepted[i-1])
+    {
+      for(j=0; j<dim; j++)
+      {
+          test_assert(fabs(samples[i*dim+j] - samples[(i-1)*dim+j]) > TEST_PRECISION_TOLERANCE);
+      }
+    }else{
+      for(j=0; j<dim; j++)
+      {
+          test_assert(fabs(samples[i*dim+j] - samples[(i-1)*dim+j]) < TEST_PRECISION_TOLERANCE);
+      }
+    }
+    ratio_ref = (precision)accepted[i] / (precision)i;
+    test_assert(fabs(ratio[i] - ratio_ref) < TEST_PRECISION_TOLERANCE);
+  }
+
+  met_free(met);
+  ch_free(burn);
   rt_free(rt);
 
   return 0;
