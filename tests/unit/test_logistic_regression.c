@@ -78,8 +78,7 @@ int test_lr_suite(void){
   test_assert(1);
 
   lhood_test = lr_lhood(lr, sample);
-
-  test_assert(fabs(lhood_ref - lhood_test) < TEST_DOUBLE_TOLERANCE);
+  test_assert(fabs(lhood_ref - lhood_test) < TEST_PRECISION_TOLERANCE);
 
   data_free(data);
   lr_lhood_free(lr);

@@ -21,6 +21,7 @@ struct sample_s{
 
 static const int DIM_DEFAULT = 3;
 
+static int sample_allocate_values(sample_t *sample);
 static int sample_print_progress(int dec, int idx, precision u, int verbose,
                                   sample_t *cur, sample_t *pro, ch_t *chain);
 
@@ -148,6 +149,24 @@ int sample_posterior_set(sample_t *sample, precision posterior){
 
 /*****************************************************************************
  *
+ *  sample_copy_values
+ *
+ *****************************************************************************/
+
+int sample_copy_values(sample_t *sample, precision *values){
+
+  assert(sample);
+  assert(values);
+
+  int i;
+
+  for(i=0; i<sample->dim; i++) sample->values[i] = values[i];
+
+  return 0;
+}
+
+/*****************************************************************************
+ *
  *  sample_values
  *
  *****************************************************************************/
@@ -223,21 +242,6 @@ int sample_posterior(sample_t *sample, precision *posterior){
 
 /*****************************************************************************
  *
- *  sample_allocate_values
- *
- *****************************************************************************/
-
-int sample_allocate_values(sample_t *sample){
-
-  assert(sample);
-
-  mem_malloc_precision(&sample->values, sample->dim);
-
-  return 0;
-}
-
-/*****************************************************************************
- *
  *  sample_propose_mvnb
  *
  *****************************************************************************/
@@ -253,6 +257,7 @@ int sample_propose_mvnb(mvnb_t *mvnb, sample_t *cur, sample_t *pro){
 
   sample_values(cur, &current);
   sample_values(pro , &proposed);
+
   mvn_block_sample(mvnb, current, proposed);
 
   return 0;
@@ -356,6 +361,25 @@ int sample_init_zero(sample_t *sample){
 
   for(i=0; i<sample->dim; i++)
     sample->values[i] = 0.0;
+
+  sample->prior = 0.0;
+  sample->likelihood = 0.0;
+  sample->posterior = 0.0;
+
+  return 0;
+}
+
+/*****************************************************************************
+ *
+ *  sample_allocate_values
+ *
+ *****************************************************************************/
+
+static int sample_allocate_values(sample_t *sample){
+
+  assert(sample);
+
+  mem_malloc_precision(&sample->values, sample->dim);
 
   return 0;
 }

@@ -1,7 +1,7 @@
 #ifndef __DEFINITIONS_H__
 #define __DEFINITIONS_H__
 
-#ifdef FLOAT
+#ifdef _FLOAT_
   typedef float precision;
 #else
   typedef double precision;

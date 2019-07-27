@@ -44,7 +44,8 @@ MPILIB = -lmpi
 
 TESTSOURCES = test_pe.c test_runtime.c test_random.c \
 							test_memory.c test_data_input.c test_logistic_regression.c \
-							test_multivariate_normal.c
+							test_prior.c test_multivariate_normal.c \
+							test_chain.c test_sample.c
 
 TESTS = ${TESTSOURCES:.c=}
 TESTOBJECTS = ${TESTSOURCES:.c=.o}

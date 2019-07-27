@@ -24,14 +24,10 @@ int ch_dim(ch_t *chain, int *dim);
 int ch_N(ch_t *chain, int *N);
 int ch_outfreq(ch_t *chain, int *outfreq);
 int ch_outdir(ch_t *chain, char *outdir);
+int ch_samples(ch_t *chain, precision **psamples);
 int ch_probability(ch_t *chain, precision **pprobability);
 int ch_ratio(ch_t *chain, precision **pratio);
 int ch_accepted(ch_t *chain, int **paccepted);
-
-int ch_allocate_samples(ch_t *chain);
-int ch_allocate_probability(ch_t *chain);
-int ch_allocate_ratio(ch_t *chain);
-int ch_allocate_accepted(ch_t *chain);
 
 int ch_append_probability(int idx, precision probability, ch_t *chain);
 int ch_append_sample(int idx, precision *sample, ch_t *chain);

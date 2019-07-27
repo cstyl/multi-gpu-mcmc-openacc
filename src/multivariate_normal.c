@@ -71,22 +71,23 @@ int mvn_block_free(mvnb_t *mvnb){
 
 int mvn_block_init_rt(rt_t *rt, mvnb_t *mvnb){
 
-  int dim=DIM_DEFAULT, tune=TUNE_DEFAULT;
-  precision rwsd = 2.38 / sqrt(dim - 1);
+  int dim, tune;
 
   assert(rt);
   assert(mvnb);
 
+  mvn_block_rwsd_set(mvnb, 2.38 / sqrt(DIM_DEFAULT - 1));
+
   if(rt_int_parameter(rt, "sample_dim", &dim))
   {
     mvn_block_dim_set(mvnb, dim);
+    mvn_block_rwsd_set(mvnb, 2.38 / sqrt(dim - 1));
   }
 
   if(rt_int_parameter(rt, "tune_sd", &tune))
   {
     mvn_block_tune_set(mvnb, tune);
   }
-  mvn_block_rwsd_set(mvnb, rwsd);
 
   mvn_block_allocate_covariance(mvnb);
   mvn_block_allocate_L(mvnb);
@@ -150,7 +151,7 @@ int mvn_block_cholesky_decomp(mvnb_t *mvnb){
   /* Perform cholesky decomposition
    * Factorize the symmetric, positive-definite covariance square matrix
    */
- #if FLOAT
+ #ifdef _FLOAT_
     LAPACKE_spotrf(LAPACK_ROW_MAJOR, 'L', mvnb->dim, mvnb->L, mvnb->dim);
  #else
     LAPACKE_dpotrf(LAPACK_ROW_MAJOR, 'L', mvnb->dim, mvnb->L, mvnb->dim);
@@ -172,10 +173,10 @@ int mvn_block_sample(mvnb_t *mvnb, precision *cur, precision *pro){
   assert(mvnb);
   assert(pro);
   assert(cur);
-  
+
   for(i=0; i<mvnb->dim; i++) pro[i] = cur[i] + ran_serial_gaussian();
 
-#if FLOAT
+#ifdef _FLOAT_
   cblas_strmv(CblasRowMajor, CblasLower, CblasNoTrans, CblasNonUnit,
               mvnb->dim, mvnb->L, mvnb->dim, pro, 1
              );

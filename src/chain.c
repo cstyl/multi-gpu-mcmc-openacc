@@ -23,6 +23,11 @@ static const int N_DEFAULT = 500;
 static const int OUTFREQ_DEFAULT = 50;
 static const char OUTDIR_DEFAULT[FILENAME_MAX] = "../out";
 
+static int ch_allocate_samples(ch_t *chain);
+static int ch_allocate_probability(ch_t *chain);
+static int ch_allocate_ratio(ch_t *chain);
+static int ch_allocate_accepted(ch_t *chain);
+
 /*****************************************************************************
  *
  *  ch_create
@@ -334,6 +339,21 @@ int ch_outdir(ch_t *chain, char *outdir){
 
 /*****************************************************************************
  *
+ *  ch_samples
+ *
+ *****************************************************************************/
+
+int ch_samples(ch_t *chain, precision **psamples){
+
+  assert(chain);
+
+  *psamples = chain->samples;
+
+  return 0;
+}
+
+/*****************************************************************************
+ *
  *  ch_probability
  *
  *****************************************************************************/
@@ -383,7 +403,7 @@ int ch_accepted(ch_t *chain, int **paccepted){
  *
  *****************************************************************************/
 
-int ch_allocate_samples(ch_t *chain){
+static int ch_allocate_samples(ch_t *chain){
 
   assert(chain);
 
@@ -398,7 +418,7 @@ int ch_allocate_samples(ch_t *chain){
  *
  *****************************************************************************/
 
-int ch_allocate_probability(ch_t *chain){
+static int ch_allocate_probability(ch_t *chain){
 
   assert(chain);
 
@@ -413,7 +433,7 @@ int ch_allocate_probability(ch_t *chain){
  *
  *****************************************************************************/
 
-int ch_allocate_ratio(ch_t *chain){
+static int ch_allocate_ratio(ch_t *chain){
 
   assert(chain);
 
@@ -428,7 +448,7 @@ int ch_allocate_ratio(ch_t *chain){
  *
  *****************************************************************************/
 
-int ch_allocate_accepted(ch_t *chain){
+static int ch_allocate_accepted(ch_t *chain){
 
   assert(chain);
 

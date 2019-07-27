@@ -57,7 +57,7 @@ static int test_mvn_block_check_rt_default(pe_t *pe){
   mvn_block_tune(mvnb, &tune);
   test_assert(tune == tune_ref);
   mvn_block_rwsd(mvnb, &rwsd);
-  test_assert(fabs(rwsd - rwsd_ref) < TEST_DOUBLE_TOLERANCE);
+  test_assert(fabs(rwsd - rwsd_ref) < TEST_PRECISION_TOLERANCE);
 
   mvn_block_free(mvnb);
   rt_free(rt);
@@ -98,7 +98,7 @@ static int test_mvn_block_check_rt(pe_t *pe){
   mvn_block_tune(mvnb, &tune);
   test_assert(tune_rt == tune);
   mvn_block_rwsd(mvnb, &rwsd);
-  test_assert(fabs(rwsd_rt - rwsd) < TEST_DOUBLE_TOLERANCE);
+  test_assert(fabs(rwsd_rt - rwsd) < TEST_PRECISION_TOLERANCE);
   mvn_block_covariance(mvnb, &covariance);
   test_assert(covariance != NULL);
   mvn_block_L(mvnb, &L);
@@ -136,7 +136,7 @@ static int test_mvn_block_check_init_covariance(pe_t *pe){
   mvn_block_covariance(mvnb, &covariance);
 
   for(i=0; i<dim*dim; i++)
-    test_assert(fabs(covariance[i] - covariance_ref[i]) < TEST_DOUBLE_TOLERANCE);
+    test_assert(fabs(covariance[i] - covariance_ref[i]) < TEST_PRECISION_TOLERANCE);
 
   mvn_block_free(mvnb);
 
@@ -169,7 +169,7 @@ static int test_mvn_block_check_cholesky_decomposition(pe_t *pe){
   mvn_block_L(mvnb, &L);
 
   for(i=0; i<dim*dim; i++)
-    test_assert(fabs(L[i] - L_ref[i]) < TEST_DOUBLE_TOLERANCE);
+    test_assert(fabs(L[i] - L_ref[i]) < TEST_PRECISION_TOLERANCE);
 
   mvn_block_free(mvnb);
   rt_free(rt);
@@ -208,12 +208,12 @@ static int test_mvn_block_check_init(pe_t *pe){
   mvn_block_covariance(mvnb, &covariance);
 
   for(i=0; i<dim*dim; i++)
-    test_assert(fabs(covariance[i] - covariance_ref[i]) < TEST_DOUBLE_TOLERANCE);
+    test_assert(fabs(covariance[i] - covariance_ref[i]) < TEST_PRECISION_TOLERANCE);
 
   mvn_block_L(mvnb, &L);
 
   for(i=0; i<dim*dim; i++)
-    test_assert(fabs(L[i] - L_ref[i]) < TEST_DOUBLE_TOLERANCE);
+    test_assert(fabs(L[i] - L_ref[i]) < TEST_PRECISION_TOLERANCE);
 
   mvn_block_free(mvnb);
   rt_free(rt);
@@ -275,7 +275,7 @@ static int test_mvn_block_check_sample(pe_t *pe){
   mvn_block_sample(mvnb, cur, pro);
 
   for(i=0; i<dim; i++)
-    test_assert(fabs(pro[i] - pro_ref[i]) < TEST_DOUBLE_TOLERANCE);
+    test_assert(fabs(pro[i] - pro_ref[i]) < TEST_PRECISION_TOLERANCE);
 
   mvn_block_free(mvnb);
   rt_free(rt);
@@ -283,17 +283,3 @@ static int test_mvn_block_check_sample(pe_t *pe){
 
   return 0;
 }
-
-// static int test_mvn_block(pe_t *pe){
-//
-//   mvn_block_create
-//   mvn_block_free
-//   mvn_block_init_rt
-//   mvn_block_init
-//   mvn_block_init_covariance
-//   mvn_block_cholesky_decomp
-//   mvn_block_sample
-//
-//
-//   return 0;
-// }

@@ -53,9 +53,10 @@ int tests_create() {
   test_memory_suite();
   test_data_input_suite();
   test_lr_suite();
+  test_prior_suite();
   test_mvn_suite();
-
-  // test_mvn_suite();
+  test_chain_suite();
+  test_sample_suite();
   // test_timer_suite();
 
 

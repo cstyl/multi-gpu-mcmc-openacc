@@ -18,7 +18,7 @@ int test_memory_suite(void){
   pe_create(MPI_COMM_WORLD, PE_QUIET, &pe);
   assert(pe);
   test_assert(1);
-  
+
   test_mem_alloc();
   test_swap_ptrs();
   test_mem_sort();
@@ -90,11 +90,11 @@ static int test_mem_sort(void){
 
   mem_sort_precision(arr, N);
 
-  test_assert(fabs(arr[0] - arr_sort[0]) < TEST_DOUBLE_TOLERANCE);
-  test_assert(fabs(arr[1] - arr_sort[1]) < TEST_DOUBLE_TOLERANCE);
-  test_assert(fabs(arr[2] - arr_sort[2]) < TEST_DOUBLE_TOLERANCE);
-  test_assert(fabs(arr[3] - arr_sort[3]) < TEST_DOUBLE_TOLERANCE);
-  test_assert(fabs(arr[4] - arr_sort[4]) < TEST_DOUBLE_TOLERANCE);
+  test_assert(fabs(arr[0] - arr_sort[0]) < TEST_PRECISION_TOLERANCE);
+  test_assert(fabs(arr[1] - arr_sort[1]) < TEST_PRECISION_TOLERANCE);
+  test_assert(fabs(arr[2] - arr_sort[2]) < TEST_PRECISION_TOLERANCE);
+  test_assert(fabs(arr[3] - arr_sort[3]) < TEST_PRECISION_TOLERANCE);
+  test_assert(fabs(arr[4] - arr_sort[4]) < TEST_PRECISION_TOLERANCE);
 
   return 0;
 }
