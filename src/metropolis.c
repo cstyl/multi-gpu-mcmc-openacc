@@ -5,18 +5,15 @@
 #include <stdlib.h>
 
 #include "metropolis.h"
-#include "data_input.h"
-#include "multivariate_normal.h"
-#include "logistic_regression.h"
-#include "sample.h"
 #include "prior.h"
 #include "ran.h"
+#include "memory.h"
 
 struct met_s{
   pe_t *pe;
   rt_t *rt;
-  ch_t *burn;        /* Chain during burn in period */
-  ch_t *chain;       /* Chain during post-burn in in period */
+  ch_t *burn;           /* Chain during burn in period */
+  ch_t *chain;          /* Chain during post-burn in in period */
   data_t *data;         /* Data structure to be used during sampling */
   mvnb_t *mvnb;         /* Multivariate Normal Proposal kernel with block update */
   lr_t *lr;             /* Logistic Regression Likelihood */
@@ -59,9 +56,10 @@ int met_free(met_t *met){
 
   if(met->mvnb) mvn_block_free(met->mvnb);
   if(met->lr) lr_lhood_free(met->lr);
-  sample_free(met->current);
-  sample_free(met->proposed);
-  data_free(met->data);
+  if(met->current) sample_free(met->current);
+  if(met->proposed) sample_free(met->proposed);
+  if(met->data) data_free(met->data);
+  mem_free((void**)&met);
 
   return 0;
 }
@@ -154,11 +152,10 @@ int met_init(pe_t *pe, met_t *met){
 
   /* Load data */
   data_read_file(pe, met->data);
-  // data_print_file(met->data);
 
   /* Initialise first sample */
   sample_init_zero(met->current);
-  printf("Sample zero initialised\n");
+
   if(met->random_init)
   {
     if(met->mvnb)
@@ -201,7 +198,6 @@ int met_run(pe_t *pe, met_t *met){
   {
     if(met->mvnb) sample_propose_mvnb(met->mvnb, met->current, met->proposed);
     if(met->lr) probability = sample_evaluate_lr(met->lr, met->current, met->proposed);
-
     ch_append_probability(i, probability, met->burn);
     sample_choose(i, met->burn, &met->current, &met->proposed);
   }
@@ -213,7 +209,7 @@ int met_run(pe_t *pe, met_t *met){
 
   /* Loop over post burn-in */
   ch_N(met->chain, &psteps);
-  pe_info(pe, "\nStarting burn-in period of %d steps..\n", psteps);
+  pe_info(pe, "\nStarting post burn-in period of %d steps..\n", psteps);
   for(i=1; i<psteps+1; i++)
   {
     if(met->mvnb) sample_propose_mvnb(met->mvnb, met->current, met->proposed);
@@ -240,6 +236,69 @@ int met_random_init(met_t *met, int *random_init){
   assert(met);
 
   *random_init = met->random_init;
+
+  return 0;
+}
+
+int met_burn(met_t *met, ch_t **pburn){
+
+  assert(met);
+
+  *pburn = met->burn;
+
+  return 0;
+}
+
+int met_chain(met_t *met, ch_t **pchain){
+
+  assert(met);
+
+  *pchain = met->chain;
+
+  return 0;
+}
+
+int met_data(met_t *met, data_t **pdata){
+
+  assert(met);
+
+  *pdata = met->data;
+
+  return 0;
+}
+
+int met_mvnb(met_t *met, mvnb_t **pmvnb){
+
+  assert(met);
+
+  *pmvnb = met->mvnb;
+
+  return 0;
+}
+
+int met_lr(met_t *met, lr_t **plr){
+
+  assert(met);
+
+  *plr = met->lr;
+
+  return 0;
+}
+
+int met_current(met_t *met, sample_t **pcurrent){
+
+  assert(met);
+
+  *pcurrent = met->current;
+
+  return 0;
+}
+
+int met_proposed(met_t *met, sample_t **pproposed){
+
+  assert(met);
+
+  *pproposed = met->proposed;
 
   return 0;
 }

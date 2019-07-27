@@ -258,10 +258,7 @@ static int test_data_train_input_file(pe_t *pe){
     for(j=0; j<dim; j++){
         test_assert(fabs(x[i*dim+j] - xref[i*dim+j]) < TEST_PRECISION_TOLERANCE);
     }
-  }
-
-  for(i=0; i<dim; i++){
-      test_assert(fabs(y[i] - yref[i]) < TEST_PRECISION_TOLERANCE);
+    test_assert(fabs(y[i] - yref[i]) < TEST_PRECISION_TOLERANCE);
   }
 
   data_free(train);
@@ -312,10 +309,7 @@ static int test_data_test_input_file(pe_t *pe){
     for(j=0; j<dim; j++){
         test_assert(fabs(x[i*dim+j] - xref[i*dim+j]) < TEST_PRECISION_TOLERANCE);
     }
-  }
-
-  for(i=0; i<dim; i++){
-      test_assert(fabs(y[i] - yref[i]) < TEST_PRECISION_TOLERANCE);
+    test_assert(fabs(y[i] - yref[i]) < TEST_PRECISION_TOLERANCE);
   }
 
   data_free(test);

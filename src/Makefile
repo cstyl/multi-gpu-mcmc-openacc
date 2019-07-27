@@ -39,7 +39,7 @@ OBJS = \
 		 chain.o data_input.o logistic_regression.o \
 		 mcmc.o memory.o metropolis.o \
 		 multivariate_normal.o pe.o prior.o \
-		 ran.o runtime.o sample.o
+		 ran.o runtime.o sample.o timer.o
 
 ###############################################################################
 #

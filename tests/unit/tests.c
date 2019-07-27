@@ -50,6 +50,7 @@ int tests_create() {
 
   test_random_suite();
   test_rt_suite();
+  test_timer_suite();
   test_memory_suite();
   test_data_input_suite();
   test_lr_suite();
@@ -57,7 +58,8 @@ int tests_create() {
   test_mvn_suite();
   test_chain_suite();
   test_sample_suite();
-  // test_timer_suite();
+  test_metropolis_suite();
+
 
 
   return 0;

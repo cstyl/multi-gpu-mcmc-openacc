@@ -37,7 +37,8 @@ int lr_lhood_create(pe_t *pe, data_t *data, lr_t **plr){
   data_dimx(data, &lr->dim);
   data_N(data, &lr->N);
 
-  mem_malloc_precision(&lr->dot, lr->dim+1);
+  mem_malloc_precision(&lr->dot, lr->N);
+
   *plr = lr;
 
   return 0;
@@ -80,7 +81,6 @@ precision lr_lhood(lr_t *lr, precision *sample){
   assert(lr);
 
   // TIMER_start(TIMER_LIKELIHOOD);
-
   lr->lhood = 0.0;
   for(i=0; i<lr->N; i++)
   {
@@ -103,4 +103,40 @@ precision lr_lhood(lr_t *lr, precision *sample){
   // TIMER_stop(TIMER_LIKELIHOOD);
 
   return lr->lhood;
+}
+
+int lr_data(lr_t *lr, data_t **pdata){
+
+  assert(lr);
+
+  *pdata = lr->data;
+
+  return 0;
+}
+
+int lr_dot(lr_t *lr, precision **pdot){
+
+  assert(lr);
+
+  *pdot = lr->dot;
+
+  return 0;
+}
+
+int lr_dim(lr_t *lr, int *dim){
+
+  assert(lr);
+
+  *dim = lr->dim;
+
+  return 0;
+}
+
+int lr_N(lr_t *lr, int *N){
+
+  assert(lr);
+
+  *N = lr->N;
+
+  return 0;
 }

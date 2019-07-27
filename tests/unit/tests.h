@@ -31,6 +31,7 @@ void test_assert_info(const int lvalue, int line, const char * file);
 int test_pe_suite(void);
 int test_random_suite(void);
 int test_rt_suite(void);
+int test_timer_suite(void);
 int test_memory_suite(void);
 int test_data_input_suite(void);
 int test_lr_suite(void);
@@ -38,6 +39,6 @@ int test_prior_suite(void);
 int test_mvn_suite(void);
 int test_chain_suite(void);
 int test_sample_suite(void);
-// int test_timer_suite(void);
+int test_metropolis_suite(void);
 
 #endif
