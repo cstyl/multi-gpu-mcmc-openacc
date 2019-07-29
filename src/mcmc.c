@@ -11,27 +11,24 @@
 
 #include "chain.h"
 #include "metropolis.h"
-
-// #include "timer.h"
+#include "autocorrelation.h"
+#include "effective_sample_size.h"
+#include "inference.h"
+#include "timer.h"
 
 #include "mcmc.h"
 
 typedef struct mcmc_s mcmc_t;
-// struct mcmc_s{
-//   pe_t    *pe;         /* Parallel Environment */
-//   rt_t    *rt;         /* Run time input handler */
-//   met_t   *met;        /* Metropolis algorithm structure */
-//   chain_t *burn;       /* Chain structure for burn-in samples */
-//   chain_t *chain;      /* Chain structure for post burn-in samples */
-//   stats_t *stats;      /* Statistics data structure */
-//   infr_t  *infr;       /* Inference data structure */
-// };
+
 struct mcmc_s{
   pe_t *pe;        /* Parallel Environment */
   rt_t *rt;        /* Run time input handler */
   ch_t *burn;      /* Chain of burn-in samples */
   ch_t *chain;     /* Chain of post burn-in samples */
   met_t *met;      /* Metropolis MCMC */
+  acr_t *acr;      /* Autocorrelation structure */
+  ess_t *ess;      /* Effective Sample Size */
+  infr_t  *infr;   /* Inference data structure */
 };
 
 static const char ALGORITHM_DEFAULT[BUFSIZ] = "metropolis";
@@ -48,6 +45,7 @@ static int mcmc_rt(mcmc_t *mcmc);
 
    mcmc_t *mcmc = NULL;
    MPI_Comm comm;
+   char mc_case[BUFSIZ];
 
    mcmc = (mcmc_t*) calloc(1, sizeof(mcmc_t));
    assert(mcmc);
@@ -70,9 +68,30 @@ static int mcmc_rt(mcmc_t *mcmc);
      met_chain_set(mcmc->met, mcmc->chain);
      met_init_post_burn(mcmc->pe, mcmc->met);
      met_run(mcmc->pe, mcmc->met);
+     /* Clean up */
+     met_free(mcmc->met);
    }
 
-   if(mcmc->met) met_free(mcmc->met);
+   acr_compute(mcmc->acr);
+   acr_print_acr(mcmc->pe, mcmc->acr);
+
+   ess_compute(mcmc->ess);
+   ess_print_ess(mcmc->pe, mcmc->ess);
+
+   if(mcmc->infr)
+   {
+     infr_init(mcmc->pe, mcmc->infr);
+     
+     infr_mc_case(mcmc->infr, mc_case);
+     if(strcmp(mc_case, "logistic_regression") == 0)
+     {
+       infr_mc_integration_lr(mcmc->infr);
+     }
+   }
+
+   infr_free(mcmc->infr);
+   acr_free(mcmc->acr);
+   ess_free(mcmc->ess);
    ch_free(mcmc->burn);
    ch_free(mcmc->chain);
 
@@ -120,6 +139,19 @@ static int mcmc_rt(mcmc_t *mcmc);
      met_info_rt(pe, mcmc->met);
    }
 
+   acr_create(pe, mcmc->chain, &mcmc->acr);
+   acr_init_rt(rt, mcmc->chain, mcmc->acr);
+   acr_info(pe, mcmc->acr);
+
+   ess_create(pe, mcmc->acr, &mcmc->ess);
+   ess_init_rt(rt, mcmc->ess);
+   ess_info(pe, mcmc->ess);
+
+   if(rt_switch(rt, "inference"))
+   {
+     infr_create(pe, mcmc->chain, &mcmc->infr);
+     infr_init_rt(pe, rt, mcmc->infr);
+   }
 
    return 0;
  }

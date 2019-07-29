@@ -24,7 +24,8 @@ tune_sd 0
 
 lhood logistic_regression
 
-max_lag   0.0
+max_lag   10
+lag_threshold   0.2
 ess       max
 inference 1
 mc_integ  logistic_regression

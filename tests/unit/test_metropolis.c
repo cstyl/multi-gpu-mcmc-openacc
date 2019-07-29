@@ -452,10 +452,10 @@ static int test_metropolis_init_rand(pe_t *pe){
   sample_t *sample = NULL;
   met_current(met, &sample);
   sample_values(sample, &s_values);
-
-  test_assert(fabs(s_values[0] - 0.6955185073873762) < TEST_PRECISION_TOLERANCE);
-  test_assert(fabs(s_values[1] - -0.6888605195854478) < TEST_PRECISION_TOLERANCE);
-  test_assert(fabs(s_values[2] - 0.7482249943117055) < TEST_PRECISION_TOLERANCE);
+  
+  test_assert(fabs(s_values[0] - 1.3910370147747524) < TEST_PRECISION_TOLERANCE);
+  test_assert(fabs(s_values[1] - -1.3777210391708956) < TEST_PRECISION_TOLERANCE);
+  test_assert(fabs(s_values[2] - 1.4964499886234111) < TEST_PRECISION_TOLERANCE);
 
   met_free(met);
   ch_free(chain);

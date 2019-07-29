@@ -174,7 +174,7 @@ int mvn_block_sample(mvnb_t *mvnb, precision *cur, precision *pro){
   assert(pro);
   assert(cur);
 
-  for(i=0; i<mvnb->dim; i++) pro[i] = cur[i] + ran_serial_gaussian();
+  for(i=0; i<mvnb->dim; i++) pro[i] = ran_serial_gaussian();
 
 #ifdef _FLOAT_
   cblas_strmv(CblasRowMajor, CblasLower, CblasNoTrans, CblasNonUnit,
@@ -185,6 +185,8 @@ int mvn_block_sample(mvnb_t *mvnb, precision *cur, precision *pro){
               mvnb->dim, mvnb->L, mvnb->dim, pro, 1
              );
 #endif
+
+  for(i=0; i<mvnb->dim; i++) pro[i] += cur[i];
 
   return 0;
 }

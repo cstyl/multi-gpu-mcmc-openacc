@@ -340,7 +340,6 @@ void sample_choose(int idx, ch_t *chain, sample_t **pcur, sample_t **ppro){
 
   ch_append_stats(idx, accepted, chain);
 
-
   if((idx==1) || idx%outfreq==0)
     sample_print_progress(accepted, idx, u, VERBOSE, cur, pro, chain);
 

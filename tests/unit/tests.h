@@ -40,5 +40,6 @@ int test_mvn_suite(void);
 int test_chain_suite(void);
 int test_sample_suite(void);
 int test_metropolis_suite(void);
+int test_autocorrelation_suite(void);
 
 #endif

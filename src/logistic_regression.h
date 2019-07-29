@@ -10,6 +10,7 @@ typedef struct lr_s lr_t;
 int lr_lhood_create(pe_t *pe, data_t *data, lr_t **plr);
 int lr_lhood_free(lr_t *lr);
 precision lr_lhood(lr_t *lr, precision *sample);
+precision lr_logistic_regression(precision *sample, precision *x, int dim);
 
 int lr_dim(lr_t *lr, int *dim);
 int lr_N(lr_t *lr, int *N);

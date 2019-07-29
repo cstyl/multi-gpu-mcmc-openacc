@@ -105,6 +105,30 @@ precision lr_lhood(lr_t *lr, precision *sample){
   return lr->lhood;
 }
 
+/*****************************************************************************
+*
+*  lr_logistic_regression
+*
+*****************************************************************************/
+
+precision lr_logistic_regression(precision *sample, precision *x, int dim){
+
+  assert(sample);
+  assert(x);
+
+  int i;
+  precision probability, dot=0.0;
+
+  for(i=0; i<dim; i++)
+  {
+    dot += sample[i] * x[i];
+  }
+
+  probability = 1.0 / (1.0 + exp(-dot));
+
+  return probability;
+}
+
 int lr_data(lr_t *lr, data_t **pdata){
 
   assert(lr);

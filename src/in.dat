@@ -15,22 +15,23 @@ data_format      CSV
 
 algorithm   metropolis
 sample_dim  3
-random_init 1
-burn_N      5
-postburn_N  25
+random_init 0
+burn_N      5000
+postburn_N  25000
 
 kernel  mvn_block
 tune_sd 0
 
 lhood logistic_regression
 
-max_lag   0.0
-ess       max
-inference 1
-mc_integ  logistic_regression
+max_lag         12499
+lag_threshold   0.1
+ess             max
+inference       1
+mc_integ        logistic_regression
 
-freq_burn       1
-freq_postburn   1
+freq_burn       1000
+freq_postburn   1000
 freq_autocorr   2000
 freq_ess        2000
 freq_mc_integ   100

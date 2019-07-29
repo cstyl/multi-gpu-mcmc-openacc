@@ -107,7 +107,10 @@ lhood logistic_regression
 #
 #  Statistics
 #
-#  max_lag                        Threshold for maximum autocorrelation lag
+#  max_lag                        Maximum lag for autocorrelation.
+#                                 Default is postburn_N/2 - 1
+#
+#  lag_threshold                  Threshold for maximum autocorrelation lag
 #
 #  ess max                        Evaluate maximum Effective Sample Size [the default]
 #
@@ -115,6 +118,7 @@ lhood logistic_regression
 #  ess                            min
 #                                 mean
 #                                 median
+#                                 all
 #
 #  inference                      [0|1] Select if inference on test data should performed.
 #
@@ -127,10 +131,11 @@ lhood logistic_regression
 #
 ###############################################################################
 
-max_lag   0.0
-ess       max
-inference 1
-mc_integ  logistic_regression
+max_lag         12499
+lag_threshold   0.1
+ess             max
+inference       1
+mc_integ        logistic_regression
 
 ###############################################################################
 #
@@ -139,7 +144,6 @@ mc_integ  logistic_regression
 #  freq_burn       N        Output diagnostics every N steps during sampling burn-in period
 #  freq_postburn   N        Output diagnostics every N steps during sampling post burn-in period
 #  freq_autocorr   N        Output diagnostics every N steps during autocorrelation evaluation
-#  freq_ess        N        Output diagnostics every N steps during ESS evaluation
 #  freq_mc_integ   N        Output diagnostics every N steps during mc integration evaluation
 #
 #  outdir                   Directory to dump any output file
@@ -149,7 +153,6 @@ mc_integ  logistic_regression
 freq_burn       1000
 freq_postburn   5000
 freq_autocorr   2000
-freq_ess        2000
 freq_mc_integ   100
 outdir          ../out/500_2_100
 

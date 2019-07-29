@@ -59,7 +59,7 @@ int tests_create() {
   test_chain_suite();
   test_sample_suite();
   test_metropolis_suite();
-
+  test_autocorrelation_suite();
 
 
   return 0;

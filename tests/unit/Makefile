@@ -42,10 +42,11 @@ MPILIB = -lmpi
 # Files
 #------------------------------------------------------------------------------
 
-TESTSOURCES = test_pe.c test_runtime.c test_random.c \
+TESTSOURCES = test_pe.c test_runtime.c test_random.c test_timer.c \
 							test_memory.c test_data_input.c test_logistic_regression.c \
 							test_prior.c test_multivariate_normal.c \
-							test_chain.c test_sample.c
+							test_chain.c test_sample.c test_metropolis.c \
+							test_autocorrelation.c
 
 TESTS = ${TESTSOURCES:.c=}
 TESTOBJECTS = ${TESTSOURCES:.c=.o}
@@ -79,6 +80,7 @@ mpi-test:
 
 
 run-serial:
+	# $(LAUNCH_SERIAL_CMD) ./a.out | tee log.txt | grep -i "PASS\|FAIL"
 	$(LAUNCH_SERIAL_CMD) ./a.out
 
 run-mpi:
