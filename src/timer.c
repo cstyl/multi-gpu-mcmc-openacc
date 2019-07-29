@@ -39,17 +39,24 @@ static pe_t * pe_stat = NULL;
 static struct timer_struct timer[TIMER_NTIMERS];
 
 static const char * timer_name[] = {"Total",
-                                    "MCMC Setup",
-                                    "MCMC Sampler",
-                                    "MCMC Statistics",
-                                    "MCMC Inference",
-                                    "MCMC Dissasemble",
-                                    "Burn-in Period",
-                                    "Post Burn-in Period",
-                                    "Sampler Step",
+                                    "Runtime Setup",
+                                    "MCMC Metropolis",
+                                    "MCMC Metropolis Init",
+                                    "MCMC Burn-in",
+                                    "MCMC Post Burn-in",
+                                    "MCMC Proposal Kernel",
+                                    "MCMC Evaluation Step",
+                                    "MCMC Acceptance Step",
                                     "Likelihood",
-                                    "Prior Probability",
-                                    "Proposal Step"
+                                    "Prior",
+                                    "Sampler Step",
+                                    "Autocorrelation",
+                                    "Effective Sample Size",
+                                    "Inference",
+                                    "MC Integration",
+                                    "Logistic Regression",
+                                    "Load Training Set",
+                                    "Load Test Set"
 };
 
 double dmin(const double a, const double b);
@@ -146,7 +153,7 @@ void TIMER_statistics() {
   pe_mpi_comm(pe_stat, &comm);
   pe_info(pe_stat, "\nTimer resolution: %g second\n", r);
   pe_info(pe_stat, "\nTimer statistics\n");
-  pe_info(pe_stat, "%20s: %10s %10s %10s\n", "Section", "  tmin", "  tmax", " total");
+  pe_info(pe_stat, "%25s: %10s %10s %10s\n", "Section", "  tmin", "  tmax", " total");
 
   for (n = 0; n < TIMER_NTIMERS; n++) {
 
@@ -164,8 +171,8 @@ void TIMER_statistics() {
 
       t_sum /= pe_mpi_size(pe_stat);
 
-      pe_info(pe_stat, "%20s: %10.3f %10.3f %10.3f %10.6f", timer_name[n],
-	   t_min, t_max, t_sum, t_sum/(double) timer[n].nsteps);
+      pe_info(pe_stat, "%25s: %10.3f %10.3f %10.3f\t%15.6f", timer_name[n],
+	                      t_min, t_max, t_sum, t_sum/(double) timer[n].nsteps);
       pe_info(pe_stat, " (%d call%s)\n", timer[n].nsteps, timer[n].nsteps > 1 ? "s" : "");
     }
   }

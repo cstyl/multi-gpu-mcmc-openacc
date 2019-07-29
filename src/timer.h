@@ -28,17 +28,24 @@ void TIMER_stop(const int);
 void TIMER_statistics(void);
 
 enum timer_id {TIMER_TOTAL = 0,
-               TIMER_MCMC_SETUP,
-               TIMER_MCMC_SAMPLER,
-               TIMER_MCMC_STATISTICS,
-               TIMER_MCMC_INFERENCE,
-               TIMER_MCMC_DISSASEMBLE,
+               TIMER_RUNTIME_SETUP,
+               TIMER_MCMC_METROPOLIS,
+               TIMER_METROPOLIS_INIT,
                TIMER_BURN_IN,
                TIMER_POST_BURN_IN,
-               TIMER_SAMPLER_STEP,
+               TIMER_PROPOSAL,
+               TIMER_EVALUATION,
+               TIMER_ACCEPTANCE,
                TIMER_LIKELIHOOD,
                TIMER_PRIOR,
-               TIMER_PROPOSE,
+               TIMER_STEP,
+               TIMER_AUTOCORRELATION,
+               TIMER_ESS,
+               TIMER_INFERENCE,
+               TIMER_MC_INT,
+               TIMER_LOGISTIC_REGRESSION,
+               TIMER_LOAD_TRAIN,
+               TIMER_LOAD_TEST,
 	             TIMER_NTIMERS /* This must be the last entry */
 };
 

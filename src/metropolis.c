@@ -8,6 +8,7 @@
 #include "prior.h"
 #include "ran.h"
 #include "memory.h"
+#include "timer.h"
 
 struct met_s{
   pe_t *pe;
@@ -148,8 +149,11 @@ int met_init(pe_t *pe, met_t *met){
   assert(pe);
   assert(met);
 
-  /* Load data */
-  data_read_file(pe, met->data);
+  TIMER_start(TIMER_METROPOLIS_INIT);
+
+  TIMER_start(TIMER_LOAD_TRAIN);
+  data_read_file(pe, met->data);  /* Load data */
+  TIMER_stop(TIMER_LOAD_TRAIN);
 
   /* Initialise first sample */
   sample_init_zero(met->current);
@@ -175,6 +179,8 @@ int met_init(pe_t *pe, met_t *met){
   sample_prior_set(met->current, prior);
   sample_likelihood_set(met->current, lhood);
   sample_posterior_set(met->current, posterior);
+
+  TIMER_stop(TIMER_METROPOLIS_INIT);
 
   return 0;
 }
@@ -207,10 +213,14 @@ int met_run(pe_t *pe, met_t *met){
 
   for(i=1; i<steps+1; i++)
   {
+    TIMER_start(TIMER_STEP);
+
     if(met->mvnb) sample_propose_mvnb(met->mvnb, met->current, met->proposed);
     if(met->lr) probability = sample_evaluate_lr(met->lr, met->current, met->proposed);
     ch_append_probability(i, probability, met->chain);
     sample_choose(i, met->chain, &met->current, &met->proposed);
+
+    TIMER_stop(TIMER_STEP);
   }
 
   return 0;

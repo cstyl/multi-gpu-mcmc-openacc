@@ -8,7 +8,7 @@
  *  The input file is parsed to create a list of key value pairs,
  *  which are stored as strings. The routines here remain completely
  *  agnostic about the meaning of the strings. The key / value pairs
- *  should be space separated, e.g., 
+ *  should be space separated, e.g.,
  *
  *  # The temperature of the fluid is
  *  temperature 0.01
@@ -155,12 +155,12 @@ int rt_read_input_file(rt_t * rt, const char * input_file_name) {
     else {
 
       while (fgets(line, NKEY_LENGTH, fp_input)) {
-	nline += 1;
-	/* Look at the line and add it if it's a key. */
-	if (rt_is_valid_key_pair(rt, line, nline)) {
-	  rt_add_key_pair(rt, line, nline);
-	  rt->nkeys += 1;
-	}
+	       nline += 1;
+	      /* Look at the line and add it if it's a key. */
+	      if (rt_is_valid_key_pair(rt, line, nline)) {
+	         rt_add_key_pair(rt, line, nline);
+	         rt->nkeys += 1;
+	      }
       }
     }
 
@@ -468,7 +468,7 @@ static int rt_is_valid_key_pair(rt_t * rt, const char * line, int lineno) {
       sscanf(key->key, "%s ", b);
 
       if (strcmp(b, a) == 0) {
-	pe_info(rt->pe, "At line %d: %s\n", lineno, line); 
+	pe_info(rt->pe, "At line %d: %s\n", lineno, line);
 	pe_fatal(rt->pe, "Duplication of parameters in input file: %s %s\n",
 		 a, b);
       }

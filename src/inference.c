@@ -8,6 +8,7 @@
 #include "logistic_regression.h"
 #include "data_input.h"
 #include "memory.h"
+#include "timer.h"
 
 struct infr_s{
   pe_t *pe;
@@ -112,8 +113,9 @@ int infr_init(pe_t *pe, infr_t *infr){
   assert(pe);
   assert(infr);
 
-  /* Load data */
-  data_read_file(pe, infr->data);
+  TIMER_start(TIMER_LOAD_TEST);
+  data_read_file(pe, infr->data); /* Load data */
+  TIMER_stop(TIMER_LOAD_TEST);
 
   return 0;
 }
@@ -131,6 +133,8 @@ int infr_mc_integration_lr(infr_t *infr){
   precision *x = NULL;
   int *y = NULL;
   assert(infr);
+
+  TIMER_start(TIMER_MC_INT);
 
   data_dimx(infr->data, &dim);
   data_N(infr->data, &N_data);
@@ -159,6 +163,9 @@ int infr_mc_integration_lr(infr_t *infr){
 
   infr->accuracy = (precision)acc_sum / (precision)N_data;
   printf("accuracy: %.16f\n", infr->accuracy);
+
+  TIMER_stop(TIMER_MC_INT);
+
   return 0;
 }
 

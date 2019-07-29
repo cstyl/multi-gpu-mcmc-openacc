@@ -377,7 +377,7 @@ int MPI_Gather(void * sendbuf, int sendcount, MPI_Datatype sendtype,
   assert(mpi_initialised_flag_);
   assert(sendcount == recvcount);
   assert(sendtype == recvtype);
-  
+
   mpi_copy(sendbuf, recvbuf, sendcount, sendtype);
 
   return MPI_SUCCESS;
@@ -731,7 +731,7 @@ int MPI_Dims_create(int nnodes, int ndims, int * dims) {
  *****************************************************************************/
 
 static void mpi_copy(void * send, void * recv, int count, MPI_Datatype type) {
- 
+
   int sizeof_datatype = mpi_sizeof(type);
 
   memcpy(recv, send, count*sizeof_datatype);

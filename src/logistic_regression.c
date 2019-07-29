@@ -6,6 +6,7 @@
 
 #include "logistic_regression.h"
 #include "memory.h"
+#include "timer.h"
 
 struct lr_s{
   data_t *data;
@@ -80,7 +81,8 @@ precision lr_lhood(lr_t *lr, precision *sample){
 
   assert(lr);
 
-  // TIMER_start(TIMER_LIKELIHOOD);
+  TIMER_start(TIMER_LIKELIHOOD);
+
   lr->lhood = 0.0;
   for(i=0; i<lr->N; i++)
   {
@@ -100,7 +102,7 @@ precision lr_lhood(lr_t *lr, precision *sample){
     lr->lhood -= log(1 + exp(-y[i] * lr->dot[i]));
   }
 
-  // TIMER_stop(TIMER_LIKELIHOOD);
+  TIMER_stop(TIMER_LIKELIHOOD);
 
   return lr->lhood;
 }
@@ -119,12 +121,16 @@ precision lr_logistic_regression(precision *sample, precision *x, int dim){
   int i;
   precision probability, dot=0.0;
 
+  TIMER_start(TIMER_LOGISTIC_REGRESSION);
+
   for(i=0; i<dim; i++)
   {
     dot += sample[i] * x[i];
   }
 
   probability = 1.0 / (1.0 + exp(-dot));
+
+  TIMER_stop(TIMER_LOGISTIC_REGRESSION);
 
   return probability;
 }

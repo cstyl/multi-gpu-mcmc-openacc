@@ -61,15 +61,23 @@ static int mcmc_rt(mcmc_t *mcmc);
 
    if(mcmc->met)
    {
+     TIMER_start(TIMER_MCMC_METROPOLIS);
      /* Burn in */
      met_init(mcmc->pe, mcmc->met);
+
+     TIMER_start(TIMER_BURN_IN);
      met_run(mcmc->pe, mcmc->met);
+     TIMER_stop(TIMER_BURN_IN);
      /* Post burn-in */
      met_chain_set(mcmc->met, mcmc->chain);
      met_init_post_burn(mcmc->pe, mcmc->met);
+
+     TIMER_start(TIMER_POST_BURN_IN);
      met_run(mcmc->pe, mcmc->met);
+     TIMER_stop(TIMER_POST_BURN_IN);
      /* Clean up */
      met_free(mcmc->met);
+     TIMER_stop(TIMER_MCMC_METROPOLIS);
    }
 
    acr_compute(mcmc->acr);
@@ -80,14 +88,21 @@ static int mcmc_rt(mcmc_t *mcmc);
 
    if(mcmc->infr)
    {
+     TIMER_start(TIMER_INFERENCE);
+
      infr_init(mcmc->pe, mcmc->infr);
-     
+
      infr_mc_case(mcmc->infr, mc_case);
      if(strcmp(mc_case, "logistic_regression") == 0)
      {
        infr_mc_integration_lr(mcmc->infr);
      }
+
+     TIMER_stop(TIMER_INFERENCE);
    }
+
+   TIMER_stop(TIMER_TOTAL);
+   TIMER_statistics();
 
    infr_free(mcmc->infr);
    acr_free(mcmc->acr);
@@ -117,6 +132,11 @@ static int mcmc_rt(mcmc_t *mcmc);
    char algorithm_value[BUFSIZ];
 
    assert(mcmc);
+
+   TIMER_init(mcmc->pe);
+   TIMER_start(TIMER_TOTAL);
+
+   TIMER_start(TIMER_RUNTIME_SETUP);
 
    pe = mcmc->pe;
    rt = mcmc->rt;
@@ -152,6 +172,8 @@ static int mcmc_rt(mcmc_t *mcmc);
      infr_create(pe, mcmc->chain, &mcmc->infr);
      infr_init_rt(pe, rt, mcmc->infr);
    }
+
+   TIMER_stop(TIMER_RUNTIME_SETUP);
 
    return 0;
  }

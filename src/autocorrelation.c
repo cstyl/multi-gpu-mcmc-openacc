@@ -6,6 +6,7 @@
 
 #include "autocorrelation.h"
 #include "memory.h"
+#include "timer.h"
 
 struct acr_s{
   pe_t *pe;
@@ -162,6 +163,7 @@ int acr_compute(acr_t *acr){
   int i, j, offset;
   int N=acr->N, dim=acr->dim;
 
+  TIMER_start(TIMER_AUTOCORRELATION);
   /* Create a contiguous block of data per dimension */
   for(i=0; i<dim; i++)
   {
@@ -183,6 +185,7 @@ int acr_compute(acr_t *acr){
       acr->lagk[i*acr->maxlag+j] = lagk;
     }
   }
+  TIMER_stop(TIMER_AUTOCORRELATION);
 
   return 0;
 }

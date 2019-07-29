@@ -8,7 +8,7 @@
 #include "prior.h"
 #include "memory.h"
 #include "ran.h"
-
+#include "timer.h"
 #define VERBOSE 1
 
 struct sample_s{
@@ -86,6 +86,147 @@ int sample_init_rt(rt_t *rt, sample_t *sample){
 
   return 0;
 }
+
+
+/*****************************************************************************
+ *
+ *  sample_propose_mvnb
+ *
+ *****************************************************************************/
+
+int sample_propose_mvnb(mvnb_t *mvnb, sample_t *cur, sample_t *pro){
+
+  precision *current = NULL;
+  precision *proposed = NULL;
+
+  assert(mvnb);
+  assert(cur);
+  assert(pro);
+
+  TIMER_start(TIMER_PROPOSAL);
+
+  sample_values(cur, &current);
+  sample_values(pro , &proposed);
+
+  mvn_block_sample(mvnb, current, proposed);
+
+  TIMER_stop(TIMER_PROPOSAL);
+  return 0;
+}
+
+/*****************************************************************************
+ *
+ *  sample_evaluate_lr
+ *
+ *****************************************************************************/
+
+precision sample_evaluate_lr(lr_t *lr, sample_t *cur, sample_t *pro){
+
+  precision lhood=0.0, prior=0.0, posterior=0.0;
+  precision cposterior;
+  int dim;
+  double ratio;
+  precision *values = NULL;
+
+  assert(lr);
+  assert(cur);
+  assert(pro);
+
+  TIMER_start(TIMER_EVALUATION);
+
+  sample_posterior(cur, &cposterior);
+
+  sample_values(pro, &values);
+  sample_dim(pro, &dim);
+
+  lhood = lr_lhood(lr, values);
+  prior = pr_log_prob(values, dim);
+  posterior = prior + lhood;
+
+  sample_prior_set(pro, prior);
+  sample_likelihood_set(pro, lhood);
+  sample_posterior_set(pro, posterior);
+
+  ratio = exp(posterior - cposterior);
+
+  TIMER_stop(TIMER_EVALUATION);
+
+  return (ratio>1) ? 1: ratio;
+}
+
+/*****************************************************************************
+ *
+ *  sample_choose
+ *
+ *****************************************************************************/
+
+void sample_choose(int idx, ch_t *chain, sample_t **pcur, sample_t **ppro){
+
+  precision u;
+  int accepted = 0;
+  sample_t *cur = NULL;
+  sample_t *pro = NULL;
+  precision *probability = NULL;
+  int outfreq;
+
+  assert(chain);
+  assert(pcur);
+  assert(ppro);
+
+  TIMER_start(TIMER_ACCEPTANCE);
+
+  pro = *ppro;
+  cur = *pcur;
+  ch_probability(chain, &probability);
+  ch_outfreq(chain, &outfreq);
+
+  /* to stochastically accept/reject the proposed sample*/
+  u = (precision)ran_serial_uniform();
+
+  if(u <= probability[idx])
+  {
+    /* accept the proposal, add the proposed sample to the chain */
+    ch_append_sample(idx, pro->values, chain);
+    accepted = 1;
+    /* swap pointers of two samples instead of copying the contents of each other */
+    mem_swap_ptrs((void**)&cur, (void**)&pro);
+  }else{
+    /* add the current sample to the chain */
+    ch_append_sample(idx, cur->values, chain);
+  }
+
+  ch_append_stats(idx, accepted, chain);
+
+  if((idx==1) || idx%outfreq==0)
+    sample_print_progress(accepted, idx, u, VERBOSE, cur, pro, chain);
+
+  TIMER_stop(TIMER_ACCEPTANCE);
+
+  *ppro = pro;
+  *pcur = cur;
+}
+
+/*****************************************************************************
+ *
+ *  sample_init_zero
+ *
+ *****************************************************************************/
+
+int sample_init_zero(sample_t *sample){
+
+  int i;
+  assert(sample);
+
+  for(i=0; i<sample->dim; i++)
+    sample->values[i] = 0.0;
+
+  sample->prior = 0.0;
+  sample->likelihood = 0.0;
+  sample->posterior = 0.0;
+
+  return 0;
+}
+
 
 /*****************************************************************************
  *
@@ -236,134 +377,6 @@ int sample_posterior(sample_t *sample, precision *posterior){
   assert(sample);
 
   *posterior = sample->posterior;
-
-  return 0;
-}
-
-/*****************************************************************************
- *
- *  sample_propose_mvnb
- *
- *****************************************************************************/
-
-int sample_propose_mvnb(mvnb_t *mvnb, sample_t *cur, sample_t *pro){
-
-  precision *current = NULL;
-  precision *proposed = NULL;
-
-  assert(mvnb);
-  assert(cur);
-  assert(pro);
-
-  sample_values(cur, &current);
-  sample_values(pro , &proposed);
-
-  mvn_block_sample(mvnb, current, proposed);
-
-  return 0;
-}
-
-/*****************************************************************************
- *
- *  sample_evaluate_lr
- *
- *****************************************************************************/
-
-precision sample_evaluate_lr(lr_t *lr, sample_t *cur, sample_t *pro){
-
-  precision lhood=0.0, prior=0.0, posterior=0.0;
-  precision cposterior;
-  int dim;
-  double ratio;
-  precision *values = NULL;
-
-  assert(lr);
-  assert(cur);
-  assert(pro);
-
-  sample_posterior(cur, &cposterior);
-
-  sample_values(pro, &values);
-  sample_dim(pro, &dim);
-
-  lhood = lr_lhood(lr, values);
-  prior = pr_log_prob(values, dim);
-  posterior = prior + lhood;
-
-  sample_prior_set(pro, prior);
-  sample_likelihood_set(pro, lhood);
-  sample_posterior_set(pro, posterior);
-
-  ratio = exp(posterior - cposterior);
-
-  return (ratio>1) ? 1: ratio;
-}
-
-/*****************************************************************************
- *
- *  sample_choose
- *
- *****************************************************************************/
-
-void sample_choose(int idx, ch_t *chain, sample_t **pcur, sample_t **ppro){
-
-  precision u;
-  int accepted = 0;
-  sample_t *cur = NULL;
-  sample_t *pro = NULL;
-  precision *probability = NULL;
-  int outfreq;
-
-  assert(chain);
-  assert(pcur);
-  assert(ppro);
-
-  pro = *ppro;
-  cur = *pcur;
-  ch_probability(chain, &probability);
-  ch_outfreq(chain, &outfreq);
-
-  /* to stochastically accept/reject the proposed sample*/
-  u = (precision)ran_serial_uniform();
-
-  if(u <= probability[idx])
-  {
-    /* accept the proposal, add the proposed sample to the chain */
-    ch_append_sample(idx, pro->values, chain);
-    accepted = 1;
-    /* swap pointers of two samples instead of copying the contents of each other */
-    mem_swap_ptrs((void**)&cur, (void**)&pro);
-  }else{
-    /* add the current sample to the chain */
-    ch_append_sample(idx, cur->values, chain);
-  }
-
-  ch_append_stats(idx, accepted, chain);
-
-  if((idx==1) || idx%outfreq==0)
-    sample_print_progress(accepted, idx, u, VERBOSE, cur, pro, chain);
-
-  *ppro = pro;
-  *pcur = cur;
-}
-
-/*****************************************************************************
- *
- *  sample_init_zero
- *
- *****************************************************************************/
-
-int sample_init_zero(sample_t *sample){
-
-  int i;
-  assert(sample);
-
-  for(i=0; i<sample->dim; i++)
-    sample->values[i] = 0.0;
-
-  sample->prior = 0.0;
-  sample->likelihood = 0.0;
-  sample->posterior = 0.0;
 
   return 0;
 }

@@ -7,6 +7,7 @@
 
 #include "effective_sample_size.h"
 #include "memory.h"
+#include "timer.h"
 
 struct ess_s{
   pe_t *pe;
@@ -126,6 +127,8 @@ int ess_compute(ess_t *ess){
 
   assert(ess);
 
+  TIMER_start(TIMER_ESS);
+
   acr_lagk(ess->acr, &acrlagk);
   acr_maxlag_act(ess->acr, &maxlag_act);
   acr_maxlag(ess->acr, &offset);  // allocated memory between each dimension
@@ -145,6 +148,8 @@ int ess_compute(ess_t *ess){
   if(ess->min) ess_min(ess);
   if(ess->median) ess_median(ess);
   if(ess->mean) ess_mean(ess);
+
+  TIMER_stop(TIMER_ESS);
 
   return 0;
 }
