@@ -7,6 +7,7 @@
 #include "autocorrelation.h"
 #include "memory.h"
 #include "timer.h"
+#include "util.h"
 
 struct acr_s{
   pe_t *pe;
@@ -160,7 +161,7 @@ int acr_compute(acr_t *acr){
 
   assert(acr);
   precision lagk;
-  int i, j, offset;
+  int i, j, k, offset;
   int N=acr->N, dim=acr->dim;
 
   TIMER_start(TIMER_AUTOCORRELATION);
@@ -176,10 +177,15 @@ int acr_compute(acr_t *acr){
 
     for(j=0; j<acr->maxlag; j++)
     {
-      lagk = acr_compute_lagk(&acr->X[offset], acr->mean[i], acr->variance[i], N, j);
+      lagk = acr_compute_lagk(&acr->X[offset], acr->mean[i], acr->variance[i],
+                              N, j, acr->threshold);
 
       if(lagk < acr->threshold){
         acr->maxlag_act[i] = j-1;
+        for(k=j; k<acr->maxlag; k++)
+        {
+          acr->lagk[i*acr->maxlag+k] = acr->threshold;
+        }
         break;
       }
       acr->lagk[i*acr->maxlag+j] = lagk;
@@ -196,7 +202,8 @@ int acr_compute(acr_t *acr){
  *
  *****************************************************************************/
 
-precision acr_compute_lagk(precision *X, precision mu, precision var, int N, int lag){
+precision acr_compute_lagk(precision *X, precision mu, precision var,
+                           int N, int lag, precision threshold){
 
   int i;
   precision acrk = 0.0;
@@ -212,7 +219,51 @@ precision acr_compute_lagk(precision *X, precision mu, precision var, int N, int
   /* Interested in monotonically decreasing positive autocorrelations
    * Once values reach to -ve can be considered as noise and discarded
    */
-  return (acrk >= 0) ? (acrk / var) : 0.0;
+  return (acrk >= threshold) ? (acrk / var) : threshold;
+}
+
+/*****************************************************************************
+ *
+ *  acr_write_acr
+ *
+ *****************************************************************************/
+
+int acr_write_acr(acr_t *acr){
+
+  assert(acr);
+
+  char filename[BUFSIZ];
+  FILE *fp;
+
+  int i,j;
+
+  printf("%30s\t%50s", "Creating output directory:", acr->outdir);
+  rw_create_dir(acr->outdir);
+  printf("\tDone\n");
+
+  printf("%30s\t%50s","Writing autocorrelation files:", "\n");
+  for(i=0; i<acr->dim; i++)
+  {
+    sprintf(filename, "%s/%s_%03d.csv", acr->outdir, "rho", i);
+    fp = fopen(filename, "w+");
+    assert(fp);
+
+    printf("%30s\t%50s","Writing:", filename);
+
+    for(j=0; j<acr->maxlag; j++)
+    {
+#ifdef _FLOAT_
+      fprintf(fp, "%.7f\n", acr->lagk[i*acr->maxlag+j]);
+#else
+      fprintf(fp, "%.16f\n", acr->lagk[i*acr->maxlag+j]);
+#endif
+    }
+    fclose(fp);
+    printf("\tDone\n");
+  }
+
+
+  return 0;
 }
 
 /*****************************************************************************
@@ -263,6 +314,7 @@ int acr_print_acr(pe_t *pe, acr_t *acr){
   int i;
 
   pe_info(pe, "Autocorrelation Summary:\n");
+  pe_info(pe, "------------------------\n");
   pe_info(pe, "\t%10s\t%10s\t%10s\t%10s\n", "Dim", "Mean", "Variance", "MaxLag");
 
   for(i=0; i<acr->dim; i++)

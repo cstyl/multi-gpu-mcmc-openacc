@@ -86,6 +86,16 @@ static int mcmc_rt(mcmc_t *mcmc);
    ess_compute(mcmc->ess);
    ess_print_ess(mcmc->pe, mcmc->ess);
 
+   /* Write output files */
+   if(pe_mpi_rank(mcmc->pe) == 0)
+   {
+     TIMER_start(TIMER_WRITE_FILES);
+     ch_write_files(mcmc->burn, "burn");
+     ch_write_files(mcmc->chain, "postburn");
+     acr_write_acr(mcmc->acr);
+     TIMER_stop(TIMER_WRITE_FILES);
+   }
+
    if(mcmc->infr)
    {
      TIMER_start(TIMER_INFERENCE);
@@ -96,6 +106,7 @@ static int mcmc_rt(mcmc_t *mcmc);
      if(strcmp(mc_case, "logistic_regression") == 0)
      {
        infr_mc_integration_lr(mcmc->infr);
+       infr_print(mcmc->pe, mcmc->infr);
      }
 
      TIMER_stop(TIMER_INFERENCE);
@@ -171,6 +182,7 @@ static int mcmc_rt(mcmc_t *mcmc);
    {
      infr_create(pe, mcmc->chain, &mcmc->infr);
      infr_init_rt(pe, rt, mcmc->infr);
+     infr_info(pe, mcmc->infr);
    }
 
    TIMER_stop(TIMER_RUNTIME_SETUP);

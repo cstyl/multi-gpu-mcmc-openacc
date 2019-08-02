@@ -142,6 +142,7 @@ static int test_autocorrelation_compute_lagk(pe_t *pe){
   precision acr_lag_ref=0.0, acr_lag_act;
   precision X[10] = {0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0};
   precision mean=0.0, var=0.0;
+  precision threshold=0.1;
 
   for(i=0; i<N; i++) mean += X[i] / N;
   for(i=0; i<N; i++) var += pow(X[i]-mean, 2.0) / N;
@@ -152,22 +153,22 @@ static int test_autocorrelation_compute_lagk(pe_t *pe){
   }
   acr_lag_ref *= 1.0 / ((N - lag) * var);
 
-  acr_lag_act = acr_compute_lagk(X, mean, var, N, lag);
+  acr_lag_act = acr_compute_lagk(X, mean, var, N, lag, threshold);
 
   test_assert(fabs(acr_lag_act - acr_lag_ref) < TEST_PRECISION_TOLERANCE);
 
   /* Check if returns 1.0 when lag is set to zero*/
-  acr_lag_act = acr_compute_lagk(X, mean, var, N, 0);
+  acr_lag_act = acr_compute_lagk(X, mean, var, N, 0, threshold);
 
   test_assert(fabs(acr_lag_act - 1.0) < TEST_PRECISION_TOLERANCE);
 
-  /* Check that returns 0.0 when the value is negative */
+  /* Check that returns threshold value when the value is less than threshold */
   N=3;
   precision Z[3] = {-1.0, 1.0, -1.0};
   mean = -1.0/3.0;
   for(i=0; i<N; i++) var += pow(Z[i]-mean, 2.0) / N;
-  acr_lag_act = acr_compute_lagk(Z, mean, var, N, 1);
-  test_assert(fabs(acr_lag_act - 0.0) < TEST_PRECISION_TOLERANCE);
+  acr_lag_act = acr_compute_lagk(Z, mean, var, N, 1, threshold);
+  test_assert(fabs(acr_lag_act - threshold) < TEST_PRECISION_TOLERANCE);
 
   return 0;
 }

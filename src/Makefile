@@ -41,7 +41,7 @@ OBJS = \
 		 multivariate_normal.o pe.o prior.o \
 		 ran.o runtime.o sample.o timer.o \
 		 autocorrelation.o effective_sample_size.o \
-		 inference.o
+		 inference.o util.o
 
 ###############################################################################
 #
@@ -55,12 +55,12 @@ default:
 	$(MAKE) -s verbose
 
 verbose:
-	echo -e "LUDWIG make options ...\n"\
+	echo -e "MCMC make options ...\n"\
 	    "\t make serial \t\t builds serial implementation \n"\
       "\t Check the Makefile for further details\n"
 
 code:	$(MAIN).o
-	$(CC) $(LDFLAGS) -o $(EXECUTABLE) $(MAIN).o $(LIBRARY) $(LIBS)
+	$(CC) $(CFLAGS) -o $(EXECUTABLE) $(MAIN).o $(LIBRARY) $(LIBS)
 
 # Serial versions
 

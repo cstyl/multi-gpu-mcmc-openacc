@@ -12,10 +12,12 @@ int acr_free(acr_t *acr);
 int acr_init_rt(rt_t *rt, ch_t *chain, acr_t *acr);
 
 int acr_compute(acr_t *acr);
-precision acr_compute_lagk(precision *X, precision mu, precision var, int N, int lag);
+precision acr_compute_lagk(precision *X, precision mu, precision var,
+                           int N, int lag, precision threshold);
 
 int acr_info(pe_t *pe, acr_t *acr);
 int acr_print_acr(pe_t *pe, acr_t *acr);
+int acr_write_acr(acr_t *acr);
 
 /* Functions to access elements in the structure */
 int acr_dim_set(acr_t *acr, int dim);

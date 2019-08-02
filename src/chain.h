@@ -14,6 +14,7 @@ int ch_init_burn_rt(rt_t *rt, ch_t *burn);
 int ch_init_chain_rt(rt_t *rt, ch_t *chain);
 int ch_burn_info(pe_t *pe, ch_t *burn);
 int ch_chain_info(pe_t *pe, ch_t *chain);
+int ch_write_files(ch_t *chain, const char *chain_type);
 
 int ch_dim_set(ch_t *chain, int dim);
 int ch_N_set(ch_t *chain, int N);

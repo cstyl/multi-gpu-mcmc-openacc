@@ -6,6 +6,7 @@
 
 #include "chain.h"
 #include "memory.h"
+#include "util.h"
 
 struct ch_s{
   int dim;
@@ -213,6 +214,29 @@ int ch_chain_info(pe_t *pe, ch_t *chain){
   pe_info(pe, "%30s\t\t%d\n", "Dimensionality of Samples:", dim);
   pe_info(pe, "%30s\t\t%d %s\n", "Output Frequency:", outfreq, "iterations");
   pe_info(pe, "%30s\t\t%s\n", "Output directory:", outdir);
+
+  return 0;
+}
+
+int ch_write_files(ch_t *chain, const char *chain_type){
+
+  assert(chain);
+
+  printf("%30s\t%50s", "Creating output directory:", chain->outdir);
+  rw_create_dir(chain->outdir);
+  printf("\tDone\n");
+
+  util_write_array_precision(chain->samples, chain->N, chain->dim,
+                             chain->outdir, chain_type, "samples");
+
+  util_write_array_precision(chain->probability, chain->N, 1,
+                             chain->outdir, chain_type, "probability");
+
+  util_write_array_precision(chain->ratio, chain->N, 1,
+                             chain->outdir, chain_type, "ratio");
+
+  util_write_array_int(chain->accepted, chain->N, 1,
+                       chain->outdir, chain_type, "accepted");
 
   return 0;
 }

@@ -122,6 +122,48 @@ int infr_init(pe_t *pe, infr_t *infr){
 
 /*****************************************************************************
  *
+ *  infr_info
+ *
+ *****************************************************************************/
+
+int infr_info(pe_t *pe, infr_t *infr){
+
+  assert(pe);
+  assert(infr);
+
+  pe_info(pe, "\n\n");
+  pe_info(pe, "Inference Properties\n");
+  pe_info(pe, "--------------------\n");
+  pe_info(pe, "%30s\t\t%s\n\n", "Monte Carlo Case:", infr->mc_case);
+
+  return 0;
+}
+
+/*****************************************************************************
+ *
+ *  infr_print
+ *
+ *****************************************************************************/
+
+int infr_print(pe_t *pe, infr_t *infr){
+
+  assert(pe);
+  assert(infr);
+
+  pe_info(pe, "Inference Summary:\n");
+  pe_info(pe, "------------------\n");
+  if(strcmp(infr->mc_case, "logistic_regression") == 0)
+  {
+    pe_info(pe, "\tClassification Accuracy:\t%1.3f\n", infr->accuracy);
+  }
+
+  pe_info(pe, "\n");
+
+  return 0;
+}
+
+/*****************************************************************************
+ *
  * infr_mc_integration_lr
  *
  *****************************************************************************/
@@ -162,7 +204,6 @@ int infr_mc_integration_lr(infr_t *infr){
   }
 
   infr->accuracy = (precision)acc_sum / (precision)N_data;
-  printf("accuracy: %.16f\n", infr->accuracy);
 
   TIMER_stop(TIMER_MC_INT);
 

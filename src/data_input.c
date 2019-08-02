@@ -555,7 +555,7 @@ static int data_csvread(pe_t *pe, char *filename, int rowSz, int colSz, int skip
 
   assert(data);
 
-  pe_info(pe, "Reading data from %s...", filename);
+  pe_info(pe, "%30s\t%50s", "Reading data from:", filename);
   fp = fopen(filename, "r");
   assert(fp);
 

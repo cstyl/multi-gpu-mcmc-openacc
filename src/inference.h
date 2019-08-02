@@ -11,6 +11,9 @@ int infr_create(pe_t *pe, ch_t *chain, infr_t **pinfr);
 int infr_free(infr_t *infr);
 int infr_init_rt(pe_t *pe, rt_t *rt, infr_t *infr);
 int infr_init(pe_t *pe, infr_t *infr);
+int infr_info(pe_t *pe, infr_t *infr);
+int infr_print(pe_t *pe, infr_t *infr);
+
 int infr_mc_integration_lr(infr_t *infr);
 
 int infr_mc_case_set(infr_t *infr, const char *mc_case);
