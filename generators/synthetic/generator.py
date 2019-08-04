@@ -26,7 +26,7 @@ else:
 X = s.generate_data(x_range, N, args.dim)
 # split data into train and test and normalize
 X_train, X_test = s.split_data(X, N_train)
-X_train, X_test = s.normazile_sets(X_train, X_test)
+X_train, X_test = s.normalize_sets(X_train, X_test)
 # add bias
 X_train, X_test = s.add_bias(X_train, X_test)
 

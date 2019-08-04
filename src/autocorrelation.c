@@ -180,7 +180,7 @@ int acr_compute(acr_t *acr){
       lagk = acr_compute_lagk(&acr->X[offset], acr->mean[i], acr->variance[i],
                               N, j, acr->threshold);
 
-      if(lagk < acr->threshold){
+      if(fabs(lagk - acr->threshold) < PRECISION_TOLERANCE){
         acr->maxlag_act[i] = j-1;
         for(k=j; k<acr->maxlag; k++)
         {
@@ -216,10 +216,12 @@ precision acr_compute_lagk(precision *X, precision mu, precision var,
   }
   acrk *= 1.0 / (N - lag);
 
+  acrk /= var;
+
   /* Interested in monotonically decreasing positive autocorrelations
    * Once values reach to -ve can be considered as noise and discarded
    */
-  return (acrk >= threshold) ? (acrk / var) : threshold;
+  return (acrk >= threshold) ? acrk : threshold;
 }
 
 /*****************************************************************************

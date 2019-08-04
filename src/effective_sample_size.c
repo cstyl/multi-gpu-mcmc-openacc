@@ -310,7 +310,6 @@ static int ess_median(ess_t *ess){
   ess->median[0] = median;
 
   mem_free((void **)&sorted_ess);
-  assert(sorted_ess != NULL);
 
   return 0;
 }

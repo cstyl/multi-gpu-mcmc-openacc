@@ -442,7 +442,7 @@ static int sample_print_progress(int dec, int idx, precision u, int verbose,
             dec==1 ? cur->posterior:pro->posterior
           );
 
-    printf("\tDecision: Proposed sample %s! (%f<%f)\n\n",
+    printf("\tDecision: Proposed sample %s! (%f<%.16f)\n\n",
             dec==1?"accepted":"rejected", u, probability[idx]);
   }
 

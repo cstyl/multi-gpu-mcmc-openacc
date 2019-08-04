@@ -27,7 +27,7 @@ def split_data(data, N_train):
 
 	return (X_train, X_test)
 
-def normazile_sets(X_train, X_test):
+def normalize_sets(X_train, X_test):
 	# evaluate mean and std for each dimension appart from bias dimension (i.e x0)
 	mean = np.mean(X_train, axis=0)
 	std  = np.std(X_train, axis=0)
