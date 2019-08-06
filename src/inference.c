@@ -20,8 +20,6 @@ struct infr_s{
   char mc_case[BUFSIZ];
 };
 
-static const char MC_CASE_DEFAULT[BUFSIZ] = "logistic_regression";
-
 static int infr_allocate_sum(infr_t *infr);
 static int infr_allocate_labels(infr_t *infr);
 
@@ -191,6 +189,7 @@ int infr_mc_integration_lr(infr_t *infr){
    * going through all the generated samples.
    * Accumulate the sum (MC integration) for each data point to evaluate its class
   */
+
   for(i=0; i<N_data; i++)
   {
     infr->sum[i] = 0.0;
@@ -198,7 +197,10 @@ int infr_mc_integration_lr(infr_t *infr){
     {
       infr->sum[i] += lr_logistic_regression(&samples[j*dim], &x[i*dim], dim) / N_samples;
     }
+  }
 
+  for(i=0; i<N_data; i++)
+  {
     infr->labels[i] = (infr->sum[i]>=0.5) ? 1 : -1;
     acc_sum += (infr->labels[i] == y[i]) ? 1 : 0;
   }

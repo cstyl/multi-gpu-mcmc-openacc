@@ -21,17 +21,10 @@ struct acr_s{
   precision *variance;
   int *offset;
   int *maxlag_act;            /* Actual maxlag per dimension */
-  precision *lagk;        /* Autocorrelations for k-lags. Contiguous per dimensionality */
+  precision *lagk;            /* Autocorrelations for k-lags. Contiguous per dimensionality */
   int outfreq;
   char outdir[FILENAME_MAX];
 };
-
-static const int DIM_AUTO_DEFAULT = 3;
-static const int N_AUTO_DEFAULT = 500;
-static const int MAXLAG_AUTO_DEFAULT = 249;
-static const precision THRESHOLD_AUTO_DEFAULT = 0.1;
-static const int OUTFREQ_AUTO_DEFAULT = 50;
-static const char OUTDIR_AUTO_DEFAULT[FILENAME_MAX] = "../out";
 
 static int acr_allocate_X(acr_t *acr);
 static int acr_allocate_mean(acr_t *acr);
@@ -63,12 +56,12 @@ int acr_create(pe_t *pe, ch_t *chain, acr_t **pacr){
   acr->pe   = pe;
   acr->chain = chain;
 
-  acr_dim_set(acr, DIM_AUTO_DEFAULT);
-  acr_N_set(acr, N_AUTO_DEFAULT);
+  acr_dim_set(acr, DIMX_DEFAULT);
+  acr_N_set(acr, N_CHAIN_DEFAULT);
   acr_maxlag_set(acr, MAXLAG_AUTO_DEFAULT);
   acr_threshold_set(acr, THRESHOLD_AUTO_DEFAULT);
   acr_outfreq_set(acr, OUTFREQ_AUTO_DEFAULT);
-  acr_outdir_set(acr, OUTDIR_AUTO_DEFAULT);
+  acr_outdir_set(acr, OUTDIR_DEFAULT);
 
   *pacr = acr;
 

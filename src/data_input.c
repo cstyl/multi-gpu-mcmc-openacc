@@ -10,21 +10,6 @@
 
 #define SKIP_HEADER 1
 
-#define CONVERT(in, type_t, out, pos)\
-({\
-  if(!strcmp(type_t,"int"))\
-  {\
-    *((int *)out + pos) = atoi(in);\
-  }else if(!strcmp(type_t,"precision"))\
-  {\
-    *((precision *)out + pos) = (precision)atof(in);\
-  }else{\
-    fprintf(stderr, "ERROR::%s:%d:%s: Invalid type argument \"%s\"!\n",\
-            __FILE__, __LINE__,__func__, type_t);\
-    exit(1);\
-  }\
-})
-
 struct data_s{
   int dimx;
   int dimy;
@@ -35,20 +20,12 @@ struct data_s{
   char fy[FILENAME_MAX];
 };
 
-static const int DIMX_DEFAULT = 3;
-static const int DIMY_DEFAULT = 1;
-static const int N_TRAIN_DEFAULT = 500;
-static const int N_TEST_DEFAULT = 100;
-static const char TRAIN_X_DEFAULT[FILENAME_MAX] = "../data/synthetic/default/X_train.csv";
-static const char TRAIN_Y_DEFAULT[FILENAME_MAX] = "../data/synthetic/default/Y_train.csv";
-static const char TEST_X_DEFAULT[FILENAME_MAX] = "../data/synthetic/default/X_test.csv";
-static const char TEST_Y_DEFAULT[FILENAME_MAX] = "../data/synthetic/default/Y_test.csv";
-
 static int data_csvread(pe_t *pe, char *filename, int rowSz, int colSz, int skip_header,
                     const char *delimiter, const char *datatype, void *data);
 static void data_rmheader(char* line, FILE *fp, int skip_num);
 static int data_allocate_x(data_t *data);
 static int data_allocate_y(data_t *data);
+static int convert_tok(const char *tok, const char *datatype, void *data, int pos);
 
 /*****************************************************************************
  *
@@ -507,40 +484,6 @@ int data_read_file(pe_t *pe, data_t *data){
 
 /*****************************************************************************
  *
- *  data_print_file
- *
- *****************************************************************************/
-
-int data_print_file(data_t *data){
-
-  int i, j;
-  assert(data);
-
-  printf("Printing %s:\n", data->fx);
-  for(i=0; i<data->N; i++)
-  {
-    for(j=0; j<data->dimx-1; j++)
-    {
-      printf("\t%f", data->x[i*(data->dimx) + j]);
-    }
-    printf("\t%f\n", data->x[i*(data->dimx) + data->dimx-1]);
-  }
-
-  printf("Printing %s:\n", data->fy);
-  for(i=0; i<data->N; i++)
-  {
-    for(j=0; j<data->dimy-1; j++)
-    {
-      printf("\t%2d", data->y[i*(data->dimy) + j]);
-    }
-    printf("\t%2d\n", data->y[i*(data->dimy) + data->dimy-1]);
-  }
-
-  return 0;
-}
-
-/*****************************************************************************
- *
  *  data_csvread
  *
  *****************************************************************************/
@@ -567,7 +510,7 @@ static int data_csvread(pe_t *pe, char *filename, int rowSz, int colSz, int skip
        */
       fgets(line, BUFSIZ, fp);
       tok = strtok(line, delimiter);
-      CONVERT(tok, datatype, data, i*rowSz);
+      convert_tok(tok, datatype, data, i*rowSz);
 
       /* keep reading tokens from the buffer (using NULL)
        * until reach the end of line, each time converting them
@@ -576,7 +519,7 @@ static int data_csvread(pe_t *pe, char *filename, int rowSz, int colSz, int skip
       for(j=1; j<rowSz; j++)
       {
          tok = strtok(NULL, delimiter);
-         CONVERT(tok, datatype, data, i*rowSz+j);
+         convert_tok(tok, datatype, data, i*rowSz+j);
       }
   }
 
@@ -627,6 +570,29 @@ static int data_allocate_y(data_t *data){
   assert(data);
 
   mem_malloc_integers(&data->y, data->dimy * data->N);
+
+  return 0;
+}
+
+/*****************************************************************************
+ *
+ *  convert_tok
+ *  converts an input token from character
+ *  to real or integer based on the desired type
+ *
+ *****************************************************************************/
+
+static int convert_tok(const char *tok, const char *datatype, void *data, int pos){
+
+  if(!strcmp(datatype, "int")){
+    *((int *)data + pos) = atoi(tok);
+  }else if(!strcmp(datatype,"precision")){
+    *((precision *)data + pos) = (precision)atof(tok);
+  }else{
+    fprintf(stderr, "ERROR::%s:%d:%s: Invalid type argument \"%s\"!\n",\
+            __FILE__, __LINE__,__func__, datatype);\
+    exit(1);
+  }
 
   return 0;
 }

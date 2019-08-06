@@ -31,8 +31,6 @@ struct mcmc_s{
   infr_t  *infr;   /* Inference data structure */
 };
 
-static const char ALGORITHM_DEFAULT[BUFSIZ] = "metropolis";
-
 static int mcmc_rt(mcmc_t *mcmc);
 
 /*****************************************************************************
