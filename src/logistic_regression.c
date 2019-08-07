@@ -75,6 +75,7 @@ precision lr_lhood(lr_t *lr, precision *sample){
   int i,j;
   precision *x = NULL;
   int *y = NULL;
+  precision dot;
 
   data_x(lr->data, &x);
   data_y(lr->data, &y);
@@ -84,17 +85,15 @@ precision lr_lhood(lr_t *lr, precision *sample){
   TIMER_start(TIMER_LIKELIHOOD);
 
   lr->lhood = 0.0;
-  for(i=0; i<lr->N; i++)
-  {
-    lr->dot[i] = 0.0;
-  }
 
   for(i=0; i<lr->N; i++)
   {
+    dot = 0.0;
     for(j=0; j<lr->dim; j++)
     {
-      lr->dot[i] += sample[j] * x[i*lr->dim+j];
+      dot += sample[j] * x[i*lr->dim+j];
     }
+    lr->dot[i] = dot;
   }
 
   for(i=0; i<lr->N; i++)
