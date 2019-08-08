@@ -19,10 +19,6 @@ struct mvnb_s{
   int tune;
 };
 
-static const int DIM_DEFAULT = 3;
-static const int TUNE_DEFAULT = 0;
-static const precision RWSD_DEFAULT = 2.38 / sqrt(3 - 1);
-
 static int mvn_block_allocate_covariance(mvnb_t *mvnb);
 static int mvn_block_allocate_L(mvnb_t *mvnb);
 
@@ -42,7 +38,7 @@ int mvn_block_create(pe_t *pe, mvnb_t **pmvnb){
   assert(mvnb);
   if(mvnb == NULL) pe_fatal(pe, "calloc(mvnb_t) failed\n");
 
-  mvn_block_dim_set(mvnb, DIM_DEFAULT);
+  mvn_block_dim_set(mvnb, DIMX_DEFAULT);
   mvn_block_rwsd_set(mvnb, RWSD_DEFAULT);
   mvn_block_tune_set(mvnb, TUNE_DEFAULT);
 
@@ -76,7 +72,7 @@ int mvn_block_init_rt(rt_t *rt, mvnb_t *mvnb){
   assert(rt);
   assert(mvnb);
 
-  mvn_block_rwsd_set(mvnb, 2.38 / sqrt(DIM_DEFAULT - 1));
+  mvn_block_rwsd_set(mvnb, 2.38 / sqrt(DIMX_DEFAULT - 1));
 
   if(rt_int_parameter(rt, "sample_dim", &dim))
   {
@@ -104,7 +100,8 @@ int mvn_block_init_rt(rt_t *rt, mvnb_t *mvnb){
 int mvn_block_init(mvnb_t *mvnb){
 
   assert(mvnb);
-
+  /* Ensure the serial version of OpenBlas is used */
+  openblas_set_num_threads(1);
   mvn_block_init_covariance(mvnb);
   mvn_block_cholesky_decomp(mvnb);
 
@@ -150,12 +147,9 @@ int mvn_block_cholesky_decomp(mvnb_t *mvnb){
 
   /* Perform cholesky decomposition
    * Factorize the symmetric, positive-definite covariance square matrix
+   * Utilizes LAPACKE_dpotrf or LAPACKE_spotrf depending the precision setup
    */
- #ifdef _FLOAT_
-    LAPACKE_spotrf(LAPACK_ROW_MAJOR, 'L', mvnb->dim, mvnb->L, mvnb->dim);
- #else
-    LAPACKE_dpotrf(LAPACK_ROW_MAJOR, 'L', mvnb->dim, mvnb->L, mvnb->dim);
- #endif
+   POTRF(LAPACK_ROW_MAJOR, 'L', mvnb->dim, mvnb->L, mvnb->dim);
 
   return 0;
 }
@@ -174,19 +168,18 @@ int mvn_block_sample(mvnb_t *mvnb, precision *cur, precision *pro){
   assert(pro);
   assert(cur);
 
-  for(i=0; i<mvnb->dim; i++) pro[i] = ran_serial_gaussian();
+  int dim = mvnb->dim;
+  precision *L = mvnb->L;
 
-#ifdef _FLOAT_
-  cblas_strmv(CblasRowMajor, CblasLower, CblasNoTrans, CblasNonUnit,
-              mvnb->dim, mvnb->L, mvnb->dim, pro, 1
-             );
-#else
-  cblas_dtrmv(CblasRowMajor, CblasLower, CblasNoTrans, CblasNonUnit,
-              mvnb->dim, mvnb->L, mvnb->dim, pro, 1
-             );
-#endif
+  /* Sample from standard normal distribution */
+  for(i=0; i<dim; i++) pro[i] = ran_serial_gaussian();
 
-  for(i=0; i<mvnb->dim; i++) pro[i] += cur[i];
+  /* Triangular matrix to vector multiplication
+  *  using the cholesky decomposed covariance matrix
+  */
+  TRMV(CblasRowMajor, CblasLower, CblasNoTrans, CblasNonUnit, dim, L, dim, pro, 1);
+
+  for(i=0; i<dim; i++) pro[i] += cur[i];
 
   return 0;
 }

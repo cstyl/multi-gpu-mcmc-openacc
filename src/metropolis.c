@@ -22,11 +22,6 @@ struct met_s{
   int random_init;
 };
 
-static const char KERNEL_DEFAULT[BUFSIZ] = "mvn_block";
-static const char LHOOD_DEFAULT[BUFSIZ] = "logistic_regression";
-static const int RAND_INIT_DEFAULT = 0;
-// static const int SEED_DEFAULT = 7361237;
-
 int met_create(pe_t *pe, ch_t *chain, met_t **pmet){
 
   met_t *met = NULL;

@@ -19,8 +19,6 @@ struct sample_s{
   int dim;
 };
 
-static const int DIM_DEFAULT = 3;
-
 static int sample_allocate_values(sample_t *sample);
 static int sample_print_progress(int dec, int idx, precision u, int verbose,
                                   sample_t *cur, sample_t *pro, ch_t *chain);
@@ -41,7 +39,7 @@ int sample_create(pe_t *pe, sample_t **psample){
   assert(sample);
   if(sample == NULL) pe_fatal(pe, "calloc(sample_t) failed\n");
 
-  sample_dim_set(sample, DIM_DEFAULT);
+  sample_dim_set(sample, DIMX_DEFAULT);
 
   *psample = sample;
 

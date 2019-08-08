@@ -1,0 +1,420 @@
+make lib "CFLAGS=-fast –ta=host -Minfo=all"
+make[1]: Entering directory `/lustre/home/d167/s1887443/dev/multi-gpu-mcmc-openacc/src'
+make libar "INC=-I/lustre/home/d167/s1887443/include -I. -I../mpi_s" "LIBS= -L../mpi_s -lmpi -L/lustre/home/d167/s1887443/lib -lopenblas -lm"
+make[2]: Entering directory `/lustre/home/d167/s1887443/dev/multi-gpu-mcmc-openacc/src'
+pgcc  -fast –ta=host -Minfo=all -I/lustre/home/d167/s1887443/include -I. -I../mpi_s -c chain.c
+ch_create:
+     43, ch_dim_set inlined, size=5 (inline) file chain.c (245)
+     44, ch_N_set inlined, size=5 (inline) file chain.c (260)
+     45, ch_outfreq_set inlined, size=5 (inline) file chain.c (275)
+     46, ch_outdir_set inlined, size=6 (inline) file chain.c (290)
+ch_init_burn_rt:
+     88, ch_dim_set inlined, size=5 (inline) file chain.c (245)
+     93, ch_N_set inlined, size=5 (inline) file chain.c (260)
+     98, ch_outfreq_set inlined, size=5 (inline) file chain.c (275)
+    103, ch_outdir_set inlined, size=6 (inline) file chain.c (290)
+    106, ch_allocate_samples inlined, size=7 (inline) file chain.c (425)
+    107, ch_allocate_probability inlined, size=6 (inline) file chain.c (440)
+    108, ch_allocate_ratio inlined, size=6 (inline) file chain.c (455)
+    109, ch_allocate_accepted inlined, size=6 (inline) file chain.c (470)
+ch_init_chain_rt:
+    130, ch_dim_set inlined, size=5 (inline) file chain.c (245)
+    135, ch_N_set inlined, size=5 (inline) file chain.c (260)
+    140, ch_outfreq_set inlined, size=5 (inline) file chain.c (275)
+    145, ch_outdir_set inlined, size=6 (inline) file chain.c (290)
+    148, ch_allocate_samples inlined, size=7 (inline) file chain.c (425)
+    149, ch_allocate_probability inlined, size=6 (inline) file chain.c (440)
+    150, ch_allocate_ratio inlined, size=6 (inline) file chain.c (455)
+    151, ch_allocate_accepted inlined, size=6 (inline) file chain.c (470)
+ch_burn_info:
+    170, ch_dim inlined, size=5 (inline) file chain.c (305)
+    171, ch_N inlined, size=5 (inline) file chain.c (320)
+    172, ch_outfreq inlined, size=5 (inline) file chain.c (335)
+    173, ch_outdir inlined, size=6 (inline) file chain.c (350)
+ch_chain_info:
+    200, ch_dim inlined, size=5 (inline) file chain.c (305)
+    201, ch_N inlined, size=5 (inline) file chain.c (320)
+    202, ch_outfreq inlined, size=5 (inline) file chain.c (335)
+    203, ch_outdir inlined, size=6 (inline) file chain.c (350)
+ch_append_sample:
+    493, Loop not vectorized: data dependency
+         Loop unrolled 8 times
+         Generated 1 prefetches in scalar loop
+pgcc  -fast –ta=host -Minfo=all -I/lustre/home/d167/s1887443/include -I. -I../mpi_s -c data_input.c
+data_create_train:
+     46, data_dimx_set inlined, size=5 (inline) file data_input.c (262)
+     47, data_dimy_set inlined, size=5 (inline) file data_input.c (277)
+     48, data_N_set inlined, size=5 (inline) file data_input.c (292)
+     49, data_fx_set inlined, size=6 (inline) file data_input.c (307)
+     50, data_fy_set inlined, size=6 (inline) file data_input.c (322)
+data_create_test:
+     73, data_dimx_set inlined, size=5 (inline) file data_input.c (262)
+     74, data_dimy_set inlined, size=5 (inline) file data_input.c (277)
+     75, data_N_set inlined, size=5 (inline) file data_input.c (292)
+     76, data_fx_set inlined, size=6 (inline) file data_input.c (307)
+     77, data_fy_set inlined, size=6 (inline) file data_input.c (322)
+data_init_train_rt:
+    118, data_dimx_set inlined, size=5 (inline) file data_input.c (262)
+    123, data_dimy_set inlined, size=5 (inline) file data_input.c (277)
+    128, data_N_set inlined, size=5 (inline) file data_input.c (292)
+    133, data_fx_set inlined, size=6 (inline) file data_input.c (307)
+    138, data_fy_set inlined, size=6 (inline) file data_input.c (322)
+    141, data_allocate_x inlined, size=6 (inline) file data_input.c (553)
+    142, data_allocate_y inlined, size=6 (inline) file data_input.c (568)
+data_init_test_rt:
+    163, data_dimx_set inlined, size=5 (inline) file data_input.c (262)
+    168, data_dimy_set inlined, size=5 (inline) file data_input.c (277)
+    173, data_N_set inlined, size=5 (inline) file data_input.c (292)
+    178, data_fx_set inlined, size=6 (inline) file data_input.c (307)
+    183, data_fy_set inlined, size=6 (inline) file data_input.c (322)
+    186, data_allocate_x inlined, size=6 (inline) file data_input.c (553)
+    187, data_allocate_y inlined, size=6 (inline) file data_input.c (568)
+data_input_train_info:
+    206, data_dimx inlined, size=5 (inline) file data_input.c (368)
+    207, data_dimy inlined, size=5 (inline) file data_input.c (383)
+    208, data_N inlined, size=5 (inline) file data_input.c (398)
+    209, data_fx inlined, size=6 (inline) file data_input.c (413)
+    210, data_fy inlined, size=6 (inline) file data_input.c (428)
+data_input_test_info:
+    238, data_dimx inlined, size=5 (inline) file data_input.c (368)
+    239, data_dimy inlined, size=5 (inline) file data_input.c (383)
+    240, data_N inlined, size=5 (inline) file data_input.c (398)
+    241, data_fx inlined, size=6 (inline) file data_input.c (413)
+    242, data_fy inlined, size=6 (inline) file data_input.c (428)
+data_read_file:
+    479, data_csvread inlined, size=48 (inline) file data_input.c (492)
+         505, Loop not vectorized/parallelized: contains call
+         519, Loop not vectorized/parallelized: contains call
+    480, data_csvread inlined, size=48 (inline) file data_input.c (492)
+         505, Loop not vectorized/parallelized: contains call
+         519, Loop not vectorized/parallelized: contains call
+pgcc  -fast –ta=host -Minfo=all -I/lustre/home/d167/s1887443/include -I. -I../mpi_s -c logistic_regression.c
+lr_lhood:
+     97, matvecmul inlined, size=10 (inline) file logistic_regression.c (111)
+         120, Loop not fused: function call before adjacent loop
+              Generated 1 prefetches in scalar loop
+         124, Loop not vectorized: data dependency
+              Loop unrolled 4 times
+              FMA (fused multiply-add) instruction(s) generated
+    101, reduce_lhood inlined, size=8 (inline) file logistic_regression.c (133)
+         161, Loop not fused: function call before adjacent loop
+              Generated an alternate version of the loop
+              Generated vector simd code for the loop containing reductions
+              Generated 2 prefetch instructions for the loop
+              Generated vector simd code for the loop containing reductions
+              Generated 2 prefetch instructions for the loop
+matvecmul:
+    120, Generated 1 prefetches in scalar loop
+    124, Loop not vectorized: data dependency
+         Loop unrolled 4 times
+         FMA (fused multiply-add) instruction(s) generated
+reduce_lhood:
+    161, Generated an alternate version of the loop
+         Generated vector simd code for the loop containing reductions
+         Generated 2 prefetch instructions for the loop
+         Generated vector simd code for the loop containing reductions
+         Generated 2 prefetch instructions for the loop
+lr_logistic_regression:
+    186, Generated an alternate version of the loop
+         Generated vector simd code for the loop containing reductions
+         Generated 2 prefetch instructions for the loop
+         Generated vector simd code for the loop containing reductions
+         Generated 2 prefetch instructions for the loop
+         FMA (fused multiply-add) instruction(s) generated
+pgcc  -fast –ta=host -Minfo=all -I/lustre/home/d167/s1887443/include -I. -I../mpi_s -c mcmc.c
+mcmc_run:
+     58, mcmc_rt inlined, size=43 (inline) file mcmc.c (138)
+pgcc  -fast –ta=host -Minfo=all -I/lustre/home/d167/s1887443/include -I. -I../mpi_s -c memory.c
+mem_sort_precision:
+     67, Loop not vectorized: data dependency
+pgcc  -fast –ta=host -Minfo=all -I/lustre/home/d167/s1887443/include -I. -I../mpi_s -c metropolis.c
+met_create:
+     39, met_random_init_set inlined, size=5 (inline) file metropolis.c (224)
+met_init_rt:
+    102, met_random_init_set inlined, size=5 (inline) file metropolis.c (224)
+met_info_rt:
+    118, met_random_init inlined, size=5 (inline) file metropolis.c (233)
+met_run:
+    209, Loop not vectorized/parallelized: contains call
+pgcc  -fast –ta=host -Minfo=all -I/lustre/home/d167/s1887443/include -I. -I../mpi_s -c multivariate_normal.c
+mvn_block_create:
+     41, mvn_block_dim_set inlined, size=5 (inline) file multivariate_normal.c (187)
+     42, mvn_block_rwsd_set inlined, size=5 (inline) file multivariate_normal.c (196)
+     43, mvn_block_tune_set inlined, size=5 (inline) file multivariate_normal.c (205)
+mvn_block_init_rt:
+     75, mvn_block_rwsd_set inlined, size=5 (inline) file multivariate_normal.c (196)
+     79, mvn_block_dim_set inlined, size=5 (inline) file multivariate_normal.c (187)
+     80, mvn_block_rwsd_set inlined, size=5 (inline) file multivariate_normal.c (196)
+     85, mvn_block_tune_set inlined, size=5 (inline) file multivariate_normal.c (205)
+     88, mvn_block_allocate_covariance inlined, size=6 (inline) file multivariate_normal.c (259)
+     89, mvn_block_allocate_L inlined, size=6 (inline) file multivariate_normal.c (268)
+mvn_block_init:
+    105, mvn_block_init_covariance inlined, size=12 (inline) file multivariate_normal.c (117)
+         127, Loop not vectorized/parallelized: not countable
+    106, mvn_block_cholesky_decomp inlined, size=16 (inline) file multivariate_normal.c (138)
+         145, Loop not vectorized/parallelized: not countable
+mvn_block_init_covariance:
+    127, Loop not vectorized/parallelized: not countable
+mvn_block_cholesky_decomp:
+    145, Loop not vectorized/parallelized: not countable
+mvn_block_sample:
+    175, Loop not vectorized/parallelized: contains call
+    182, Loop not vectorized: data dependency
+         Loop unrolled 8 times
+         Generated 1 prefetches in scalar loop
+pgcc  -fast –ta=host -Minfo=all -I/lustre/home/d167/s1887443/include -I. -I../mpi_s -c pe.c
+pe_create:
+     89, pe_message inlined, size=15 (inline) file pe.c (146)
+pgcc  -fast –ta=host -Minfo=all -I/lustre/home/d167/s1887443/include -I. -I../mpi_s -c prior.c
+pr_log_prob:
+     27, pr_normal_prob inlined, size=5 (inline) file prior.c (36)
+          25, Generated an alternate version of the loop
+              Generated vector simd code for the loop containing reductions
+              Generated a prefetch instruction for the loop
+              Generated vector simd code for the loop containing reductions
+              Generated a prefetch instruction for the loop
+pgcc  -fast –ta=host -Minfo=all -I/lustre/home/d167/s1887443/include -I. -I../mpi_s -c ran.c
+ran_init:
+     55, ran_init_seed inlined, size=14 (inline) file ran.c (84)
+ran_init_rt:
+     79, ran_init_seed inlined, size=14 (inline) file ran.c (84)
+ran_serial_uniform:
+    123, ran_lecuyer inlined, size=23 (inline) file ran.c (193)
+ran_serial_gaussian:
+    127, ran_gaussian inlined, size=59 (inline) file ran.c (150)
+         164, Loop not vectorized/parallelized: not countable
+              FMA (fused multiply-add) instruction(s) generated
+ran_parallel_uniform:
+    131, ran_lecuyer inlined, size=23 (inline) file ran.c (193)
+ran_parallel_gaussian:
+    135, ran_gaussian inlined, size=59 (inline) file ran.c (150)
+         164, Loop not vectorized/parallelized: not countable
+              FMA (fused multiply-add) instruction(s) generated
+pgcc  -fast –ta=host -Minfo=all -I/lustre/home/d167/s1887443/include -I. -I../mpi_s -c runtime.c
+rt_read_input_file:
+    160, rt_is_valid_key_pair inlined, size=18 (inline) file runtime.c (444)
+         465, Loop not vectorized/parallelized: contains call
+    161, rt_add_key_pair inlined, size=15 (inline) file runtime.c (491)
+    172, rt_key_broadcast inlined, size=45 (inline) file runtime.c (203)
+         225, Loop not vectorized/parallelized: contains call
+         236, Loop not vectorized/parallelized: contains call
+         237, rt_add_key_pair inlined, size=15 (inline) file runtime.c (491)
+rt_double_parameter:
+    261, rt_look_up_key inlined, size=13 (inline) file runtime.c (526)
+         537, Loop not vectorized/parallelized: potential early exits
+rt_int_parameter:
+    282, rt_look_up_key inlined, size=13 (inline) file runtime.c (526)
+         537, Loop not vectorized/parallelized: potential early exits
+rt_double_parameter_vector:
+    303, rt_look_up_key inlined, size=13 (inline) file runtime.c (526)
+         537, Loop not vectorized/parallelized: potential early exits
+rt_int_parameter_vector:
+    330, rt_look_up_key inlined, size=13 (inline) file runtime.c (526)
+         537, Loop not vectorized/parallelized: potential early exits
+rt_string_parameter:
+    359, rt_look_up_key inlined, size=13 (inline) file runtime.c (526)
+         537, Loop not vectorized/parallelized: potential early exits
+rt_switch:
+    396, rt_look_up_key inlined, size=13 (inline) file runtime.c (526)
+         537, Loop not vectorized/parallelized: potential early exits
+rt_active_keys:
+    426, Loop not vectorized/parallelized: not countable
+pgcc  -fast –ta=host -Minfo=all -I/lustre/home/d167/s1887443/include -I. -I../mpi_s -c sample.c
+sample_create:
+     42, sample_dim_set inlined, size=5 (inline) file sample.c (235)
+sample_init_rt:
+     80, sample_dim_set inlined, size=5 (inline) file sample.c (235)
+     83, sample_allocate_values inlined, size=6 (inline) file sample.c (388)
+sample_propose_mvnb:
+    106, sample_values inlined, size=5 (inline) file sample.c (313)
+    107, sample_values inlined, size=5 (inline) file sample.c (313)
+sample_evaluate_lr:
+    135, sample_posterior inlined, size=5 (inline) file sample.c (373)
+    137, sample_values inlined, size=5 (inline) file sample.c (313)
+    138, sample_dim inlined, size=5 (inline) file sample.c (328)
+    144, sample_prior_set inlined, size=5 (inline) file sample.c (250)
+    145, sample_likelihood_set inlined, size=5 (inline) file sample.c (265)
+    146, sample_posterior_set inlined, size=5 (inline) file sample.c (280)
+sample_choose:
+    199, sample_print_progress inlined, size=56 (inline) file sample.c (404)
+         428, Loop not vectorized/parallelized: contains call
+         436, Loop not vectorized/parallelized: contains call
+sample_init_zero:
+    218, Loop not vectorized/parallelized: not countable
+sample_copy_values:
+    302, Loop not vectorized/parallelized: not countable
+pgcc  -fast –ta=host -Minfo=all -I/lustre/home/d167/s1887443/include -I. -I../mpi_s -c timer.c
+TIMER_init:
+     82, Unrolled inner loop 4 times
+         Residual loop unrolled 2 times (completely unrolled)
+         Generated 3 prefetches in scalar loop
+TIMER_stop:
+    129, dmax inlined, size=4 (inline) file timer.c (190)
+    130, dmin inlined, size=4 (inline) file timer.c (186)
+TIMER_statistics:
+    161, Loop not vectorized/parallelized: contains call
+pgcc  -fast –ta=host -Minfo=all -I/lustre/home/d167/s1887443/include -I. -I../mpi_s -c autocorrelation.c
+acr_create:
+     59, acr_dim_set inlined, size=5 (inline) file autocorrelation.c (334)
+     60, acr_N_set inlined, size=5 (inline) file autocorrelation.c (364)
+     61, acr_maxlag_set inlined, size=5 (inline) file autocorrelation.c (394)
+     62, acr_threshold_set inlined, size=5 (inline) file autocorrelation.c (424)
+     63, acr_outfreq_set inlined, size=5 (inline) file autocorrelation.c (454)
+     64, acr_outdir_set inlined, size=6 (inline) file autocorrelation.c (484)
+acr_init_rt:
+    110, acr_dim_set inlined, size=5 (inline) file autocorrelation.c (334)
+    113, acr_N_set inlined, size=5 (inline) file autocorrelation.c (364)
+    117, acr_maxlag_set inlined, size=5 (inline) file autocorrelation.c (394)
+    122, acr_threshold_set inlined, size=5 (inline) file autocorrelation.c (424)
+    127, acr_outfreq_set inlined, size=5 (inline) file autocorrelation.c (454)
+    132, acr_outdir_set inlined, size=6 (inline) file autocorrelation.c (484)
+    135, acr_allocate_X inlined, size=6 (inline) file autocorrelation.c (604)
+    136, acr_allocate_mean inlined, size=6 (inline) file autocorrelation.c (619)
+    137, acr_allocate_variance inlined, size=6 (inline) file autocorrelation.c (634)
+    138, acr_allocate_offset inlined, size=6 (inline) file autocorrelation.c (649)
+    139, acr_allocate_maxlag_act inlined, size=6 (inline) file autocorrelation.c (664)
+    140, acr_allocate_lagk inlined, size=7 (inline) file autocorrelation.c (680)
+    142, Loop not vectorized/parallelized: not countable
+acr_compute:
+    166, acr_load_X inlined, size=10 (inline) file autocorrelation.c (695)
+         704, Loop not fused: function call before adjacent loop
+              Loop not vectorized: data dependency
+              Loop unrolled 8 times
+              Generated 1 prefetches in scalar loop
+    168, acr_compute_mean inlined, size=8 (inline) file autocorrelation.c (716)
+         722, Loop not fused: function call before adjacent loop
+              Generated an alternate version of the loop
+              Generated vector simd code for the loop containing reductions
+              Generated a prefetch instruction for the loop
+              Generated vector simd code for the loop containing reductions
+              Generated a prefetch instruction for the loop
+    169, acr_compute_variance inlined, size=9 (inline) file autocorrelation.c (734)
+         740, Generated an alternate version of the loop
+              Generated vector simd code for the loop containing reductions
+              Generated a prefetch instruction for the loop
+              Generated vector simd code for the loop containing reductions
+              Generated a prefetch instruction for the loop
+              FMA (fused multiply-add) instruction(s) generated
+    174, acr_compute_lagk inlined, size=15 (inline) file autocorrelation.c (199)
+         171, Loop not vectorized/parallelized: potential early exits
+         206, Generated an alternate version of the loop
+              Generated vector simd code for the loop containing reductions
+              Generated 2 prefetch instructions for the loop
+              Generated vector simd code for the loop containing reductions
+              Generated 2 prefetch instructions for the loop
+              FMA (fused multiply-add) instruction(s) generated
+    178, Loop not vectorized/parallelized: not countable
+acr_compute_lagk:
+    206, Generated an alternate version of the loop
+         Generated vector simd code for the loop containing reductions
+         Generated 2 prefetch instructions for the loop
+         Generated vector simd code for the loop containing reductions
+         Generated 2 prefetch instructions for the loop
+         FMA (fused multiply-add) instruction(s) generated
+acr_write_acr:
+    248, Loop not vectorized/parallelized: contains call
+acr_info:
+    279, acr_dim inlined, size=5 (inline) file autocorrelation.c (349)
+    280, acr_N inlined, size=5 (inline) file autocorrelation.c (379)
+    281, acr_maxlag inlined, size=5 (inline) file autocorrelation.c (409)
+    282, acr_threshold inlined, size=5 (inline) file autocorrelation.c (439)
+    283, acr_outfreq inlined, size=5 (inline) file autocorrelation.c (469)
+    284, acr_outdir inlined, size=6 (inline) file autocorrelation.c (499)
+acr_print_acr:
+    315, Loop not vectorized/parallelized: contains call
+pgcc  -fast –ta=host -Minfo=all -I/lustre/home/d167/s1887443/include -I. -I../mpi_s -c effective_sample_size.c
+ess_create:
+     49, ess_dim_set inlined, size=5 (inline) file effective_sample_size.c (206)
+     50, ess_case_set inlined, size=6 (inline) file effective_sample_size.c (222)
+ess_init_rt:
+     94, ess_dim_set inlined, size=5 (inline) file effective_sample_size.c (206)
+     99, ess_case_set inlined, size=6 (inline) file effective_sample_size.c (222)
+ess_compute:
+    134, Loop not vectorized/parallelized: not countable
+         Generated 1 prefetches in scalar loop
+    137, Loop not vectorized: data dependency
+         Loop unrolled 8 times
+         Generated 1 prefetches in scalar loop
+    144, ess_max inlined, size=11 (inline) file effective_sample_size.c (237)
+         243, Loop not fused: complex flow graph
+              Generated an alternate version of the loop
+              Generated vector simd code for the loop containing reductions
+              Generated a prefetch instruction for the loop
+              Generated vector simd code for the loop containing reductions
+              Generated a prefetch instruction for the loop
+    145, ess_min inlined, size=11 (inline) file effective_sample_size.c (262)
+         268, Loop not fused: complex flow graph
+              Generated an alternate version of the loop
+              Generated vector simd code for the loop containing reductions
+              Generated a prefetch instruction for the loop
+              Generated vector simd code for the loop containing reductions
+              Generated a prefetch instruction for the loop
+    146, ess_median inlined, size=20 (inline) file effective_sample_size.c (287)
+         296, Loop not vectorized/parallelized: not countable
+    147, ess_mean inlined, size=10 (inline) file effective_sample_size.c (320)
+         326, Loop not fused: function call before adjacent loop
+              Generated an alternate version of the loop
+              Generated vector simd code for the loop containing reductions
+              Generated a prefetch instruction for the loop
+              Generated vector simd code for the loop containing reductions
+              Generated a prefetch instruction for the loop
+pgcc  -fast –ta=host -Minfo=all -I/lustre/home/d167/s1887443/include -I. -I../mpi_s -c inference.c
+infr_create:
+     47, infr_mc_case_set inlined, size=6 (inline) file inference.c (221)
+infr_init_rt:
+     94, infr_mc_case_set inlined, size=6 (inline) file inference.c (221)
+     97, infr_allocate_sum inlined, size=7 (inline) file inference.c (251)
+     98, infr_allocate_labels inlined, size=7 (inline) file inference.c (269)
+infr_mc_integration_lr:
+    196, Loop not vectorized/parallelized: contains call
+    202, Loop not vectorized/parallelized: not countable
+pgcc  -fast –ta=host -Minfo=all -I/lustre/home/d167/s1887443/include -I. -I../mpi_s -c util.c
+util_write_array_precision:
+     60, createheader inlined, size=10 (inline) file util.c (404)
+         410, Loop not vectorized/parallelized: contains call
+     68, Loop not vectorized/parallelized: contains call
+util_write_array_int:
+    107, createheader inlined, size=10 (inline) file util.c (404)
+         410, Loop not vectorized/parallelized: contains call
+    115, Loop not vectorized/parallelized: contains call
+rw_create_dir:
+    146, str_split inlined, size=26 (inline) file util.c (353)
+         367, Loop not fused: function call before adjacent loop
+              Loop not vectorized: data dependency
+         376, Loop not vectorized/parallelized: potential early exits
+    148, str_split_free inlined, size=4 (inline) file util.c (390)
+    152, str_builder_create inlined, size=6 (inline) file util.c (201)
+    166, str_builder_add_char inlined, size=18 (inline) file util.c (269)
+         272, Loop not vectorized/parallelized: not countable
+    175, str_builder_add_str inlined, size=23 (inline) file util.c (255)
+         262, Loop not vectorized/parallelized: not countable
+    176, str_builder_add_char inlined, size=18 (inline) file util.c (269)
+         272, Loop not vectorized/parallelized: not countable
+    186, str_builder_peek inlined, size=3 (inline) file util.c (332)
+    195, str_split_free inlined, size=4 (inline) file util.c (390)
+    196, str_builder_destroy inlined, size=4 (inline) file util.c (214)
+str_builder_add_str:
+    262, str_builder_ensure_space inlined, size=12 (inline) file util.c (229)
+         236, Loop not vectorized/parallelized: not countable
+str_builder_add_char:
+    272, str_builder_ensure_space inlined, size=12 (inline) file util.c (229)
+         236, Loop not vectorized/parallelized: not countable
+str_builder_add_int:
+    286, str_builder_add_str inlined, size=23 (inline) file util.c (255)
+         262, Loop not vectorized/parallelized: not countable
+str_builder_clear:
+    295, str_builder_truncate inlined, size=5 (inline) file util.c (299)
+str_builder_drop:
+    313, str_builder_clear inlined, size=7 (inline) file util.c (292)
+         295, str_builder_truncate inlined, size=5 (inline) file util.c (299)
+str_split:
+    367, Loop not vectorized/parallelized: potential early exits
+    376, Loop not vectorized/parallelized: potential early exits
+ar -cru libmcmc.a chain.o data_input.o logistic_regression.o mcmc.o memory.o metropolis.o multivariate_normal.o pe.o prior.o ran.o runtime.o sample.o timer.o autocorrelation.o effective_sample_size.o inference.o util.o
+make[2]: Leaving directory `/lustre/home/d167/s1887443/dev/multi-gpu-mcmc-openacc/src'
+make[1]: Leaving directory `/lustre/home/d167/s1887443/dev/multi-gpu-mcmc-openacc/src'
+make code "CFLAGS=-fast –ta=host -Minfo=all" "INC=-I/lustre/home/d167/s1887443/include -I. -I../mpi_s" "LIBS=-L/lustre/home/d167/s1887443/lib -lopenblas -lm -L../mpi_s -lmpi"
+make[1]: Entering directory `/lustre/home/d167/s1887443/dev/multi-gpu-mcmc-openacc/src'
+pgcc  -fast –ta=host -Minfo=all -I/lustre/home/d167/s1887443/include -I. -I../mpi_s -c main.c
+pgcc -fast –ta=host -Minfo=all -o mcmc.exe main.o libmcmc.a -L/lustre/home/d167/s1887443/lib -lopenblas -lm -L../mpi_s -lmpi
+make[1]: Leaving directory `/lustre/home/d167/s1887443/dev/multi-gpu-mcmc-openacc/src'

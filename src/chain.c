@@ -19,11 +19,6 @@ struct ch_s{
   char outdir[FILENAME_MAX];
 };
 
-static const int DIM_DEFAULT = 3;
-static const int N_DEFAULT = 500;
-static const int OUTFREQ_DEFAULT = 50;
-static const char OUTDIR_DEFAULT[FILENAME_MAX] = "../out";
-
 static int ch_allocate_samples(ch_t *chain);
 static int ch_allocate_probability(ch_t *chain);
 static int ch_allocate_ratio(ch_t *chain);
@@ -45,9 +40,9 @@ int ch_create(pe_t *pe, ch_t **pchain){
   assert(chain);
   if(chain == NULL) pe_fatal(pe, "calloc(ch_t) failed\n");
 
-  ch_dim_set(chain, DIM_DEFAULT);
-  ch_N_set(chain, N_DEFAULT);
-  ch_outfreq_set(chain, OUTFREQ_DEFAULT);
+  ch_dim_set(chain, DIMX_DEFAULT);
+  ch_N_set(chain, N_CHAIN_DEFAULT);
+  ch_outfreq_set(chain, OUTFREQ_CHAIN_DEFAULT);
   ch_outdir_set(chain, OUTDIR_DEFAULT);
 
   *pchain = chain;

@@ -21,9 +21,6 @@ struct ess_s{
   int dim;
 };
 
-static const int ESS_DIM_DEFAULT = 3;
-static const char ESS_CASE_DEFAULT[BUFSIZ] = "max";
-
 static int ess_max(ess_t *ess);
 static int ess_min(ess_t *ess);
 static int ess_median(ess_t *ess);
@@ -49,7 +46,7 @@ int ess_create(pe_t *pe, acr_t *acr, ess_t **pess){
   ess->pe = pe;
   ess->acr = acr;
 
-  ess_dim_set(ess, ESS_DIM_DEFAULT);
+  ess_dim_set(ess, DIMX_DEFAULT);
   ess_case_set(ess, ESS_CASE_DEFAULT);
 
   *pess = ess;

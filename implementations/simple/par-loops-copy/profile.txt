@@ -1,0 +1,32 @@
+libcupti.so not found
+
+Accelerator Kernel Timing data
+/lustre/home/d167/s1887443/dev/multi-gpu-mcmc-openacc/src/logistic_regression.c
+  lr_lhood  NVIDIA  devicenum=0
+    time(us): 1,365,540
+    91: data region reached 60002 times
+        91: data copyin transfers: 150005
+             device time(us): total=1,365,540 max=2,127 min=4 avg=9
+/lustre/home/d167/s1887443/dev/multi-gpu-mcmc-openacc/src/logistic_regression.c
+  matvecmul  NVIDIA  devicenum=0
+    time(us): 0
+    115: compute region reached 30001 times
+        120: kernel launched 30001 times
+            grid: [40]  block: [128]
+            elapsed time(us): total=870,492 max=2,378 min=15 avg=29
+    115: data region reached 60002 times
+/lustre/home/d167/s1887443/dev/multi-gpu-mcmc-openacc/src/logistic_regression.c
+  reduce_lhood  NVIDIA  devicenum=0
+    time(us): 399,646
+    138: compute region reached 30001 times
+        138: kernel launched 30001 times
+            grid: [40]  block: [128]
+            elapsed time(us): total=850,609 max=2,432 min=15 avg=28
+        138: reduction kernel launched 30001 times
+            grid: [1]  block: [256]
+            elapsed time(us): total=821,650 max=2,432 min=14 avg=27
+    138: data region reached 60002 times
+        138: data copyin transfers: 30001
+             device time(us): total=170,305 max=2,257 min=4 avg=5
+        167: data copyout transfers: 30001
+             device time(us): total=229,341 max=242 min=6 avg=7
