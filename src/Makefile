@@ -62,17 +62,7 @@ verbose:
 code:	$(MAIN).o
 	$(CC) $(CFLAGS) -o $(EXECUTABLE) $(MAIN).o $(LIBRARY) $(LIBS)
 
-# Serial versions
-
-serial:
-	$(MAKE) serial-model
-
-serial-float:
-	$(MAKE) serial-model "OPTS=$(OPTS) -D_FLOAT_"
-
-serial-model:
-	$(MAKE) lib
-	$(MAKE) code "INC=$(INC) -I../mpi_s" "LIBS=$(LIBS) -L../mpi_s -lmpi"
+# OpenACC Serial Version
 
 acc-host:
 	$(MAKE) lib "CFLAGS=$(CFLAGS) –ta=host -Minfo=all"
