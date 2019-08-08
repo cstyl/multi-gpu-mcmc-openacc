@@ -59,7 +59,8 @@ static const char * timer_name[] = {"Total",
                                     "Logistic Regression",
                                     "Load Training Set",
                                     "Load Test Set",
-                                    "Write Output Files"
+                                    "Write Output Files",
+                                    "Device Data Alloc"
 };
 
 double dmin(const double a, const double b);

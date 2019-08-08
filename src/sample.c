@@ -23,6 +23,26 @@ static int sample_allocate_values(sample_t *sample);
 static int sample_print_progress(int dec, int idx, precision u, int verbose,
                                   sample_t *cur, sample_t *pro, ch_t *chain);
 
+void sample_update_device_async(sample_t *sample){
+  assert(sample);
+
+  #pragma acc update device(sample[:1], sample->values[:sample->dim]) async
+
+}
+
+void sample_update_device(sample_t *sample){
+  assert(sample);
+
+  #pragma acc update device(sample[:1], sample->values[:sample->dim]) async
+
+}
+
+void sample_wait(){
+
+  #pragma acc wait
+
+}
+
 /*****************************************************************************
  *
  *  sample_create
@@ -38,6 +58,11 @@ int sample_create(pe_t *pe, sample_t **psample){
   sample = (sample_t *) calloc(1, sizeof(sample_t));
   assert(sample);
   if(sample == NULL) pe_fatal(pe, "calloc(sample_t) failed\n");
+
+  /* send the structure pointer to the device*/
+  TIMER_start(TIMER_DEVICE_ALLOC);
+  #pragma acc enter data copyin(sample[:1])
+  TIMER_stop(TIMER_DEVICE_ALLOC);
 
   sample_dim_set(sample, DIMX_DEFAULT);
 
@@ -56,7 +81,9 @@ int sample_free(sample_t *sample){
 
   assert(sample);
 
+  #pragma acc exit data delete(sample->values)
   mem_free((void**)&sample->values);
+  #pragma acc exit data delete(sample[:1])
   mem_free((void**)&sample);
 
   return 0;
@@ -107,6 +134,8 @@ int sample_propose_mvnb(mvnb_t *mvnb, sample_t *cur, sample_t *pro){
   sample_values(pro , &proposed);
 
   mvn_block_sample(mvnb, current, proposed);
+  // sample_update_device(met->current);
+  sample_update_device_async(pro);
 
   TIMER_stop(TIMER_PROPOSAL);
   return 0;
@@ -217,6 +246,8 @@ int sample_init_zero(sample_t *sample){
 
   for(i=0; i<sample->dim; i++)
     sample->values[i] = 0.0;
+
+  sample_update_device(sample);
 
   sample->prior = 0.0;
   sample->likelihood = 0.0;
@@ -390,6 +421,7 @@ static int sample_allocate_values(sample_t *sample){
   assert(sample);
 
   mem_malloc_precision(&sample->values, sample->dim);
+  #pragma acc enter data create(sample->values[:sample->dim])
 
   return 0;
 }

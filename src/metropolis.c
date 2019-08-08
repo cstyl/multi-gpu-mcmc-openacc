@@ -167,6 +167,8 @@ int met_init(pe_t *pe, met_t *met){
   ch_append_sample(0, sample, met->chain);
   ch_init_stats(0, met->chain);
 
+  /* Ensure sample update is completed before evaluating lhood */
+  sample_wait();
   if(met->lr) lhood = lr_lhood(met->lr, sample);
   prior = pr_log_prob(sample, dim);
   posterior = prior + lhood;

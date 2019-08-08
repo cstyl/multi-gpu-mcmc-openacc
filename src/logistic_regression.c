@@ -36,12 +36,22 @@ int lr_lhood_create(pe_t *pe, data_t *data, lr_t **plr){
   assert(lr);
   if(lr == NULL) pe_fatal(pe, "calloc(lr_t) failed\n");
 
+  TIMER_start(TIMER_DEVICE_ALLOC);
+  /* send the structure pointer to the device*/
+  #pragma acc enter data copyin(lr[:1])
+  TIMER_stop(TIMER_DEVICE_ALLOC);
+
   lr->data = data;
 
   data_dimx(data, &lr->dim);
   data_N(data, &lr->N);
 
   mem_malloc_precision(&lr->dot, lr->N);
+
+  // TIMER_start(TIMER_DEVICE_ALLOC);
+  /* Create space for dot product on device */
+  #pragma acc enter data create(lr->dot[:lr->N])
+  // TIMER_stop(TIMER_DEVICE_ALLOC);
 
   *plr = lr;
 
@@ -58,7 +68,10 @@ int lr_lhood_free(lr_t *lr){
 
   assert(lr);
 
+  #pragma acc exit data delete(lr[:1])
   mem_free((void**)&lr->dot);
+
+  #pragma acc exit data delete(lr->dot)
   mem_free((void**)&lr);
 
   return 0;
@@ -75,36 +88,30 @@ int lr_lhood_free(lr_t *lr){
 
 precision lr_lhood(lr_t *lr, precision *sample){
 
-  int i,j;
+  assert(lr);
+
   precision *x = NULL;
   int * y = NULL;
-  precision lhood = 0.0;
   int dim = lr->dim, N = lr->N;
+  precision lhood = 0.0;
 
   data_x(lr->data, &x);
   data_y(lr->data, &y);
 
-  assert(lr);
-
   TIMER_start(TIMER_LIKELIHOOD);
 
-  #pragma acc data copyin(lr[:1])\
-                   create(lr->dot[:N]) \
-                   copyin(sample[:dim], y[:N])\
-                   copyin(x[:N*dim])
-  {
-    TIMER_start(TIMER_MATVECMUL);
-    matvecmul(x, sample, lr->dot, lr->dim, lr->N);
-    TIMER_stop(TIMER_MATVECMUL);
 
-    TIMER_start(TIMER_REDUCE);
-    lhood = reduce_lhood(lr->dot, y, lr->N);
-    TIMER_stop(TIMER_REDUCE);
-  }
+  TIMER_start(TIMER_MATVECMUL);
+  matvecmul(x, sample, lr->dot, lr->dim, lr->N);
+  TIMER_stop(TIMER_MATVECMUL);
+
+  TIMER_start(TIMER_REDUCE);
+  lhood = reduce_lhood(lr->dot, y, lr->N);
+  TIMER_stop(TIMER_REDUCE);
 
   TIMER_stop(TIMER_LIKELIHOOD);
 
-  return lr->lhood = lhood;
+  return lhood;
 }
 
 void matvecmul(precision *__restrict__ x, precision *__restrict__ sample,
@@ -116,7 +123,7 @@ void matvecmul(precision *__restrict__ x, precision *__restrict__ sample,
                       present(sample[:m]) \
                       present(x[:m*n])
   {
-    #pragma acc loop
+    #pragma acc loop independent
     for(i=0; i<n; i++)
     {
       dot[i] = 0.0;
@@ -135,26 +142,8 @@ precision reduce_lhood(precision *__restrict__ dot, int *__restrict__ y, int n){
   int i;
   precision lhood = 0.0;
 
-  // #pragma acc parallel loops reduction(+:lhood) \
-  //                      present(dot[:n], y[:n]) \
-  //                      copy(lhood)
-  // for(i=0; i<n; i++)
-  // {
-  //   lhood -= log(1 + exp(-y[i] * dot[i]));
-  // }
-
-  // #pragma acc kernels present(dot[:n], y[:n]) \
-  //                    copy(lhood)
-  // {
-  //   lhood = 0.0;
-  //   #pragma acc loop reduction(+:lhood)
-  //   for(i=0; i<n; i++)
-  //   {
-  //     lhood -= log(1 + exp(-y[i] * dot[i]));
-  //   }
-  // }
   #pragma acc kernels present(dot[:n], y[:n]) \
-                     copyout(lhood)
+                      copyout(lhood)
   {
     lhood = 0.0;
     #pragma acc loop reduction(+:lhood)

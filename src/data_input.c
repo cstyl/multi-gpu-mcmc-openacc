@@ -6,6 +6,7 @@
 
 #include "data_input.h"
 #include "memory.h"
+#include "timer.h"
 #include "definitions.h"
 
 #define SKIP_HEADER 1
@@ -42,6 +43,11 @@ int data_create_train(pe_t *pe, data_t **pdata){
   data = (data_t *) calloc(1, sizeof(data_t));
   assert(data);
   if(data == NULL) pe_fatal(pe, "calloc(data_t) failed\n");
+
+  /* send the structure pointer to the device*/
+  TIMER_start(TIMER_DEVICE_ALLOC);
+  #pragma acc enter data copyin(data[:1])
+  TIMER_start(TIMER_DEVICE_ALLOC);
 
   data_dimx_set(data, DIMX_DEFAULT);
   data_dimy_set(data, DIMY_DEFAULT);
@@ -91,9 +97,12 @@ int data_free(data_t *data){
 
    assert(data);
 
+   #pragma acc exit data delete(data[0].x)
    mem_free((void**)&data->x);
+   #pragma acc exit data delete(data[0].y)
    mem_free((void**)&data->y);
 
+   #pragma acc exit data delete(data[:1])
    mem_free((void**)&data);
 
    return 0;
@@ -479,6 +488,14 @@ int data_read_file(pe_t *pe, data_t *data){
   data_csvread(pe, data->fx, data->dimx, data->N, SKIP_HEADER, ",", "precision", data->x);
   data_csvread(pe, data->fy, data->dimy, data->N, SKIP_HEADER, ",", "int", data->y);
 
+  /* TODO:
+  *  Use OpenMP to split the data and send to appropriate devices
+  */
+
+  /* Send data to the device too */
+  #pragma acc update device(data->x[0:data->dimx*data->N])
+  #pragma acc update device(data->y[0:data->dimy*data->N])
+
   return 0;
 }
 
@@ -555,6 +572,9 @@ static int data_allocate_x(data_t *data){
   assert(data);
 
   mem_malloc_precision(&data->x, data->dimx * data->N);
+  // TIMER_start(TIMER_DEVICE_ALLOC);
+  #pragma acc enter data create(data->x[:data->dimx * data->N])
+  // TIMER_stop(TIMER_DEVICE_ALLOC);
 
   return 0;
 }
@@ -570,7 +590,9 @@ static int data_allocate_y(data_t *data){
   assert(data);
 
   mem_malloc_integers(&data->y, data->dimy * data->N);
-
+  // TIMER_start(TIMER_DEVICE_ALLOC);
+  #pragma acc enter data create(data->y[:data->dimy * data->N])
+  // TIMER_stop(TIMER_DEVICE_ALLOC);
   return 0;
 }
 

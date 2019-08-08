@@ -49,6 +49,7 @@ enum timer_id {TIMER_TOTAL = 0,
                TIMER_LOAD_TRAIN,
                TIMER_LOAD_TEST,
                TIMER_WRITE_FILES,
+               TIMER_DEVICE_ALLOC,
 	             TIMER_NTIMERS /* This must be the last entry */
 };
 

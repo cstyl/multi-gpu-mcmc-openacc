@@ -11,6 +11,9 @@ int data_create_train(pe_t *pe, data_t **pdata);
 int data_create_test(pe_t *pe, data_t **pdata);
 int data_free(data_t *data);
 
+void data_send_to_device(data_t *data);
+void data_delete_from_device(data_t *data);
+
 int data_init_train_rt(rt_t *rt, data_t *train);
 int data_init_test_rt(rt_t *rt, data_t *test);
 int data_input_train_info(pe_t *pe, data_t *train);
