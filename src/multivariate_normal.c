@@ -100,7 +100,8 @@ int mvn_block_init_rt(rt_t *rt, mvnb_t *mvnb){
 int mvn_block_init(mvnb_t *mvnb){
 
   assert(mvnb);
-
+  /* Ensure the serial version of OpenBlas is used */
+  openblas_set_num_threads(1);
   mvn_block_init_covariance(mvnb);
   mvn_block_cholesky_decomp(mvnb);
 

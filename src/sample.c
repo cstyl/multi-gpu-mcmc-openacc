@@ -425,22 +425,22 @@ static int sample_print_progress(int dec, int idx, precision u, int verbose,
   {
     int i;
     printf("\tCurrent Sample:\n\t\tValues:");
-    for(i=0; i<dim; i++) printf("\t%f", (dec != 0) ? pro->values[i] : cur->values[i]);
-    printf("\n\t\tStats:\tPrior = %f\tLikelihood = %f\tPosterior=%f\n",
+    for(i=0; i<dim; i++) printf("\t%.16f", (dec != 0) ? pro->values[i] : cur->values[i]);
+    printf("\n\t\tStats:\tPrior = %.16f\tLikelihood = %.16f\tPosterior=%.16f\n",
             dec==1 ? pro->prior:cur->prior,
             dec==1 ? pro->likelihood:cur->likelihood,
             dec==1 ? pro->posterior:cur->posterior
           );
 
     printf("\tProposed Sample:\n\t\tValues:");
-    for(i=0; i<dim; i++) printf("\t%f", dec==1 ? cur->values[i]:pro->values[i]);
-    printf("\n\t\tStats:\tPrior = %f\tLikelihood = %f\tPosterior=%f\n",
+    for(i=0; i<dim; i++) printf("\t%.16f", dec==1 ? cur->values[i]:pro->values[i]);
+    printf("\n\t\tStats:\tPrior = %.16f\tLikelihood = %.16f\tPosterior=%.16f\n",
             dec==1 ? cur->prior:pro->prior,
             dec==1 ? cur->likelihood:pro->likelihood,
             dec==1 ? cur->posterior:pro->posterior
           );
 
-    printf("\tDecision: Proposed sample %s! (%f<%.16f)\n\n",
+    printf("\tDecision: Proposed sample %s! (%.16f<%.16f)\n\n",
             dec==1?"accepted":"rejected", u, probability[idx]);
   }
 

@@ -74,6 +74,10 @@ serial-model:
 	$(MAKE) lib
 	$(MAKE) code "INC=$(INC) -I../mpi_s" "LIBS=$(LIBS) -L../mpi_s -lmpi"
 
+acc-host:
+	$(MAKE) lib "CFLAGS=$(CFLAGS) –ta=host -Minfo=all"
+	$(MAKE) code "CFLAGS=$(CFLAGS) –ta=host -Minfo=all" "INC=$(INC) -I../mpi_s" "LIBS=$(LIBS) -L../mpi_s -lmpi"
+
 # MPI versions
 
 mpi:
