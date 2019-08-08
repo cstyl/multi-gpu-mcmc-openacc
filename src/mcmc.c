@@ -56,7 +56,8 @@ static int mcmc_rt(mcmc_t *mcmc);
    rt_info(mcmc->rt);
 
    mcmc_rt(mcmc);
-
+	  printf("device is %d\n", acc_get_device());
+    printf("num of devices %d\n", acc_get_num_devices());
    if(mcmc->met)
    {
      TIMER_start(TIMER_MCMC_METROPOLIS);
@@ -149,7 +150,7 @@ static int mcmc_rt(mcmc_t *mcmc);
    TIMER_start(TIMER_RUNTIME_SETUP);
 
    TIMER_start(TIMER_ACC_INIT);
-   #pragma acc init device_type(acc_device_nvidia)
+   #pragma acc init device_type(acc_device_not_host)
    TIMER_stop(TIMER_ACC_INIT);
 
    pe = mcmc->pe;
