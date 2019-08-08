@@ -107,13 +107,14 @@ static int mcmc_rt(mcmc_t *mcmc);
        infr_print(mcmc->pe, mcmc->infr);
      }
 
+     infr_free(mcmc->infr);
+
      TIMER_stop(TIMER_INFERENCE);
    }
 
    TIMER_stop(TIMER_TOTAL);
    TIMER_statistics();
 
-   infr_free(mcmc->infr);
    acr_free(mcmc->acr);
    ess_free(mcmc->ess);
    ch_free(mcmc->burn);
