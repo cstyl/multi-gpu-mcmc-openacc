@@ -104,7 +104,7 @@ precision lr_lhood(lr_t *lr, precision *sample){
 
   TIMER_stop(TIMER_LIKELIHOOD);
 
-  return lr->lhood = lhood;
+  return lhood;
 }
 
 void matvecmul(precision *__restrict__ x, precision *__restrict__ sample,
