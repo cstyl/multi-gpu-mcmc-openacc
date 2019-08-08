@@ -23,24 +23,24 @@ static int sample_allocate_values(sample_t *sample);
 static int sample_print_progress(int dec, int idx, precision u, int verbose,
                                   sample_t *cur, sample_t *pro, ch_t *chain);
 
-void sample_update_device_async(sample_t *sample){
-  assert(sample);
+void sample_create_device_values(precision *values, int size);
+void sample_update_device_values(precision *values, int start, int end);
+void sample_free_device_values(precision *values);
 
-  #pragma acc update device(sample[:1], sample->values[:sample->dim]) async
-
+void sample_create_device_values(precision *values, int size){
+  TIMER_start(TIMER_CREATE_VALUES);
+  #pragma acc enter data create(values[:size])
+  TIMER_stop(TIMER_CREATE_VALUES);
 }
 
-void sample_update_device(sample_t *sample){
-  assert(sample);
-
-  #pragma acc update device(sample[:1], sample->values[:sample->dim]) async
-
+void sample_update_device_values(precision *values, int start, int end){
+  TIMER_start(TIMER_UPDATE_VALUES);
+  #pragma acc update device(values[start:end])
+  TIMER_stop(TIMER_UPDATE_VALUES);
 }
 
-void sample_wait(){
-
-  #pragma acc wait
-
+void sample_free_device_values(precision *values){
+  #pragma acc exit data delete(values)
 }
 
 /*****************************************************************************
@@ -59,11 +59,6 @@ int sample_create(pe_t *pe, sample_t **psample){
   assert(sample);
   if(sample == NULL) pe_fatal(pe, "calloc(sample_t) failed\n");
 
-  /* send the structure pointer to the device*/
-  TIMER_start(TIMER_DEVICE_ALLOC);
-  #pragma acc enter data copyin(sample[:1])
-  TIMER_stop(TIMER_DEVICE_ALLOC);
-
   sample_dim_set(sample, DIMX_DEFAULT);
 
   *psample = sample;
@@ -81,9 +76,8 @@ int sample_free(sample_t *sample){
 
   assert(sample);
 
-  #pragma acc exit data delete(sample->values)
+  sample_free_device_values(sample->values);
   mem_free((void**)&sample->values);
-  #pragma acc exit data delete(sample[:1])
   mem_free((void**)&sample);
 
   return 0;
@@ -135,7 +129,7 @@ int sample_propose_mvnb(mvnb_t *mvnb, sample_t *cur, sample_t *pro){
 
   mvn_block_sample(mvnb, current, proposed);
   // sample_update_device(met->current);
-  sample_update_device_async(pro);
+  sample_update_device_values(pro->values, 0, pro->dim);
 
   TIMER_stop(TIMER_PROPOSAL);
   return 0;
@@ -247,7 +241,7 @@ int sample_init_zero(sample_t *sample){
   for(i=0; i<sample->dim; i++)
     sample->values[i] = 0.0;
 
-  sample_update_device(sample);
+  sample_update_device_values(sample->values, 0, sample->dim);
 
   sample->prior = 0.0;
   sample->likelihood = 0.0;
@@ -255,7 +249,6 @@ int sample_init_zero(sample_t *sample){
 
   return 0;
 }
-
 
 /*****************************************************************************
  *
@@ -421,7 +414,7 @@ static int sample_allocate_values(sample_t *sample){
   assert(sample);
 
   mem_malloc_precision(&sample->values, sample->dim);
-  #pragma acc enter data create(sample->values[:sample->dim])
+  sample_create_device_values(sample->values, sample->dim);
 
   return 0;
 }

@@ -28,6 +28,46 @@ static int data_allocate_x(data_t *data);
 static int data_allocate_y(data_t *data);
 static int convert_tok(const char *tok, const char *datatype, void *data, int pos);
 
+void data_create_device_x(precision *x, int size);
+void data_create_device_y(int *y, int size);
+void data_update_device_x(precision *x, int start, int end);
+void data_update_device_y(int *y, int start, int end);
+void data_free_device_x(precision *x);
+void data_free_device_y(int *y);
+
+void data_create_device_x(precision *x, int size){
+  TIMER_start(TIMER_CREATE_DATA);
+  #pragma acc enter data create(x[:size])
+  TIMER_stop(TIMER_CREATE_DATA);
+}
+
+void data_create_device_y(int *y, int size){
+  TIMER_start(TIMER_CREATE_DATA);
+  #pragma acc enter data create(y[:size])
+  TIMER_stop(TIMER_CREATE_DATA);
+}
+
+void data_update_device_x(precision *x, int start, int end){
+  TIMER_start(TIMER_UPDATE_DATA);
+  #pragma acc update device(x[start:end])
+  TIMER_stop(TIMER_UPDATE_DATA);
+}
+
+void data_update_device_y(int *y, int start, int end){
+  TIMER_start(TIMER_UPDATE_DATA);
+  #pragma acc update device(y[start:end])
+  TIMER_stop(TIMER_UPDATE_DATA);
+}
+
+void data_free_device_x(precision *x){
+  #pragma acc exit data delete(x)
+}
+
+void data_free_device_y(int *y){
+  #pragma acc exit data delete(y)
+}
+
+
 /*****************************************************************************
  *
  *  data_create_train
@@ -43,11 +83,6 @@ int data_create_train(pe_t *pe, data_t **pdata){
   data = (data_t *) calloc(1, sizeof(data_t));
   assert(data);
   if(data == NULL) pe_fatal(pe, "calloc(data_t) failed\n");
-
-  /* send the structure pointer to the device*/
-  TIMER_start(TIMER_DEVICE_ALLOC);
-  #pragma acc enter data copyin(data[:1])
-  TIMER_start(TIMER_DEVICE_ALLOC);
 
   data_dimx_set(data, DIMX_DEFAULT);
   data_dimy_set(data, DIMY_DEFAULT);
@@ -97,12 +132,11 @@ int data_free(data_t *data){
 
    assert(data);
 
-   #pragma acc exit data delete(data[0].x)
+   data_free_device_x(data->x);
    mem_free((void**)&data->x);
-   #pragma acc exit data delete(data[0].y)
+   data_free_device_y(data->y);
    mem_free((void**)&data->y);
 
-   #pragma acc exit data delete(data[:1])
    mem_free((void**)&data);
 
    return 0;
@@ -493,8 +527,10 @@ int data_read_file(pe_t *pe, data_t *data){
   */
 
   /* Send data to the device too */
-  #pragma acc update device(data->x[0:data->dimx*data->N])
-  #pragma acc update device(data->y[0:data->dimy*data->N])
+  data_update_device_x(data->x, 0, data->dimx*data->N);
+  data_update_device_y(data->y, 0, data->dimy*data->N);
+  // #pragma acc update device(data->x[0:data->dimx*data->N])
+  // #pragma acc update device(data->y[0:data->dimy*data->N])
 
   return 0;
 }
@@ -573,7 +609,8 @@ static int data_allocate_x(data_t *data){
 
   mem_malloc_precision(&data->x, data->dimx * data->N);
   // TIMER_start(TIMER_DEVICE_ALLOC);
-  #pragma acc enter data create(data->x[:data->dimx * data->N])
+  data_create_device_x(data->x, data->dimx * data->N);
+  // #pragma acc enter data create(data->x[:data->dimx * data->N])
   // TIMER_stop(TIMER_DEVICE_ALLOC);
 
   return 0;
@@ -591,7 +628,8 @@ static int data_allocate_y(data_t *data){
 
   mem_malloc_integers(&data->y, data->dimy * data->N);
   // TIMER_start(TIMER_DEVICE_ALLOC);
-  #pragma acc enter data create(data->y[:data->dimy * data->N])
+  data_create_device_y(data->y, data->dimy * data->N);
+  // #pragma acc enter data create(data->y[:data->dimy * data->N])
   // TIMER_stop(TIMER_DEVICE_ALLOC);
   return 0;
 }

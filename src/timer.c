@@ -40,6 +40,7 @@ static struct timer_struct timer[TIMER_NTIMERS];
 
 static const char * timer_name[] = {"Total",
                                     "Runtime Setup",
+                                    "OpenACC Initialisation",
                                     "MCMC Metropolis",
                                     "MCMC Metropolis Init",
                                     "MCMC Burn-in",
@@ -60,7 +61,11 @@ static const char * timer_name[] = {"Total",
                                     "Load Training Set",
                                     "Load Test Set",
                                     "Write Output Files",
-                                    "Device Data Alloc"
+                                    "Dev Create Dot",
+                                    "Dev Create Values",
+                                    "Dev Update Values",
+                                    "Dev Create Data",
+                                    "Dev Update Data"
 };
 
 double dmin(const double a, const double b);

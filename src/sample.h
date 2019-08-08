@@ -14,10 +14,6 @@ int sample_create(pe_t *pe, sample_t **psample);
 int sample_free(sample_t *sample);
 int sample_init_rt(rt_t *rt, sample_t *sample);
 
-void sample_update_device_async(sample_t *sample);
-void sample_update_device(sample_t *sample);
-void sample_wait();
-
 int sample_dim_set(sample_t *sample, int dim);
 int sample_prior_set(sample_t *sample, precision prior);
 int sample_likelihood_set(sample_t *sample, precision likelihood);

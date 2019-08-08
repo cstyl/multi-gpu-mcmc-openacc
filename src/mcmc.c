@@ -148,10 +148,15 @@ static int mcmc_rt(mcmc_t *mcmc);
 
    TIMER_start(TIMER_RUNTIME_SETUP);
 
+   TIMER_start(TIMER_ACC_INIT);
+   #pragma acc init device_type(acc_device_nvidia)
+   TIMER_stop(TIMER_ACC_INIT);
+
    pe = mcmc->pe;
    rt = mcmc->rt;
 
    sprintf(algorithm_value, "%s", ALGORITHM_DEFAULT);
+
 
    ch_create(pe, &mcmc->burn);
    ch_init_burn_rt(rt, mcmc->burn);

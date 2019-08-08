@@ -16,9 +16,23 @@ struct lr_s{
   int N;
 };
 
+void lr_create_device_dot(precision *dot, int size);
 void matvecmul(precision *__restrict__ x, precision *__restrict__ sample,
                precision *__restrict__ dot, int m, int n);
 precision reduce_lhood(precision *__restrict__ dot, int *__restrict__ y, int n);
+
+void lr_create_device_dot(precision *dot, int size){
+  TIMER_start(TIMER_CREATE_DOT);
+  #pragma acc enter data create(dot[:size])
+  TIMER_stop(TIMER_CREATE_DOT);
+}
+
+void lr_free_device_dot(precision *dot){
+  TIMER_start(TIMER_CREATE_DOT);
+  #pragma acc exit data delete(dot[:1])
+  TIMER_stop(TIMER_CREATE_DOT);
+}
+
 /*****************************************************************************
 *
 *  lr_lhood_create
@@ -36,22 +50,13 @@ int lr_lhood_create(pe_t *pe, data_t *data, lr_t **plr){
   assert(lr);
   if(lr == NULL) pe_fatal(pe, "calloc(lr_t) failed\n");
 
-  TIMER_start(TIMER_DEVICE_ALLOC);
-  /* send the structure pointer to the device*/
-  #pragma acc enter data copyin(lr[:1])
-  TIMER_stop(TIMER_DEVICE_ALLOC);
-
   lr->data = data;
 
   data_dimx(data, &lr->dim);
   data_N(data, &lr->N);
 
   mem_malloc_precision(&lr->dot, lr->N);
-
-  // TIMER_start(TIMER_DEVICE_ALLOC);
-  /* Create space for dot product on device */
-  #pragma acc enter data create(lr->dot[:lr->N])
-  // TIMER_stop(TIMER_DEVICE_ALLOC);
+  lr_create_device_dot(lr->dot, lr->N);
 
   *plr = lr;
 
@@ -68,10 +73,8 @@ int lr_lhood_free(lr_t *lr){
 
   assert(lr);
 
-  #pragma acc exit data delete(lr[:1])
+  lr_free_device_dot(lr->dot);
   mem_free((void**)&lr->dot);
-
-  #pragma acc exit data delete(lr->dot)
   mem_free((void**)&lr);
 
   return 0;

@@ -29,6 +29,7 @@ void TIMER_statistics(void);
 
 enum timer_id {TIMER_TOTAL = 0,
                TIMER_RUNTIME_SETUP,
+               TIMER_ACC_INIT,
                TIMER_MCMC_METROPOLIS,
                TIMER_METROPOLIS_INIT,
                TIMER_BURN_IN,
@@ -49,7 +50,11 @@ enum timer_id {TIMER_TOTAL = 0,
                TIMER_LOAD_TRAIN,
                TIMER_LOAD_TEST,
                TIMER_WRITE_FILES,
-               TIMER_DEVICE_ALLOC,
+               TIMER_CREATE_DOT,
+               TIMER_CREATE_VALUES,
+               TIMER_UPDATE_VALUES,
+               TIMER_CREATE_DATA,
+               TIMER_UPDATE_DATA,
 	             TIMER_NTIMERS /* This must be the last entry */
 };
 
