@@ -9,6 +9,8 @@
 #include "memory.h"
 #include "ran.h"
 #include "timer.h"
+#include "util.h"
+
 #define VERBOSE 1
 
 struct sample_s{
@@ -20,8 +22,8 @@ struct sample_s{
 };
 
 static int sample_allocate_values(sample_t *sample);
-static int sample_print_progress(int dec, int idx, precision u, int verbose,
-                                  sample_t *cur, sample_t *pro, ch_t *chain);
+static int sample_print_progress_screen(int idx, ch_t *chain);
+static int sample_save_progress(char *outdir, int dec, int idx, sample_t *cur, sample_t *pro);
 
 /*****************************************************************************
  *
@@ -165,6 +167,7 @@ void sample_choose(int idx, ch_t *chain, sample_t **pcur, sample_t **ppro){
   sample_t *cur = NULL;
   sample_t *pro = NULL;
   precision *probability = NULL;
+
   int outfreq;
 
   assert(chain);
@@ -195,8 +198,16 @@ void sample_choose(int idx, ch_t *chain, sample_t **pcur, sample_t **ppro){
 
   ch_append_stats(idx, accepted, chain);
 
-  if((idx==1) || idx%outfreq==0)
-    sample_print_progress(accepted, idx, u, VERBOSE, cur, pro, chain);
+  if(((idx==1) || idx%outfreq==0) && outfreq!=0)
+  {
+    sample_print_progress_screen(idx, chain);
+    if(VERBOSE)
+    {
+      char outdir[FILENAME_MAX];
+      ch_outdir(chain, outdir);
+      sample_save_progress(outdir, accepted, idx, cur, pro);
+    }
+  }
 
   TIMER_stop(TIMER_ACCEPTANCE);
 
@@ -400,49 +411,66 @@ static int sample_allocate_values(sample_t *sample){
  *
  *****************************************************************************/
 
-static int sample_print_progress(int dec, int idx, precision u, int verbose,
-                                  sample_t *cur, sample_t *pro, ch_t *chain){
+static int sample_print_progress_screen(int idx, ch_t *chain){
 
-  precision *probability = NULL;
   precision *ratio = NULL;
   int *accepted = NULL;
   int dim;
 
-  assert(cur);
-  assert(pro);
   assert(chain);
 
-  ch_probability(chain, &probability);
   ch_ratio(chain, &ratio);
   ch_accepted(chain, &accepted);
-  ch_dim(chain, &dim);
 
   printf("Iteration %6d:\t", idx);
   printf("%20s%6d\t", "Accepted Samples = ", accepted[idx]);
   printf("%20s%4.3f%s\n", "Acceptance Ratio = ",ratio[idx]*100, "(%)");
 
-  if(verbose)
+  return 0;
+}
+
+/*****************************************************************************
+ *
+ *  sample_save_progress
+ *
+ *****************************************************************************/
+
+static int sample_save_progress(char *outdir, int dec, int idx, sample_t *cur, sample_t *pro){
+
+  assert(cur);
+  assert(pro);
+
+  FILE *fp;
+  char filename[FILENAME_MAX];
+
+  rw_create_dir(outdir);
+  sprintf(filename, "%s/%s", outdir, "progress.csv");
+
+  if(idx==1)
   {
-    int i;
-    printf("\tCurrent Sample:\n\t\tValues:");
-    for(i=0; i<dim; i++) printf("\t%.16f", (dec != 0) ? pro->values[i] : cur->values[i]);
-    printf("\n\t\tStats:\tPrior = %.16f\tLikelihood = %.16f\tPosterior=%.16f\n",
-            dec==1 ? pro->prior:cur->prior,
-            dec==1 ? pro->likelihood:cur->likelihood,
-            dec==1 ? pro->posterior:cur->posterior
-          );
-
-    printf("\tProposed Sample:\n\t\tValues:");
-    for(i=0; i<dim; i++) printf("\t%.16f", dec==1 ? cur->values[i]:pro->values[i]);
-    printf("\n\t\tStats:\tPrior = %.16f\tLikelihood = %.16f\tPosterior=%.16f\n",
-            dec==1 ? cur->prior:pro->prior,
-            dec==1 ? cur->likelihood:pro->likelihood,
-            dec==1 ? cur->posterior:pro->posterior
-          );
-
-    printf("\tDecision: Proposed sample %s! (%.16f<%.16f)\n\n",
-            dec==1?"accepted":"rejected", u, probability[idx]);
+    fp = fopen(filename, "w");
+    assert(fp);
+    fprintf(fp, "#Iter,cPrior,cLhood,cPost,pPrior,pLhood,pPost\n");
+  }else{
+    fp = fopen(filename, "a");
+    assert(fp);
   }
+
+  fprintf(fp, "%6d,", idx);
+  if(dec==1)
+  {
+    fprintf(fp, "%.*e,%.*e,%.*e,%.*e,%.*e,%.*e\n",
+                PRINT_PREC-1, pro->prior, PRINT_PREC-1, pro->likelihood,
+                PRINT_PREC-1, pro->posterior, PRINT_PREC-1, cur->prior,
+                PRINT_PREC-1, cur->likelihood, PRINT_PREC-1, cur->posterior);
+  }else{
+    fprintf(fp, "%.*e,%.*e,%.*e,%.*e,%.*e,%.*e\n",
+                PRINT_PREC-1, cur->prior, PRINT_PREC-1, cur->likelihood,
+                PRINT_PREC-1, cur->posterior, PRINT_PREC-1, pro->prior,
+                PRINT_PREC-1, pro->likelihood, PRINT_PREC-1, pro->posterior);
+  }
+
+  fclose(fp);
 
   return 0;
 }

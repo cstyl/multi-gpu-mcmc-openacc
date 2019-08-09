@@ -16,6 +16,9 @@ struct lr_s{
   int N;
 };
 
+#pragma acc routine(log) seq
+#pragma acc routine(exp) seq
+
 void matvecmul(precision *__restrict__ x, precision *__restrict__ sample,
                precision *__restrict__ dot, int m, int n);
 precision reduce_lhood(precision *__restrict__ dot, int *__restrict__ y, int n);
@@ -133,7 +136,7 @@ void matvecmul(precision *__restrict__ x, precision *__restrict__ sample,
 precision reduce_lhood(precision *__restrict__ dot, int *__restrict__ y, int n){
 
   int i;
-  precision lhood = 0.0;
+  precision lhood = 0.0f;
 
   // #pragma acc parallel loops reduction(+:lhood) \
   //                      present(dot[:n], y[:n]) \
@@ -143,8 +146,18 @@ precision reduce_lhood(precision *__restrict__ dot, int *__restrict__ y, int n){
   //   lhood -= log(1 + exp(-y[i] * dot[i]));
   // }
 
+  #pragma acc kernels present(dot[:n], y[:n]) \
+                     copy(lhood)
+  {
+    lhood = 0.0f;
+    #pragma acc loop reduction(+:lhood)
+    for(i=0; i<n; i++)
+    {
+      lhood -= log(1.0f + exp(-(precision)y[i] * dot[i]));
+    }
+  }
   // #pragma acc kernels present(dot[:n], y[:n]) \
-  //                    copy(lhood)
+  //                    copyout(lhood)
   // {
   //   lhood = 0.0;
   //   #pragma acc loop reduction(+:lhood)
@@ -153,16 +166,6 @@ precision reduce_lhood(precision *__restrict__ dot, int *__restrict__ y, int n){
   //     lhood -= log(1 + exp(-y[i] * dot[i]));
   //   }
   // }
-  #pragma acc kernels present(dot[:n], y[:n]) \
-                     copyout(lhood)
-  {
-    lhood = 0.0;
-    #pragma acc loop reduction(+:lhood)
-    for(i=0; i<n; i++)
-    {
-      lhood -= log(1 + exp(-y[i] * dot[i]));
-    }
-  }
 
   return lhood;
 }

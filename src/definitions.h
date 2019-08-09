@@ -1,16 +1,20 @@
 #ifndef __DEFINITIONS_H__
 #define __DEFINITIONS_H__
 
+#include <float.h>
+
 #ifdef _FLOAT_
   typedef float precision;
   #define PRECISION_TOLERANCE  1.0e-07
   #define POTRF LAPACKE_spotrf
   #define TRMV cblas_strmv
+  #define PRINT_PREC FLT_DIG+3
 #else
   typedef double precision;
   #define PRECISION_TOLERANCE 1.0e-14
   #define POTRF LAPACKE_dpotrf
   #define TRMV cblas_dtrmv
+  #define PRINT_PREC DBL_DIG+3
 #endif
 
 static const char ALGORITHM_DEFAULT[BUFSIZ] = "metropolis";
