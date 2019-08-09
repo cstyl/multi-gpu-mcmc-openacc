@@ -56,8 +56,7 @@ static int mcmc_rt(mcmc_t *mcmc);
    rt_info(mcmc->rt);
 
    mcmc_rt(mcmc);
-	  printf("device is %d\n", acc_get_device());
-    printf("num of devices %d\n", acc_get_num_devices());
+
    if(mcmc->met)
    {
      TIMER_start(TIMER_MCMC_METROPOLIS);
