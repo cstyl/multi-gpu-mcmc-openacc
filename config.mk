@@ -11,7 +11,7 @@
 
 CC=pgcc
 MPICC=mpicc
-CFLAGS=-O2 -Kieee
+CFLAGS=-fast
 
 AR = ar
 ARFLAGS = -cru

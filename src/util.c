@@ -49,7 +49,7 @@ int util_write_array_precision(precision *data, int N, int dim, const char *dir,
                                const char *chain_type, const char *varName){
 
   char filename[BUFSIZ], header[BUFSIZ];
-  FILE *fp;
+  FILE *fp = NULL;
 
   sprintf(filename, "%s/%s_%s.csv", dir, chain_type, varName);
 
@@ -67,17 +67,9 @@ int util_write_array_precision(precision *data, int N, int dim, const char *dir,
   {
     for(j=0; j<dim-1; j++)
     {
-#ifdef _FLOAT_
-      fprintf(fp, "%.7f,", data[i*dim+j]);
-#else
-      fprintf(fp, "%.16f,", data[i*dim+j]);
-#endif
+      fprintf(fp, "%.*e,", PRINT_PREC-1,data[i*dim+j]);
     }
-#ifdef _FLOAT_
-    fprintf(fp, "%.7f\n", data[i*dim+dim-1]);
-#else
-    fprintf(fp, "%.16f\n", data[i*dim+dim-1]);
-#endif
+    fprintf(fp, "%.*e,", PRINT_PREC-1, data[i*dim+dim-1]);
   }
 
   fclose(fp);

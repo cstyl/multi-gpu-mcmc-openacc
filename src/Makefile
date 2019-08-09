@@ -62,6 +62,18 @@ verbose:
 code:	$(MAIN).o
 	$(CC) $(CFLAGS) -o $(EXECUTABLE) $(MAIN).o $(LIBRARY) $(LIBS)
 
+# Serial versions
+
+serial:
+	$(MAKE) serial-model
+
+serial-float:
+	$(MAKE) serial-model "OPTS=$(OPTS) -D_FLOAT_"
+
+serial-model:
+	$(MAKE) lib
+	$(MAKE) code "INC=$(INC) -I../mpi_s" "LIBS=$(LIBS) -L../mpi_s -lmpi"
+
 # OpenACC versions
 
 acc-host:
@@ -73,8 +85,8 @@ acc-multi:
 	$(MAKE) code "CFLAGS=$(CFLAGS) -acc -ta=multicore -Minfo=accel" "INC=$(INC) -I../mpi_s" "LIBS=$(LIBS) -L../mpi_s -lmpi"
 
 acc-simple:
-	$(MAKE) lib "CFLAGS=$(CFLAGS) -acc –ta=tesla:autocompare -Minfo=accel"
-	$(MAKE) code "CFLAGS=$(CFLAGS) -acc –ta=tesla:autocompare -Minfo=accel" "INC=$(INC) -I../mpi_s" "LIBS=$(LIBS) -L../mpi_s -lmpi"
+	$(MAKE) lib "CFLAGS=$(CFLAGS) -acc –ta=tesla -Minfo=accel"
+	$(MAKE) code "CFLAGS=$(CFLAGS) -acc –ta=tesla -Minfo=accel" "INC=$(INC) -I../mpi_s" "LIBS=$(LIBS) -L../mpi_s -lmpi"
 
 # MPI versions
 
