@@ -76,7 +76,6 @@ int lr_lhood_free(lr_t *lr){
 
 precision lr_lhood(lr_t *lr, precision *sample){
 
-  int i,j;
   precision *x = NULL;
   int *y = NULL;
   precision lhood = 0.0;

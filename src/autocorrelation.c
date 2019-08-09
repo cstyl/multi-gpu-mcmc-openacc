@@ -247,11 +247,7 @@ int acr_write_acr(acr_t *acr){
 
     for(j=0; j<acr->maxlag; j++)
     {
-#ifdef _FLOAT_
-      fprintf(fp, "%.7f\n", acr->lagk[i*acr->maxlag+j]);
-#else
-      fprintf(fp, "%.16f\n", acr->lagk[i*acr->maxlag+j]);
-#endif
+      fprintf(fp, "%.*e,", PRINT_PREC-1,acr->lagk[i*acr->maxlag+j]);
     }
     fclose(fp);
     printf("\tDone\n");
