@@ -23,6 +23,7 @@ precision reduce_lhood(precision *__restrict__ dot, int *__restrict__ y, int n);
 
 void lr_create_device_dot(precision *dot, int size){
   TIMER_start(TIMER_CREATE_DOT);
+  // #pragma acc enter data create(dot[:size])
   #pragma acc enter data create(dot[:size])
   TIMER_stop(TIMER_CREATE_DOT);
 }
@@ -96,7 +97,7 @@ precision lr_lhood(lr_t *lr, precision *sample){
   precision *x = NULL;
   int * y = NULL;
   int dim = lr->dim, N = lr->N;
-  precision lhood = 0.0;
+  precision lhood = 0.0f;
 
   data_x(lr->data, &x);
   data_y(lr->data, &y);
@@ -126,36 +127,37 @@ void matvecmul(precision *__restrict__ x, precision *__restrict__ sample,
                       present(sample[:m]) \
                       present(x[:m*n])
   {
-    #pragma acc loop independent
+    #pragma acc loop
     for(i=0; i<n; i++)
     {
-      dot[i] = 0.0;
-      #pragma acc loop seq
+      precision dot_local = 0.0f;
+      #pragma acc loop seq reduction(+:dot_local)
       for(j=0; j<m; j++)
       {
-        dot[i] += sample[j] * x[i*m+j];
+        dot_local += sample[j] * x[i*m+j];
       }
+      dot[i] = dot_local;
     }
   }
-
+  #pragma acc wait
 }
 
 precision reduce_lhood(precision *__restrict__ dot, int *__restrict__ y, int n){
 
   int i;
-  precision lhood = 0.0;
+  precision lhood = 0.0f;
 
   #pragma acc kernels present(dot[:n], y[:n]) \
                       copyout(lhood)
   {
-    lhood = 0.0;
+    lhood = 0.0f;
     #pragma acc loop reduction(+:lhood)
     for(i=0; i<n; i++)
     {
-      lhood -= log(1 + exp(-y[i] * dot[i]));
+      lhood -= log(1.0f + exp(-(precision)y[i] * dot[i]));
     }
   }
-
+  #pragma acc wait
   return lhood;
 }
 

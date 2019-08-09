@@ -73,8 +73,8 @@ acc-multi:
 	$(MAKE) code "CFLAGS=$(CFLAGS) -acc -ta=multicore -Minfo=accel" "INC=$(INC) -I../mpi_s" "LIBS=$(LIBS) -L../mpi_s -lmpi"
 
 acc-simple:
-	$(MAKE) lib "CFLAGS=$(CFLAGS) -acc –ta=tesla -Minfo=accel"
-	$(MAKE) code "CFLAGS=$(CFLAGS) -acc –ta=tesla -Minfo=accel" "INC=$(INC) -I../mpi_s" "LIBS=$(LIBS) -L../mpi_s -lmpi"
+	$(MAKE) lib "CFLAGS=$(CFLAGS) -acc –ta=tesla:autocompare -Minfo=accel"
+	$(MAKE) code "CFLAGS=$(CFLAGS) -acc –ta=tesla:autocompare -Minfo=accel" "INC=$(INC) -I../mpi_s" "LIBS=$(LIBS) -L../mpi_s -lmpi"
 
 # MPI versions
 
