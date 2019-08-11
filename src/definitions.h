@@ -8,12 +8,14 @@
   #define PRECISION_TOLERANCE  1.0e-07
   #define POTRF LAPACKE_spotrf
   #define TRMV cblas_strmv
+  #define GEMV cublasSgemv
   #define PRINT_PREC FLT_DIG+3
 #else
   typedef double precision;
   #define PRECISION_TOLERANCE 1.0e-14
   #define POTRF LAPACKE_dpotrf
   #define TRMV cblas_dtrmv
+  #define GEMV cublasDgemv
   #define PRINT_PREC DBL_DIG+3
 #endif
 

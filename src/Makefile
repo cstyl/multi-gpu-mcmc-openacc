@@ -88,6 +88,10 @@ acc-simple:
 	$(MAKE) lib "CFLAGS=$(CFLAGS) -acc –ta=tesla -Minfo=accel"
 	$(MAKE) code "CFLAGS=$(CFLAGS) -acc –ta=tesla -Minfo=accel" "INC=$(INC) -I../mpi_s" "LIBS=$(LIBS) -L../mpi_s -lmpi"
 
+acc-cublas:
+	$(MAKE) lib "CFLAGS=$(CFLAGS) -acc –ta=tesla -Minfo=accel" "LIBS=$(LIBS) -L/lustre/sw/cuda/9.1/lib64 -lcublas -Mcuda"
+	$(MAKE) code "CFLAGS=$(CFLAGS) -acc –ta=tesla -Minfo=accel" "INC=$(INC) -I../mpi_s" "LIBS=$(LIBS) -L../mpi_s -lmpi -L/lustre/sw/cuda/9.1/lib64 -lcublas -Mcuda"
+
 # MPI versions
 
 mpi:
