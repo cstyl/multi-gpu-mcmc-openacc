@@ -29,8 +29,10 @@ static int data_allocate_x(data_t *data);
 static int data_allocate_y(data_t *data);
 static int convert_tok(const char *tok, const char *datatype, void *data, int pos);
 
-void data_create_device_x(precision *x, int size);
-void data_create_device_y(int *y, int size);
+// void data_create_device_x(precision *x, int size);
+// void data_create_device_y(int *y, int size);
+void data_create_device_x(precision *x, int start, int end);
+void data_create_device_y(int *y, int start, int end);
 void data_update_device_x(precision *x, int start, int end);
 void data_update_device_y(int *y, int start, int end);
 void data_free_device_x(precision *x);
@@ -607,9 +609,9 @@ static int data_csvread(pe_t *pe, char *filename, int rowSz, int colSz, int skip
  *
  *****************************************************************************/
 
-void data_create_device_x(precision *x, int size){
+void data_create_device_x(precision *x, int start, int end){
   TIMER_start(TIMER_CREATE_DATA);
-  #pragma acc enter data create(x[:size])
+  #pragma acc enter data create(x[start:end])
   TIMER_stop(TIMER_CREATE_DATA);
 }
 
@@ -619,9 +621,9 @@ void data_create_device_x(precision *x, int size){
  *
  *****************************************************************************/
 
-void data_create_device_y(int *y, int size){
+void data_create_device_y(int *y, int start, int end){
   TIMER_start(TIMER_CREATE_DATA);
-  #pragma acc enter data create(y[:size])
+  #pragma acc enter data create(y[start:end])
   TIMER_stop(TIMER_CREATE_DATA);
 }
 
@@ -705,10 +707,10 @@ static int data_allocate_x(data_t *data){
   #pragma omp parallel default(shared) num_threads(nthreads)
   {
     int tid = omp_get_thread_num();
-    int size = txhi[tid] - txlow[tid];
+    // int size = txhi[tid] - txlow[tid];
     /* Switch to the appropriate device and allocate memory on it */
     #pragma acc set device_num(tid) device_type(acc_device_nvidia)
-    data_create_device_x(data->x, size);
+    data_create_device_x(data->x, txlow[tid], txhi[tid]);
   }
 
   return 0;
@@ -735,10 +737,10 @@ static int data_allocate_y(data_t *data){
   #pragma omp parallel default(shared) num_threads(nthreads)
   {
     int tid = omp_get_thread_num();
-    int size = tyhi[tid] - tylow[tid];
+    // int size = tyhi[tid] - tylow[tid];
     /* Switch to the appropriate device and allocate memory on it */
     #pragma acc set device_num(tid) device_type(acc_device_nvidia)
-    data_create_device_y(data->y, size);
+    data_create_device_y(data->y, tylow[tid], tyhi[tid]);
   }
 
   return 0;

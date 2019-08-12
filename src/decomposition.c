@@ -169,7 +169,7 @@ int dc_decompose(int N, int dimx, int dimy, dc_t *dc){
  *  dc_check_inputs
  *  Only basic check is performed at the moment
  *  It is up to the user to correctly specify the available hardware
- *  Assumes homegeneous nodes (i.e only one type of gpu available on each node)
+ *  Assumes homegeneous nodes (i.e same number of gpus across nodes)
  *
  *****************************************************************************/
 
@@ -179,10 +179,8 @@ int dc_check_inputs(pe_t *pe, int nprocs, int nthreads, int ngpus){
     pe_fatal(pe, "Select nthreads = ngpus when running on GPUs.");
 
   int nvidia_gpus = acc_get_num_devices(acc_device_nvidia);
-  int amd_gpus = acc_get_num_devices(acc_device_radeon);
-
-  if((acc_get_device_type() != acc_device_host) &&
-    ((ngpus > nvidia_gpus)||(ngpus > amd_gpus)))
+  printf("nvidia_gpus = %d\n", nvidia_gpus);
+  if((acc_get_device_type() != acc_device_host) && (ngpus > nvidia_gpus))
     pe_fatal(pe, "Please set a valid number of GPUs per node");
 
   if(nthreads <= 0)

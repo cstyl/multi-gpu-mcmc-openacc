@@ -24,14 +24,16 @@ struct lr_s{
 //                  const precision *x, int incx, const precision  beta,
 //                  precision *y, int incy);
 
-void lr_create_device_dot(precision *dot, int size);
+// void lr_create_device_dot(precision *dot, int size);
+void lr_create_device_dot(precision *dot, int start, int end);
 void mvmul(int rows, int cols, precision *REST mat, precision *REST vec, precision *REST dot);
 precision reduce_lhood(precision *REST dot, int *REST y, int n);
 // void nvidia_mvmul(int rows, int cols, precision *REST mat, precision *REST vec, precision *REST dot);
 
-void lr_create_device_dot(precision *dot, int size){
+// void lr_create_device_dot(precision *dot, int size){
+void lr_create_device_dot(precision *dot, int start, int end){
   TIMER_start(TIMER_CREATE_DOT);
-  #pragma acc enter data create(dot[:size])
+  #pragma acc enter data create(dot[start:end])
   TIMER_stop(TIMER_CREATE_DOT);
 }
 
@@ -64,7 +66,23 @@ int lr_lhood_create(pe_t *pe, data_t *data, lr_t **plr){
   data_N(data, &lr->N);
 
   mem_malloc_precision(&lr->dot, lr->N);
-  lr_create_device_dot(lr->dot, lr->N);
+
+  dc_t *dc = NULL;
+  data_dc(lr->data, &dc);
+  int nthreads;
+  int *txlow = NULL, *txhi = NULL;
+  dc_nthreads(dc, &nthreads);
+  dc_txb(dc, &txlow, &txhi);
+  printf("threads in lh_create %d\n", nthreads);
+  #pragma omp parallel default(shared) num_threads(nthreads)
+  {
+    int tid = omp_get_thread_num();
+    int size = txhi[tid] - txlow[tid];
+    printf("Size in t%d = %d => N=%d\n", tid, size, size/lr->dim);
+    /* Switch to the appropriate device and allocate memory on it */
+    #pragma acc set device_num(tid) device_type(acc_device_nvidia)
+    lr_create_device_dot(lr->dot, 0, size/lr->dim);
+  }
 
   *plr = lr;
 
@@ -81,7 +99,19 @@ int lr_lhood_free(lr_t *lr){
 
   assert(lr);
 
-  lr_free_device_dot(lr->dot);
+  dc_t *dc = NULL;
+  data_dc(lr->data, &dc);
+  int nthreads;
+
+  #pragma omp parallel default(shared) num_threads(nthreads)
+  {
+    int tid = omp_get_thread_num();
+    // int size = txhi[tid] - txlow[tid];
+    /* Switch to the appropriate device and allocate memory on it */
+    #pragma acc set device_num(tid) device_type(acc_device_nvidia)
+    lr_free_device_dot(lr->dot);
+  }
+
   mem_free((void**)&lr->dot);
   mem_free((void**)&lr);
 
@@ -125,7 +155,7 @@ precision lr_lhood(lr_t *lr, precision *sample){
     int size = txhi[tid] - txlow[tid];
     /* Switch to the appropriate device and allocate memory on it */
     #pragma acc set device_num(tid) device_type(acc_device_nvidia)
-    mvmul(size/dim, dim, &x[txlow[tid]], sample, &lr->dot[size]);
+    mvmul(size/dim, dim, &x[txlow[tid]], sample, lr->dot);
   }
 
   // mvmul(lr->N, lr->dim, x, sample, lr->dot);
@@ -143,7 +173,7 @@ precision lr_lhood(lr_t *lr, precision *sample){
     int size = tyhi[tid] - tylow[tid];
     /* Switch to the appropriate device and allocate memory on it */
     #pragma acc set device_num(tid) device_type(acc_device_nvidia)
-    lhood = reduce_lhood(&lr->dot[size], &y[tylow[tid]], lr->N);
+    lhood = reduce_lhood(lr->dot, &y[tylow[tid]], size);
   }
   // lhood = reduce_lhood(lr->dot, y, lr->N);
   TIMER_stop(TIMER_REDUCE);
@@ -182,7 +212,7 @@ void mvmul(int rows, int cols, precision *REST mat, precision *REST vec, precisi
 //
 //   #pragma acc data present(mat[:rows*cols],vec[:cols],dot[:rows])
 //   #pragma acc host_data use_device(mat, vec, dot)
-//   GEMV('T', cols, rows, alpha, mat, cols, vec, 1, beta, dot, 1);
+//   GEMV('T', cols, rows, &alpha, mat, cols, vec, 1, &beta, dot, 1);
 // }
 
 precision reduce_lhood(precision *REST dot, int *REST y, int n){

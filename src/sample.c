@@ -145,6 +145,7 @@ int sample_propose_mvnb(mvnb_t *mvnb, sample_t *cur, sample_t *pro){
   sample_values(pro , &proposed);
 
   mvn_block_sample(mvnb, current, proposed);
+
   int devices = pro->devices;
   #pragma omp parallel default(shared) num_threads(devices)
   {
