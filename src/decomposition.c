@@ -7,13 +7,6 @@
 #include "decomposition.h"
 #include "memory.h"
 
-typedef struct bound_s bound_t;
-
-struct bound_s{
-  int *low;  /* Lower bound */
-  int *hi;   /* Upper bound */
-};
-
 struct dc_s{
   pe_t *pe;
   rt_t *rt;
@@ -22,16 +15,12 @@ struct dc_s{
   int nprocs;      /* Number of MPI processes (same as MPI_Size) */
   int nthreads;    /* Number of OMP threads per node */
   int ngpus;       /* Number of GPUs per node */
-  bound_t pxb;     /* Local MPI bounds on input dataset */
-  bound_t pyb;     /* Local MPI bounds on input labels */
-  bound_t txb;    /* Bounds for each OMP thread on input dataset */
-  bound_t tyb;    /* Bounds for each OMP thread on input labels */
+  int plow;        /* Local lower MPI bound of a datapoint */
+  int phi;         /* Local upper MPI bound of a datapoint */
+  int *tlow;       /* Lower bounds for each OMP thread */
+  int *thi;        /* Lower bounds for each OMP thread */
 };
 
-static int dc_allocate_pxb(dc_t *dc);
-static int dc_allocate_pyb(dc_t *dc);
-static int dc_allocate_txb(dc_t *dc);
-static int dc_allocate_tyb(dc_t *dc);
 static int dc_setwork(int totalWork, int  workers, int id, int *low, int *hi);
 
 int dc_create(pe_t *pe, dc_t **pdc){
@@ -59,14 +48,8 @@ int dc_free(dc_t *dc){
 
   assert(dc);
 
-  mem_free((void**)&dc->pxb.low);
-  mem_free((void**)&dc->pxb.hi);
-  mem_free((void**)&dc->pyb.low);
-  mem_free((void**)&dc->pyb.hi);
-  mem_free((void**)&dc->txb.low);
-  mem_free((void**)&dc->txb.hi);
-  mem_free((void**)&dc->tyb.low);
-  mem_free((void**)&dc->tyb.hi);
+  mem_free((void**)&dc->tlow);
+  mem_free((void**)&dc->thi);
   mem_free((void**)&dc);
 
   return 0;
@@ -99,10 +82,8 @@ int dc_init_rt(pe_t *pe, rt_t *rt, dc_t *dc){
 
   dc_check_inputs(pe, dc->nprocs, dc->nthreads, dc->ngpus);
 
-  dc_allocate_pxb(dc);
-  dc_allocate_pyb(dc);
-  dc_allocate_txb(dc);
-  dc_allocate_tyb(dc);
+  mem_malloc_integers(&dc->tlow, dc->nthreads);
+  mem_malloc_integers(&dc->thi, dc->nthreads);
 
   return 0;
 }
@@ -135,13 +116,12 @@ int dc_print_info(pe_t *pe, dc_t *dc){
   return 0;
 }
 
-int dc_decompose(int N, int dimx, int dimy, dc_t *dc){
+int dc_decompose(int N, dc_t *dc){
 
   assert(dc);
 
   /* Decompose over MPI-processes */
-  dc_setwork(N*dimx, dc->size, dc->rank, &dc->pxb.low[0], &dc->pxb.hi[0]);
-  dc_setwork(N*dimy, dc->size, dc->rank, &dc->pyb.low[0], &dc->pyb.hi[0]);
+  dc_setwork(N, dc->size, dc->rank, &dc->plow, &dc->phi);
 
   int nthreads = dc->nthreads;
   /* Decompose over OMP threads */
@@ -150,15 +130,9 @@ int dc_decompose(int N, int dimx, int dimy, dc_t *dc){
     int tid = omp_get_thread_num();
     int low, hi;
 
-    /* First on dataset */
-    dc_setwork(dc->pxb.hi[0] - dc->pxb.low[0], omp_get_num_threads(), tid, &low, &hi);
-    dc->txb.low[tid] = dc->pxb.low[0] + low;
-    dc->txb.hi[tid] = dc->pxb.low[0] + hi;
-
-    /*Then on labels */
-    dc_setwork(dc->pyb.hi[0] - dc->pyb.low[0], omp_get_num_threads(), tid, &low, &hi);
-    dc->tyb.low[tid] = dc->pyb.low[0] + low;
-    dc->tyb.hi[tid] = dc->pyb.low[0] + hi;
+    dc_setwork(dc->phi - dc->plow, omp_get_num_threads(), tid, &low, &hi);
+    dc->tlow[tid] = dc->plow + low;
+    dc->thi[tid] = dc->plow + hi;
   }
 
   return 0;
@@ -179,7 +153,7 @@ int dc_check_inputs(pe_t *pe, int nprocs, int nthreads, int ngpus){
     pe_fatal(pe, "Select nthreads = ngpus when running on GPUs.");
 
   int nvidia_gpus = acc_get_num_devices(acc_device_nvidia);
-  printf("nvidia_gpus = %d\n", nvidia_gpus);
+
   if((acc_get_device_type() != acc_device_host) && (ngpus > nvidia_gpus))
     pe_fatal(pe, "Please set a valid number of GPUs per node");
 
@@ -299,98 +273,50 @@ int dc_ngpus(dc_t *dc, int *ngpus){
 
 /*****************************************************************************
  *
- *  dc_pxb_set
+ *  dc_pbound_set
  *
  *****************************************************************************/
 
-int dc_pxb_set(dc_t *dc, int pxlow, int pxhi){
+int dc_pbound_set(dc_t *dc, int plow, int phi){
 
   assert(dc);
 
-  dc->pxb.low[0] = pxlow;
-  dc->pxb.hi[0]  = pxhi;
+  dc->plow = plow;
+  dc->phi  = phi;
 
   return 0;
 }
 
 /*****************************************************************************
  *
- *  dc_pxb
+ *  dc_pbound
  *
  *****************************************************************************/
 
-int dc_pxb(dc_t *dc, int **ppxlow, int **ppxhi){
+int dc_pbound(dc_t *dc, int *plow, int *phi){
 
   assert(dc);
 
-  *ppxlow = dc->pxb.low;
-  *ppxhi = dc->pxb.hi;
+  *plow = dc->plow;
+  *phi = dc->phi;
 
   return 0;
 }
 
 /*****************************************************************************
  *
- *  dc_pyb_set
+ *  dc_tbound
  *
  *****************************************************************************/
 
-int dc_pyb_set(dc_t *dc, int pylow, int pyhi){
+int dc_tbound(dc_t *dc, int **ptlow, int **pthi){
 
   assert(dc);
 
-  dc->pyb.low[0] = pylow;
-  dc->pyb.hi[0]  = pyhi;
+  *ptlow = dc->tlow;
+  *pthi = dc->thi;
 
   return 0;
-}
-
-/*****************************************************************************
- *
- *  dc_pyb
- *
- *****************************************************************************/
-
-int dc_pyb(dc_t *dc, int **ppylow, int **ppyhi){
-
-  assert(dc);
-
-  *ppylow = dc->pyb.low;
-  *ppyhi = dc->pyb.hi;
-
-  return 0;
-}
-
-/*****************************************************************************
- *
- *  dc_txb
- *
- *****************************************************************************/
-
-int dc_txb(dc_t *dc, int **ptxlow, int **ptxhi){
-
-  assert(dc);
-
-  *ptxlow = dc->txb.low;
-  *ptxhi = dc->txb.hi;
-
-  return 0;
-}
-
-/*****************************************************************************
- *
- *  dc_tyb
- *
- *****************************************************************************/
-
-int dc_tyb(dc_t *dc, int **ptylow, int **ptyhi){
-
- assert(dc);
-
- *ptylow = dc->tyb.low;
- *ptyhi = dc->tyb.hi;
-
- return 0;
 }
 
 /*****************************************************************************
@@ -419,46 +345,6 @@ int dc_size_set(dc_t *dc, int size){
   assert(dc);
 
   dc->size = size;
-
-  return 0;
-}
-
-static int dc_allocate_pxb(dc_t *dc){
-
-  assert(dc);
-
-  mem_malloc_integers(&dc->pxb.low, 1);
-  mem_malloc_integers(&dc->pxb.hi, 1);
-
-  return 0;
-}
-
-static int dc_allocate_pyb(dc_t *dc){
-
-  assert(dc);
-
-  mem_malloc_integers(&dc->pyb.low, 1);
-  mem_malloc_integers(&dc->pyb.hi, 1);
-
-  return 0;
-}
-
-static int dc_allocate_txb(dc_t *dc){
-
-  assert(dc);
-
-  mem_malloc_integers(&dc->txb.low, dc->nthreads);
-  mem_malloc_integers(&dc->txb.hi, dc->nthreads);
-
-  return 0;
-}
-
-static int dc_allocate_tyb(dc_t *dc){
-
-  assert(dc);
-
-  mem_malloc_integers(&dc->tyb.low, dc->nthreads);
-  mem_malloc_integers(&dc->tyb.hi, dc->nthreads);
 
   return 0;
 }

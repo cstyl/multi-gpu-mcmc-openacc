@@ -206,6 +206,7 @@ static int test_sample_evaluate_lr(pe_t *pe){
 
   rt_t *rt = NULL;
   lr_t *lr = NULL;
+  dc_t *dc = NULL;
   data_t *data = NULL;
   sample_t *cur = NULL;
   sample_t *pro = NULL;
@@ -239,7 +240,18 @@ static int test_sample_evaluate_lr(pe_t *pe){
   assert(data);
   test_assert(1);
 
+  dc_create(pe, &dc);
+  assert(dc);
+  test_assert(1);
+
+  dc_nprocs_set(dc, DEFAULT_PROCS);
+  dc_nthreads_set(dc, DEFAULT_THREADS);
+  dc_ngpus_set(dc, DEFAULT_GPUS);
+  dc_init_rt(pe, rt, dc);
+  dc_decompose(N, dc);
+
   /* Initialize data struct */
+  data_dc_set(data, dc);
   data_dimx_set(data, dimx);
   data_dimy_set(data, dimy);
   data_N_set(data, N);

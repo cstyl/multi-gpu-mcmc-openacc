@@ -3,7 +3,10 @@ import isclose as prec
 
 fref =  '../../out/ref/progress.csv'
 arch_dir = '../../out/archive'
-versions = ('gcc-serial', 'pgi-serial', 'acc-simple-host', 'acc-simple-gpu-kernel', 'acc-simple-gpu-parloop', 'acc-data-host', 'acc-data-gpu')
+versions = ('gcc-serial', 'pgi-serial', 'acc-simple-host',
+            'acc-simple-gpu-kernel', 'acc-simple-gpu-parloop',
+            'acc-data-host', 'acc-data-gpu',
+            'test-gpu-1', 'test-gpu-2', 'test-gpu-3', 'test-gpu-4')
 
 ref = np.genfromtxt(fref, delimiter=',', skip_header=1)
 

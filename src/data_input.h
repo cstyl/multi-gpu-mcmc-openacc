@@ -36,6 +36,7 @@ int data_fy(data_t *data, char *fy);
 int data_x(data_t *data, precision **px);
 int data_y(data_t *data, int **py);
 int data_dc(data_t *data, dc_t **pdc);
+int data_dc_set(data_t *data, dc_t *dc);
 
 int data_read_file(pe_t *pe, data_t *data);
 int data_print_file(data_t *data);

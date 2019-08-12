@@ -29,8 +29,6 @@ static int data_allocate_x(data_t *data);
 static int data_allocate_y(data_t *data);
 static int convert_tok(const char *tok, const char *datatype, void *data, int pos);
 
-// void data_create_device_x(precision *x, int size);
-// void data_create_device_y(int *y, int size);
 void data_create_device_x(precision *x, int start, int end);
 void data_create_device_y(int *y, int start, int end);
 void data_update_device_x(precision *x, int start, int end);
@@ -102,22 +100,25 @@ int data_free(data_t *data){
 
    assert(data);
 
-   int nthreads;
-   dc_nthreads(data->dc, &nthreads);
-   /* Make sure each device memory is deleted */
-   #pragma omp parallel default(shared) num_threads(nthreads)
+   if(data->dc)
    {
-     int tid = omp_get_thread_num();
-     /* Switch to the appropriate device and deallocate memory on it */
-     #pragma acc set device_num(tid) device_type(acc_device_nvidia)
-     data_free_device_x(data->x);
-     data_free_device_y(data->y);
+     int nthreads;
+     dc_nthreads(data->dc, &nthreads);
+     /* Make sure each device memory is deleted */
+     #pragma omp parallel default(shared) num_threads(nthreads)
+     {
+       int tid = omp_get_thread_num();
+       /* Switch to the appropriate device and deallocate memory on it */
+       #pragma acc set device_num(tid) device_type(acc_device_nvidia)
+       data_free_device_x(data->x);
+       data_free_device_y(data->y);
+     }
+     dc_free(data->dc);  /* Do that after the devices are dealloacated */
    }
 
    mem_free((void**)&data->x);
    mem_free((void**)&data->y);
 
-   if(data->dc) dc_free(data->dc);  /* Do that after the devices are dealloacated */
    mem_free((void**)&data);
 
    return 0;
@@ -165,7 +166,7 @@ int data_init_train_rt(pe_t *pe, rt_t *rt, data_t *train){
   dc_create(pe, &train->dc);
   dc_init_rt(pe, rt, train->dc);
   dc_print_info(pe, train->dc);
-  dc_decompose(train->N, train->dimx, train->dimy, train->dc);
+  dc_decompose(train->N, train->dc);
 
   data_allocate_x(train);
   data_allocate_y(train);
@@ -215,7 +216,7 @@ int data_init_test_rt(pe_t *pe, rt_t *rt, data_t *test){
   dc_create(pe, &test->dc);
   dc_init_rt(pe, rt, test->dc);
   dc_print_info(pe, test->dc);
-  dc_decompose(test->N, test->dimx, test->dimy, test->dc);
+  dc_decompose(test->N, test->dc);
 
   data_allocate_x(test);
   data_allocate_y(test);
@@ -500,6 +501,21 @@ int data_y(data_t *data, int **py){
 
 /*****************************************************************************
  *
+ *  data_dc_set
+ *
+ *****************************************************************************/
+
+int data_dc_set(data_t *data, dc_t *dc){
+
+  assert(data);
+
+  data->dc = dc;
+
+  return 0;
+}
+
+/*****************************************************************************
+ *
  *  data_dc
  *
  *****************************************************************************/
@@ -523,10 +539,7 @@ int data_dc(data_t *data, dc_t **pdc){
 int data_read_file(pe_t *pe, data_t *data){
 
   int nthreads;
-  int *txlow = NULL, *txhi = NULL;
-  int *tylow = NULL, *tyhi = NULL;
-  int *pxlow = NULL, *pxhi = NULL;
-  int *pylow = NULL, *pyhi = NULL;
+  int *tlow = NULL, *thi = NULL;
 
   assert(data);
   assert(data->x);
@@ -538,8 +551,8 @@ int data_read_file(pe_t *pe, data_t *data){
   /*  Use OpenMP to split the data and send to appropriate devices
   */
   dc_nthreads(data->dc, &nthreads);
-  dc_txb(data->dc, &txlow, &txhi);
-  dc_tyb(data->dc, &tylow, &tyhi);
+  dc_tbound(data->dc, &tlow, &thi);
+
   #pragma omp parallel default(shared) num_threads(nthreads)
   {
     int tid = omp_get_thread_num();
@@ -549,8 +562,8 @@ int data_read_file(pe_t *pe, data_t *data){
     *  no offset is required to be subtracted
     */
     #pragma acc set device_num(tid) device_type(acc_device_nvidia)
-    data_update_device_x(data->x, txlow[tid], txhi[tid]);
-    data_update_device_y(data->y, tylow[tid], tyhi[tid]);
+    data_update_device_x(data->x, tlow[tid]*data->dimx, thi[tid]*data->dimx);
+    data_update_device_y(data->y, tlow[tid]*data->dimy, thi[tid]*data->dimy);
   }
 
   return 0;
@@ -695,22 +708,21 @@ static void data_rmheader(char* line, FILE *fp, int skip_num){
 static int data_allocate_x(data_t *data){
 
   int nthreads;
-  int *txlow = NULL, *txhi = NULL;
+  int *tlow = NULL, *thi = NULL;
 
   assert(data);
 
   mem_malloc_precision(&data->x, data->dimx * data->N);
 
   dc_nthreads(data->dc, &nthreads);
-  dc_txb(data->dc, &txlow, &txhi);
+  dc_tbound(data->dc, &tlow, &thi);
 
   #pragma omp parallel default(shared) num_threads(nthreads)
   {
     int tid = omp_get_thread_num();
-    // int size = txhi[tid] - txlow[tid];
     /* Switch to the appropriate device and allocate memory on it */
     #pragma acc set device_num(tid) device_type(acc_device_nvidia)
-    data_create_device_x(data->x, txlow[tid], txhi[tid]);
+    data_create_device_x(data->x, tlow[tid]*data->dimx, thi[tid]*data->dimx);
   }
 
   return 0;
@@ -725,22 +737,21 @@ static int data_allocate_x(data_t *data){
 static int data_allocate_y(data_t *data){
 
   int nthreads;
-  int *tylow = NULL, *tyhi = NULL;
+  int *tlow = NULL, *thi = NULL;
 
   assert(data);
 
   mem_malloc_integers(&data->y, data->dimy * data->N);
 
   dc_nthreads(data->dc, &nthreads);
-  dc_tyb(data->dc, &tylow, &tyhi);
+  dc_tbound(data->dc, &tlow, &thi);
 
   #pragma omp parallel default(shared) num_threads(nthreads)
   {
     int tid = omp_get_thread_num();
-    // int size = tyhi[tid] - tylow[tid];
     /* Switch to the appropriate device and allocate memory on it */
     #pragma acc set device_num(tid) device_type(acc_device_nvidia)
-    data_create_device_y(data->y, tylow[tid], tyhi[tid]);
+    data_create_device_y(data->y, tlow[tid]*data->dimy, thi[tid]*data->dimy);
   }
 
   return 0;
