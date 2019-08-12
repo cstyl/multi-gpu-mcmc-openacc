@@ -62,7 +62,7 @@ static int test_data_train_rt_default(pe_t *pe){
   data_dimy(train, &dimy);
   test_assert(dimy == 1);
   data_N(train, &N);
-  test_assert(N = 500);
+  test_assert(N == 500);
   data_fx(train, fx);
   test_assert(strcmp(fx, "../data/synthetic/default/X_train.csv") == 0);
   data_fy(train, fy);
@@ -102,7 +102,7 @@ static int test_data_test_rt_default(pe_t *pe){
   data_dimy(test, &dimy);
   test_assert(dimy == 1);
   data_N(test, &N);
-  test_assert(N = 100);
+  test_assert(N == 100);
   data_fx(test, fx);
   test_assert(strcmp(fx, "../data/synthetic/default/X_test.csv") == 0);
   data_fy(test, fy);
@@ -139,14 +139,14 @@ static int test_data_train_rt(pe_t *pe){
   test_assert(1);
 
   /* testing train data runtime init */
-  data_init_train_rt(rt, train);
+  data_init_train_rt(pe, rt, train);
 
   data_dimx(train, &dimx);
   test_assert(dimx == 3);
   data_dimy(train, &dimy);
   test_assert(dimy == 1);
   data_N(train, &N);
-  test_assert(N = 10);
+  test_assert(N == 10);
   data_fx(train, fx);
   test_assert(strcmp(fx, "./data/X_train.csv") == 0);
   data_fy(train, fy);
@@ -183,14 +183,14 @@ static int test_data_test_rt(pe_t *pe){
   test_assert(1);
 
   /* testing test data runtime init */
-  data_init_test_rt(rt, test);
+  data_init_test_rt(pe, rt, test);
 
   data_dimx(test, &dimx);
   test_assert(dimx == 3);
   data_dimy(test, &dimy);
   test_assert(dimy == 1);
   data_N(test, &N);
-  test_assert(N = 5);
+  test_assert(N == 5);
   data_fx(test, fx);
   test_assert(strcmp(fx, "./data/X_test.csv") == 0);
   data_fy(test, fy);
@@ -246,7 +246,7 @@ static int test_data_train_input_file(pe_t *pe){
   data_create_train(pe, &train);
   assert(train);
   test_assert(1);
-  data_init_train_rt(rt, train);
+  data_init_train_rt(pe, rt, train);
 
   data_read_file(pe, train);
   data_x(train, &x);
@@ -297,7 +297,7 @@ static int test_data_test_input_file(pe_t *pe){
   data_create_test(pe, &test);
   assert(test);
   test_assert(1);
-  data_init_test_rt(rt, test);
+  data_init_test_rt(pe, rt, test);
 
   data_read_file(pe, test);
   data_x(test, &x);

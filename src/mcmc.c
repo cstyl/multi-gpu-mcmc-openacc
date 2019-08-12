@@ -148,6 +148,7 @@ static int mcmc_rt(mcmc_t *mcmc);
 
    TIMER_start(TIMER_RUNTIME_SETUP);
 
+   /* Initiate all target devices */
    TIMER_start(TIMER_ACC_INIT);
    #pragma acc init device_type(acc_device_not_host)
    TIMER_stop(TIMER_ACC_INIT);
@@ -156,7 +157,6 @@ static int mcmc_rt(mcmc_t *mcmc);
    rt = mcmc->rt;
 
    sprintf(algorithm_value, "%s", ALGORITHM_DEFAULT);
-
 
    ch_create(pe, &mcmc->burn);
    ch_init_burn_rt(rt, mcmc->burn);

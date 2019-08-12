@@ -85,7 +85,7 @@ int infr_init_rt(pe_t *pe, rt_t *rt, infr_t *infr){
   assert(rt);
   assert(infr);
 
-  data_init_test_rt(rt, infr->data);
+  data_init_test_rt(pe, rt, infr->data);
   data_input_test_info(pe, infr->data);
 
   rt_string_parameter(rt, "mc_integ", mc_case, BUFSIZ);

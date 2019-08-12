@@ -46,7 +46,7 @@ TESTSOURCES = test_pe.c test_runtime.c test_random.c test_timer.c \
 							test_memory.c test_data_input.c test_logistic_regression.c \
 							test_prior.c test_multivariate_normal.c \
 							test_chain.c test_sample.c test_metropolis.c \
-							test_autocorrelation.c
+							test_autocorrelation.c test_decomposition.c
 
 TESTS = ${TESTSOURCES:.c=}
 TESTOBJECTS = ${TESTSOURCES:.c=.o}
@@ -65,8 +65,9 @@ serial-float:
 	$(MAKE) serial-test "OPTS=$(OPTS) -D_FLOAT_"
 
 serial-test:
-	$(MAKE) base-me "INCLUDE = $(INCLUDE) -I$(BLAS_INC) $(MPI_STUB_INCLUDE)" \
-	"CLIBS=$(CLIBS) $(MPI_STUB_LIB) $(LBLIBS) -L$(BLAS_LIB)"
+	$(MAKE) base-me "CFLAGS=$(CFLAGS) -mp –ta=host" "LDFLAGS=$(LDFLAGS) $(CFLAGS) -mp –ta=host" \
+									"INCLUDE = $(INCLUDE) -I$(BLAS_INC) $(MPI_STUB_INCLUDE)" \
+									"CLIBS=$(CLIBS) $(MPI_STUB_LIB) $(LBLIBS) -L$(BLAS_LIB)"
 
 mpi:
 	$(MAKE) mpi-test

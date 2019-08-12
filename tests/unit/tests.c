@@ -46,7 +46,6 @@ int main(int argc, char ** argv) {
 int tests_create() {
 
   test_pe_suite();
-  // test_coords_suite();
 
   test_random_suite();
   test_rt_suite();
@@ -60,7 +59,7 @@ int tests_create() {
   test_sample_suite();
   test_metropolis_suite();
   test_autocorrelation_suite();
-
+  test_decomposition_suite();
 
   return 0;
 }

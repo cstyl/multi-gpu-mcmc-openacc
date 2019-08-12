@@ -7,11 +7,12 @@
 #include "data_input.h"
 #include "memory.h"
 #include "timer.h"
-#include "definitions.h"
+
 
 #define SKIP_HEADER 1
 
 struct data_s{
+  dc_t *dc;     /* Data decomposition */
   int dimx;
   int dimy;
   int N;
@@ -34,39 +35,6 @@ void data_update_device_x(precision *x, int start, int end);
 void data_update_device_y(int *y, int start, int end);
 void data_free_device_x(precision *x);
 void data_free_device_y(int *y);
-
-void data_create_device_x(precision *x, int size){
-  TIMER_start(TIMER_CREATE_DATA);
-  #pragma acc enter data create(x[:size])
-  TIMER_stop(TIMER_CREATE_DATA);
-}
-
-void data_create_device_y(int *y, int size){
-  TIMER_start(TIMER_CREATE_DATA);
-  #pragma acc enter data create(y[:size])
-  TIMER_stop(TIMER_CREATE_DATA);
-}
-
-void data_update_device_x(precision *x, int start, int end){
-  TIMER_start(TIMER_UPDATE_DATA);
-  #pragma acc update device(x[start:end])
-  TIMER_stop(TIMER_UPDATE_DATA);
-}
-
-void data_update_device_y(int *y, int start, int end){
-  TIMER_start(TIMER_UPDATE_DATA);
-  #pragma acc update device(y[start:end])
-  TIMER_stop(TIMER_UPDATE_DATA);
-}
-
-void data_free_device_x(precision *x){
-  #pragma acc exit data delete(x)
-}
-
-void data_free_device_y(int *y){
-  #pragma acc exit data delete(y)
-}
-
 
 /*****************************************************************************
  *
@@ -132,11 +100,22 @@ int data_free(data_t *data){
 
    assert(data);
 
-   data_free_device_x(data->x);
+   int nthreads;
+   dc_nthreads(data->dc, &nthreads);
+   /* Make sure each device memory is deleted */
+   #pragma omp parallel default(shared) num_threads(nthreads)
+   {
+     int tid = omp_get_thread_num();
+     /* Switch to the appropriate device and deallocate memory on it */
+     #pragma acc set device_num(tid) device_type(acc_device_nvidia)
+     data_free_device_x(data->x);
+     data_free_device_y(data->y);
+   }
+
    mem_free((void**)&data->x);
-   data_free_device_y(data->y);
    mem_free((void**)&data->y);
 
+   if(data->dc) dc_free(data->dc);  /* Do that after the devices are dealloacated */
    mem_free((void**)&data);
 
    return 0;
@@ -148,7 +127,7 @@ int data_free(data_t *data){
  *
  *****************************************************************************/
 
-int data_init_train_rt(rt_t *rt, data_t *train){
+int data_init_train_rt(pe_t *pe, rt_t *rt, data_t *train){
 
   int dimx, dimy, N;
   char x[FILENAME_MAX], y[FILENAME_MAX];
@@ -181,6 +160,11 @@ int data_init_train_rt(rt_t *rt, data_t *train){
     data_fy_set(train, y);
   }
 
+  dc_create(pe, &train->dc);
+  dc_init_rt(pe, rt, train->dc);
+  dc_print_info(pe, train->dc);
+  dc_decompose(train->N, train->dimx, train->dimy, train->dc);
+
   data_allocate_x(train);
   data_allocate_y(train);
 
@@ -193,7 +177,7 @@ int data_init_train_rt(rt_t *rt, data_t *train){
  *
  *****************************************************************************/
 
-int data_init_test_rt(rt_t *rt, data_t *test){
+int data_init_test_rt(pe_t *pe, rt_t *rt, data_t *test){
 
   int dimx, dimy, N;
   char x[FILENAME_MAX], y[FILENAME_MAX];
@@ -225,6 +209,11 @@ int data_init_test_rt(rt_t *rt, data_t *test){
   {
     data_fy_set(test, y);
   }
+
+  dc_create(pe, &test->dc);
+  dc_init_rt(pe, rt, test->dc);
+  dc_print_info(pe, test->dc);
+  dc_decompose(test->N, test->dimx, test->dimy, test->dc);
 
   data_allocate_x(test);
   data_allocate_y(test);
@@ -509,11 +498,33 @@ int data_y(data_t *data, int **py){
 
 /*****************************************************************************
  *
+ *  data_dc
+ *
+ *****************************************************************************/
+
+int data_dc(data_t *data, dc_t **pdc){
+
+  assert(data);
+
+  *pdc = data->dc;
+
+  return 0;
+}
+
+/*****************************************************************************
+ *
  *  data_read_file
+ *  at the moment each process reads the entire dataset
  *
  *****************************************************************************/
 
 int data_read_file(pe_t *pe, data_t *data){
+
+  int nthreads;
+  int *txlow = NULL, *txhi = NULL;
+  int *tylow = NULL, *tyhi = NULL;
+  int *pxlow = NULL, *pxhi = NULL;
+  int *pylow = NULL, *pyhi = NULL;
 
   assert(data);
   assert(data->x);
@@ -522,15 +533,23 @@ int data_read_file(pe_t *pe, data_t *data){
   data_csvread(pe, data->fx, data->dimx, data->N, SKIP_HEADER, ",", "precision", data->x);
   data_csvread(pe, data->fy, data->dimy, data->N, SKIP_HEADER, ",", "int", data->y);
 
-  /* TODO:
-  *  Use OpenMP to split the data and send to appropriate devices
+  /*  Use OpenMP to split the data and send to appropriate devices
   */
-
-  /* Send data to the device too */
-  data_update_device_x(data->x, 0, data->dimx*data->N);
-  data_update_device_y(data->y, 0, data->dimy*data->N);
-  // #pragma acc update device(data->x[0:data->dimx*data->N])
-  // #pragma acc update device(data->y[0:data->dimy*data->N])
+  dc_nthreads(data->dc, &nthreads);
+  dc_txb(data->dc, &txlow, &txhi);
+  dc_tyb(data->dc, &tylow, &tyhi);
+  #pragma omp parallel default(shared) num_threads(nthreads)
+  {
+    int tid = omp_get_thread_num();
+    /* Switch to the appropriate device
+    *  Need to make sure each device is allocate the correct portion of the data
+    *  Since the whole matrix is available on each process,
+    *  no offset is required to be subtracted
+    */
+    #pragma acc set device_num(tid) device_type(acc_device_nvidia)
+    data_update_device_x(data->x, txlow[tid], txhi[tid]);
+    data_update_device_y(data->y, tylow[tid], tyhi[tid]);
+  }
 
   return 0;
 }
@@ -584,6 +603,74 @@ static int data_csvread(pe_t *pe, char *filename, int rowSz, int colSz, int skip
 
 /*****************************************************************************
  *
+ *  data_create_device_x
+ *
+ *****************************************************************************/
+
+void data_create_device_x(precision *x, int size){
+  TIMER_start(TIMER_CREATE_DATA);
+  #pragma acc enter data create(x[:size])
+  TIMER_stop(TIMER_CREATE_DATA);
+}
+
+/*****************************************************************************
+ *
+ *  data_create_device_y
+ *
+ *****************************************************************************/
+
+void data_create_device_y(int *y, int size){
+  TIMER_start(TIMER_CREATE_DATA);
+  #pragma acc enter data create(y[:size])
+  TIMER_stop(TIMER_CREATE_DATA);
+}
+
+/*****************************************************************************
+ *
+ *  data_update_device_x
+ *
+ *****************************************************************************/
+
+void data_update_device_x(precision *x, int start, int end){
+  TIMER_start(TIMER_UPDATE_DATA);
+  #pragma acc update device(x[start:end])
+  TIMER_stop(TIMER_UPDATE_DATA);
+}
+
+/*****************************************************************************
+ *
+ *  data_update_device_y
+ *
+ *****************************************************************************/
+
+void data_update_device_y(int *y, int start, int end){
+  TIMER_start(TIMER_UPDATE_DATA);
+  #pragma acc update device(y[start:end])
+  TIMER_stop(TIMER_UPDATE_DATA);
+}
+
+/*****************************************************************************
+ *
+ *  data_free_device_x
+ *
+ *****************************************************************************/
+
+void data_free_device_x(precision *x){
+  #pragma acc exit data delete(x)
+}
+
+/*****************************************************************************
+ *
+ *  data_free_device_y
+ *
+ *****************************************************************************/
+
+void data_free_device_y(int *y){
+  #pragma acc exit data delete(y)
+}
+
+/*****************************************************************************
+ *
  *  data_rmheader
  *
  *****************************************************************************/
@@ -605,13 +692,24 @@ static void data_rmheader(char* line, FILE *fp, int skip_num){
 
 static int data_allocate_x(data_t *data){
 
+  int nthreads;
+  int *txlow = NULL, *txhi = NULL;
+
   assert(data);
 
   mem_malloc_precision(&data->x, data->dimx * data->N);
-  // TIMER_start(TIMER_DEVICE_ALLOC);
-  data_create_device_x(data->x, data->dimx * data->N);
-  // #pragma acc enter data create(data->x[:data->dimx * data->N])
-  // TIMER_stop(TIMER_DEVICE_ALLOC);
+
+  dc_nthreads(data->dc, &nthreads);
+  dc_txb(data->dc, &txlow, &txhi);
+
+  #pragma omp parallel default(shared) num_threads(nthreads)
+  {
+    int tid = omp_get_thread_num();
+    int size = txhi[tid] - txlow[tid];
+    /* Switch to the appropriate device and allocate memory on it */
+    #pragma acc set device_num(tid) device_type(acc_device_nvidia)
+    data_create_device_x(data->x, size);
+  }
 
   return 0;
 }
@@ -624,13 +722,25 @@ static int data_allocate_x(data_t *data){
 
 static int data_allocate_y(data_t *data){
 
+  int nthreads;
+  int *tylow = NULL, *tyhi = NULL;
+
   assert(data);
 
   mem_malloc_integers(&data->y, data->dimy * data->N);
-  // TIMER_start(TIMER_DEVICE_ALLOC);
-  data_create_device_y(data->y, data->dimy * data->N);
-  // #pragma acc enter data create(data->y[:data->dimy * data->N])
-  // TIMER_stop(TIMER_DEVICE_ALLOC);
+
+  dc_nthreads(data->dc, &nthreads);
+  dc_tyb(data->dc, &tylow, &tyhi);
+
+  #pragma omp parallel default(shared) num_threads(nthreads)
+  {
+    int tid = omp_get_thread_num();
+    int size = tyhi[tid] - tylow[tid];
+    /* Switch to the appropriate device and allocate memory on it */
+    #pragma acc set device_num(tid) device_type(acc_device_nvidia)
+    data_create_device_y(data->y, size);
+  }
+
   return 0;
 }
 

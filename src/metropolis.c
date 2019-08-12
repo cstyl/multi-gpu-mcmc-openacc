@@ -79,7 +79,7 @@ int met_init_rt(pe_t *pe, rt_t *rt, met_t *met){
   sample_init_rt(rt, met->proposed);
 
   data_create_train(pe, &met->data);
-  data_init_train_rt(rt, met->data);
+  data_init_train_rt(pe, rt, met->data);
   data_input_train_info(pe, met->data);
 
   rt_string_parameter(rt, "kernel", kernel_value, BUFSIZ);

@@ -5,6 +5,7 @@
 #include <stdlib.h>
 
 #include "logistic_regression.h"
+#include "decomposition.h"
 #include "memory.h"
 #include "timer.h"
 
@@ -18,15 +19,15 @@ struct lr_s{
   int N;
 };
 
-extern void GEMV(char trans, int m, int n,
-                 const precision *alpha, const precision *A, int lda,
-                 const precision *x, int incx, const precision  *beta,
-                 precision *y, int incy);
+// extern void GEMV(char trans, int m, int n,
+//                  const precision alpha, const precision *A, int lda,
+//                  const precision *x, int incx, const precision  beta,
+//                  precision *y, int incy);
 
 void lr_create_device_dot(precision *dot, int size);
 void mvmul(int rows, int cols, precision *REST mat, precision *REST vec, precision *REST dot);
-void nvidia_mvmul(int rows, int cols, precision *REST mat, precision *REST vec, precision *REST dot);
 precision reduce_lhood(precision *REST dot, int *REST y, int n);
+// void nvidia_mvmul(int rows, int cols, precision *REST mat, precision *REST vec, precision *REST dot);
 
 void lr_create_device_dot(precision *dot, int size){
   TIMER_start(TIMER_CREATE_DOT);
@@ -104,21 +105,47 @@ precision lr_lhood(lr_t *lr, precision *sample){
   int * y = NULL;
   int dim = lr->dim, N = lr->N;
   precision lhood = 0.0f;
-  precision alpha = 1.0f, beta = 0.0f;
+  dc_t *dc = NULL;
 
   data_x(lr->data, &x);
   data_y(lr->data, &y);
+  data_dc(lr->data, &dc);
 
   TIMER_start(TIMER_LIKELIHOOD);
 
   TIMER_start(TIMER_MATVECMUL);
+  int nthreads;
+  int *txlow = NULL, *txhi = NULL;
+  dc_nthreads(dc, &nthreads);
+  dc_txb(dc, &txlow, &txhi);
+
+  #pragma omp parallel default(shared) num_threads(nthreads)
+  {
+    int tid = omp_get_thread_num();
+    int size = txhi[tid] - txlow[tid];
+    /* Switch to the appropriate device and allocate memory on it */
+    #pragma acc set device_num(tid) device_type(acc_device_nvidia)
+    mvmul(size/dim, dim, &x[txlow[tid]], sample, &lr->dot[size]);
+  }
+
   // mvmul(lr->N, lr->dim, x, sample, lr->dot);
-  nvidia_mvmul(lr->N, lr->dim, x, sample, lr->dot);
+  // nvidia_mvmul(lr->N, lr->dim, x, sample, lr->dot);
 
   TIMER_stop(TIMER_MATVECMUL);
 
+  int *tylow = NULL, *tyhi = NULL;
+  dc_tyb(dc, &tylow, &tyhi);
+
   TIMER_start(TIMER_REDUCE);
-  lhood = reduce_lhood(lr->dot, y, lr->N);
+  #pragma omp parallel default(shared) num_threads(nthreads) reduction(+:lhood)
+  {
+    int tid = omp_get_thread_num();
+    int size = tyhi[tid] - tylow[tid];
+    /* Switch to the appropriate device and allocate memory on it */
+    #pragma acc set device_num(tid) device_type(acc_device_nvidia)
+    lhood = reduce_lhood(&lr->dot[size], &y[tylow[tid]], lr->N);
+  }
+  // lhood = reduce_lhood(lr->dot, y, lr->N);
   TIMER_stop(TIMER_REDUCE);
 
   TIMER_stop(TIMER_LIKELIHOOD);
@@ -149,14 +176,14 @@ void mvmul(int rows, int cols, precision *REST mat, precision *REST vec, precisi
 
 }
 
-void nvidia_mvmul(int rows, int cols, precision *REST mat, precision *REST vec, precision *REST dot){
-
-  precision alpha = 1.0f, beta = 0.0f;
-
-  #pragma acc data present(mat[:rows*cols],vec[:cols],dot[:rows])
-  #pragma acc host_data use_device(mat, vec, dot)
-  GEMV('T', cols, rows, &alpha, mat, cols, vec, 1, &beta, dot, 1);
-}
+// void nvidia_mvmul(int rows, int cols, precision *REST mat, precision *REST vec, precision *REST dot){
+//
+//   precision alpha = 1.0f, beta = 0.0f;
+//
+//   #pragma acc data present(mat[:rows*cols],vec[:cols],dot[:rows])
+//   #pragma acc host_data use_device(mat, vec, dot)
+//   GEMV('T', cols, rows, alpha, mat, cols, vec, 1, beta, dot, 1);
+// }
 
 precision reduce_lhood(precision *REST dot, int *REST y, int n){
 

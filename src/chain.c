@@ -519,7 +519,6 @@ int ch_append_probability(int idx, precision probability, ch_t *chain){
 int ch_append_stats(int idx, int accepted, ch_t *chain){
 
   assert(chain);
-  // assert(i<=0);
 
   chain->accepted[idx] = chain->accepted[idx-1] + accepted;
   chain->ratio[idx] = (precision)chain->accepted[idx] / (precision)idx;

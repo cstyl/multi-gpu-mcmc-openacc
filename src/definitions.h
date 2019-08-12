@@ -2,6 +2,7 @@
 #define __DEFINITIONS_H__
 
 #include <float.h>
+#include "openacc.h"
 
 #ifdef _FLOAT_
   typedef float precision;
@@ -18,6 +19,18 @@
   #define GEMV cublasDgemv
   #define PRINT_PREC DBL_DIG+3
 #endif
+
+// #if ACCEL == NVIDIA
+//   #define DEVICE acc_device_nvidia
+// #elif ACCEL == AMD
+//   #define DEVICE acc_device_radeon
+// #elif ACCEL == MULTI
+//   #define DEVICE acc_device_host
+// #endif
+
+static const int DEFAULT_PROCS = 1;
+static const int DEFAULT_THREADS = 1;
+static const int DEFAULT_GPUS = 0;
 
 static const char ALGORITHM_DEFAULT[BUFSIZ] = "metropolis";
 static const char KERNEL_DEFAULT[BUFSIZ] = "mvn_block";

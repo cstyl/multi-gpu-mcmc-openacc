@@ -41,7 +41,7 @@ OBJS = \
 		 multivariate_normal.o pe.o prior.o \
 		 ran.o runtime.o sample.o timer.o \
 		 autocorrelation.o effective_sample_size.o \
-		 inference.o util.o
+		 inference.o util.o decomposition.o
 
 ###############################################################################
 #
@@ -62,31 +62,24 @@ verbose:
 code:	$(MAIN).o
 	$(CC) $(CFLAGS) -o $(EXECUTABLE) $(MAIN).o $(LIBRARY) $(LIBS)
 
-# Serial versions
-
-serial:
-	$(MAKE) serial-model
-
-serial-float:
-	$(MAKE) serial-model "OPTS=$(OPTS) -D_FLOAT_"
-
-serial-model:
-	$(MAKE) lib
-	$(MAKE) code "INC=$(INC) -I../mpi_s" "LIBS=$(LIBS) -L../mpi_s -lmpi"
-
 # OpenACC versions
 
 acc-host:
-	$(MAKE) lib "CFLAGS=$(CFLAGS) –ta=host -Minfo=all"
-	$(MAKE) code "CFLAGS=$(CFLAGS) –ta=host -Minfo=all" "INC=$(INC) -I../mpi_s" "LIBS=$(LIBS) -L../mpi_s -lmpi"
+	$(MAKE) lib "CFLAGS=$(CFLAGS) -mp –ta=host"
+	$(MAKE) code "CFLAGS=$(CFLAGS) -mp –ta=host" "INC=$(INC) -I../mpi_s" "LIBS=$(LIBS) -L../mpi_s -lmpi"
+
+acc-host-omp:
+	$(MAKE) lib "CFLAGS=$(CFLAGS) -mp –ta=host"
+	$(MAKE) code "CFLAGS=$(CFLAGS) -mp –ta=host" \
+							 "INC=$(INC) -I../mpi_s" "LIBS=$(LIBS) -L../mpi_s -lmpi"
 
 acc-multi:
 	$(MAKE) lib "CFLAGS=$(CFLAGS) -acc -ta=multicore -Minfo=accel"
 	$(MAKE) code "CFLAGS=$(CFLAGS) -acc -ta=multicore -Minfo=accel" "INC=$(INC) -I../mpi_s" "LIBS=$(LIBS) -L../mpi_s -lmpi"
 
 acc-simple:
-	$(MAKE) lib "CFLAGS=$(CFLAGS) -acc –ta=tesla -Minfo=accel"
-	$(MAKE) code "CFLAGS=$(CFLAGS) -acc –ta=tesla -Minfo=accel" "INC=$(INC) -I../mpi_s" "LIBS=$(LIBS) -L../mpi_s -lmpi"
+	$(MAKE) lib "CFLAGS=$(CFLAGS) -acc -mp –ta=tesla -Minfo=accel"
+	$(MAKE) code "CFLAGS=$(CFLAGS) -acc -mp –ta=tesla -Minfo=accel" "INC=$(INC) -I../mpi_s" "LIBS=$(LIBS) -L../mpi_s -lmpi"
 
 acc-cublas:
 	$(MAKE) lib "CFLAGS=$(CFLAGS) -acc –ta=tesla -Minfo=accel" "LIBS=$(LIBS) -L/lustre/sw/cuda/9.1/lib64 -lcublas -Mcuda"

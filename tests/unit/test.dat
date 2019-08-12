@@ -1,3 +1,7 @@
+nprocs 2
+nthreads 4
+ngpus 4
+
 train_x          ./data/X_train.csv
 train_y          ./data/Y_train.csv
 test_x           ./data/X_test.csv
