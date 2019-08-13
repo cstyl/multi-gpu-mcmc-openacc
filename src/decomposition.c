@@ -109,6 +109,7 @@ int dc_print_info(pe_t *pe, dc_t *dc){
   pe_info(pe, "\n");
   pe_info(pe, "Decomposition Properties\n");
   pe_info(pe, "------------------------\n");
+  pe_info(pe, "%30s\t\t%d\n", "Communicator size:", dc->size);
   pe_info(pe, "%30s\t\t%d\n", "Number of Processes:", nprocs);
   pe_info(pe, "%30s\t\t%d\n", "Number of Threads:", nthreads);
   pe_info(pe, "%30s\t\t%d\n", "Number of GPUs:", ngpus);

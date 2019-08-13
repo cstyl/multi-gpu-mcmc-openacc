@@ -57,6 +57,8 @@ static int mcmc_rt(mcmc_t *mcmc);
 
    mcmc_rt(mcmc);
 
+   MPI_Barrier(comm);
+
    if(mcmc->met)
    {
      TIMER_start(TIMER_MCMC_METROPOLIS);
@@ -78,20 +80,24 @@ static int mcmc_rt(mcmc_t *mcmc);
      TIMER_stop(TIMER_MCMC_METROPOLIS);
    }
 
+   MPI_Barrier(comm);
+
    acr_compute(mcmc->acr);
    acr_print_acr(mcmc->pe, mcmc->acr);
+
+   MPI_Barrier(comm);
 
    ess_compute(mcmc->ess);
    ess_print_ess(mcmc->pe, mcmc->ess);
 
+   MPI_Barrier(comm);
+
    /* Write output files */
    if(pe_mpi_rank(mcmc->pe) == 0)
    {
-     TIMER_start(TIMER_WRITE_FILES);
      ch_write_files(mcmc->burn, "burn");
      ch_write_files(mcmc->chain, "postburn");
      acr_write_acr(mcmc->acr);
-     TIMER_stop(TIMER_WRITE_FILES);
    }
 
    if(mcmc->infr)
@@ -114,6 +120,8 @@ static int mcmc_rt(mcmc_t *mcmc);
 
    TIMER_stop(TIMER_TOTAL);
    TIMER_statistics();
+
+   MPI_Barrier(comm);
 
    acr_free(mcmc->acr);
    ess_free(mcmc->ess);

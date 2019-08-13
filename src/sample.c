@@ -14,6 +14,7 @@
 #define VERBOSE 1
 
 struct sample_s{
+  pe_t *pe;
   precision *values;
   precision prior;
   precision likelihood;
@@ -23,7 +24,7 @@ struct sample_s{
 };
 
 static int sample_allocate_values(sample_t *sample);
-static int sample_print_progress_screen(int idx, ch_t *chain);
+static int sample_print_progress_screen(pe_t *pe, int idx, ch_t *chain);
 static int sample_save_progress(char *outdir, int dec, int idx, sample_t *cur, sample_t *pro);
 
 void sample_create_device_values(precision *values, int size);
@@ -31,15 +32,11 @@ void sample_update_device_values(precision *values, int start, int end);
 void sample_free_device_values(precision *values);
 
 void sample_create_device_values(precision *values, int size){
-  TIMER_start(TIMER_CREATE_VALUES);
   #pragma acc enter data create(values[:size])
-  TIMER_stop(TIMER_CREATE_VALUES);
 }
 
 void sample_update_device_values(precision *values, int start, int end){
-  TIMER_start(TIMER_UPDATE_VALUES);
   #pragma acc update device(values[start:end])
-  TIMER_stop(TIMER_UPDATE_VALUES);
 }
 
 void sample_free_device_values(precision *values){
@@ -61,6 +58,8 @@ int sample_create(pe_t *pe, sample_t **psample){
   sample = (sample_t *) calloc(1, sizeof(sample_t));
   assert(sample);
   if(sample == NULL) pe_fatal(pe, "calloc(sample_t) failed\n");
+
+  sample->pe = pe;
 
   sample_dim_set(sample, DIMX_DEFAULT);
   sample_devices_set(sample, DEFAULT_THREADS);  /* Each device should correspond to a thread */
@@ -147,6 +146,7 @@ int sample_propose_mvnb(mvnb_t *mvnb, sample_t *cur, sample_t *pro){
   mvn_block_sample(mvnb, current, proposed);
 
   int devices = pro->devices;
+  TIMER_start(TIMER_UPDATE_VALUES);
   #pragma omp parallel default(shared) num_threads(devices)
   {
     int tid = omp_get_thread_num();
@@ -154,7 +154,7 @@ int sample_propose_mvnb(mvnb_t *mvnb, sample_t *cur, sample_t *pro){
     #pragma acc set device_num(tid) device_type(acc_device_nvidia)
     sample_update_device_values(pro->values, 0, pro->dim);
   }
-
+  TIMER_stop(TIMER_UPDATE_VALUES);
   TIMER_stop(TIMER_PROPOSAL);
   return 0;
 }
@@ -246,12 +246,13 @@ void sample_choose(int idx, ch_t *chain, sample_t **pcur, sample_t **ppro){
   {
     if(((idx==1) || idx%outfreq==0))
     {
-      sample_print_progress_screen(idx, chain);
+      sample_print_progress_screen(pro->pe, idx, chain);
       if(VERBOSE)
       {
         char outdir[FILENAME_MAX];
         ch_outdir(chain, outdir);
-        sample_save_progress(outdir, accepted, idx, cur, pro);
+        int rank = pe_mpi_rank(pro->pe);
+        if(rank==0) sample_save_progress(outdir, accepted, idx, cur, pro);
       }
     }
   }
@@ -473,6 +474,7 @@ static int sample_allocate_values(sample_t *sample){
   mem_malloc_precision(&sample->values, sample->dim);
 
   int devices = sample->devices;
+  TIMER_start(TIMER_CREATE_VALUES);
   #pragma omp parallel default(shared) num_threads(devices)
   {
     int tid = omp_get_thread_num();
@@ -480,6 +482,7 @@ static int sample_allocate_values(sample_t *sample){
     #pragma acc set device_num(tid) device_type(acc_device_nvidia)
     sample_create_device_values(sample->values, sample->dim);
   }
+  TIMER_stop(TIMER_CREATE_VALUES);
 
   return 0;
 }
@@ -490,7 +493,7 @@ static int sample_allocate_values(sample_t *sample){
  *
  *****************************************************************************/
 
-static int sample_print_progress_screen(int idx, ch_t *chain){
+static int sample_print_progress_screen(pe_t *pe, int idx, ch_t *chain){
 
   precision *ratio = NULL;
   int *accepted = NULL;
@@ -500,9 +503,9 @@ static int sample_print_progress_screen(int idx, ch_t *chain){
   ch_ratio(chain, &ratio);
   ch_accepted(chain, &accepted);
 
-  printf("Iteration %6d:\t", idx);
-  printf("%20s%6d\t", "Accepted Samples = ", accepted[idx]);
-  printf("%20s%4.3f%s\n", "Acceptance Ratio = ",ratio[idx]*100, "(%)");
+  pe_info(pe, "Iteration %6d:\t", idx);
+  pe_info(pe, "%20s%6d\t", "Accepted Samples = ", accepted[idx]);
+  pe_info(pe, "%20s%4.3f%s\n", "Acceptance Ratio = ",ratio[idx]*100, "(%)");
 
   return 0;
 }

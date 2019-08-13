@@ -105,7 +105,6 @@ int pe_create(MPI_Comm parent, pe_enum_t flag, pe_t ** ppe) {
 int pe_retain(pe_t * pe) {
 
   assert(pe);
-
   pe->nref += 1;
 
   return 0;

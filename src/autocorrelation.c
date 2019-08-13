@@ -247,7 +247,7 @@ int acr_write_acr(acr_t *acr){
 
     for(j=0; j<acr->maxlag; j++)
     {
-      fprintf(fp, "%.*e,", PRINT_PREC-1,acr->lagk[i*acr->maxlag+j]);
+      fprintf(fp, "%.*e\n", PRINT_PREC-1,acr->lagk[i*acr->maxlag+j]);
     }
     fclose(fp);
     printf("\tDone\n");

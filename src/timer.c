@@ -59,7 +59,6 @@ static const char * timer_name[] = {"Total",
                                     "MC Integration",
                                     "Logistic Regression",
                                     "Load Training Set",
-                                    "Load Test Set",
                                     "Write Output Files",
                                     "Dev Create Dot",
                                     "Dev Create Values",
@@ -165,11 +164,8 @@ void TIMER_statistics() {
   pe_info(pe_stat, "%25s: %10s %10s %10s\n", "Section", "  tmin", "  tmax", " total");
 
   for (n = 0; n < TIMER_NTIMERS; n++) {
-
     /* Report the stats for active timers */
-
     if (timer[n].nsteps != 0) {
-
       t_min = timer[n].t_min;
       t_max = timer[n].t_max;
       t_sum = timer[n].t_sum;

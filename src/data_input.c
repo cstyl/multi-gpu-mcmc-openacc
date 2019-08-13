@@ -553,6 +553,7 @@ int data_read_file(pe_t *pe, data_t *data){
   dc_nthreads(data->dc, &nthreads);
   dc_tbound(data->dc, &tlow, &thi);
 
+  TIMER_start(TIMER_UPDATE_DATA);
   #pragma omp parallel default(shared) num_threads(nthreads)
   {
     int tid = omp_get_thread_num();
@@ -565,6 +566,7 @@ int data_read_file(pe_t *pe, data_t *data){
     data_update_device_x(data->x, tlow[tid]*data->dimx, thi[tid]*data->dimx);
     data_update_device_y(data->y, tlow[tid]*data->dimy, thi[tid]*data->dimy);
   }
+  TIMER_stop(TIMER_UPDATE_DATA);
 
   return 0;
 }
@@ -623,9 +625,7 @@ static int data_csvread(pe_t *pe, char *filename, int rowSz, int colSz, int skip
  *****************************************************************************/
 
 void data_create_device_x(precision *x, int start, int end){
-  TIMER_start(TIMER_CREATE_DATA);
   #pragma acc enter data create(x[start:end])
-  TIMER_stop(TIMER_CREATE_DATA);
 }
 
 /*****************************************************************************
@@ -635,9 +635,7 @@ void data_create_device_x(precision *x, int start, int end){
  *****************************************************************************/
 
 void data_create_device_y(int *y, int start, int end){
-  TIMER_start(TIMER_CREATE_DATA);
   #pragma acc enter data create(y[start:end])
-  TIMER_stop(TIMER_CREATE_DATA);
 }
 
 /*****************************************************************************
@@ -647,9 +645,7 @@ void data_create_device_y(int *y, int start, int end){
  *****************************************************************************/
 
 void data_update_device_x(precision *x, int start, int end){
-  TIMER_start(TIMER_UPDATE_DATA);
   #pragma acc update device(x[start:end])
-  TIMER_stop(TIMER_UPDATE_DATA);
 }
 
 /*****************************************************************************
@@ -659,9 +655,7 @@ void data_update_device_x(precision *x, int start, int end){
  *****************************************************************************/
 
 void data_update_device_y(int *y, int start, int end){
-  TIMER_start(TIMER_UPDATE_DATA);
   #pragma acc update device(y[start:end])
-  TIMER_stop(TIMER_UPDATE_DATA);
 }
 
 /*****************************************************************************
@@ -717,6 +711,7 @@ static int data_allocate_x(data_t *data){
   dc_nthreads(data->dc, &nthreads);
   dc_tbound(data->dc, &tlow, &thi);
 
+  TIMER_start(TIMER_CREATE_DATA);
   #pragma omp parallel default(shared) num_threads(nthreads)
   {
     int tid = omp_get_thread_num();
@@ -724,6 +719,7 @@ static int data_allocate_x(data_t *data){
     #pragma acc set device_num(tid) device_type(acc_device_nvidia)
     data_create_device_x(data->x, tlow[tid]*data->dimx, thi[tid]*data->dimx);
   }
+  TIMER_stop(TIMER_CREATE_DATA);
 
   return 0;
 }
@@ -746,6 +742,7 @@ static int data_allocate_y(data_t *data){
   dc_nthreads(data->dc, &nthreads);
   dc_tbound(data->dc, &tlow, &thi);
 
+  TIMER_start(TIMER_CREATE_DATA);
   #pragma omp parallel default(shared) num_threads(nthreads)
   {
     int tid = omp_get_thread_num();
@@ -753,7 +750,7 @@ static int data_allocate_y(data_t *data){
     #pragma acc set device_num(tid) device_type(acc_device_nvidia)
     data_create_device_y(data->y, tlow[tid]*data->dimy, thi[tid]*data->dimy);
   }
-
+  TIMER_stop(TIMER_CREATE_DATA);
   return 0;
 }
 

@@ -111,9 +111,7 @@ int infr_init(pe_t *pe, infr_t *infr){
   assert(pe);
   assert(infr);
 
-  TIMER_start(TIMER_LOAD_TEST);
   data_read_file(pe, infr->data); /* Load data */
-  TIMER_stop(TIMER_LOAD_TEST);
 
   return 0;
 }

@@ -11,7 +11,14 @@
 
 #define REST __restrict__
 
+#ifdef _FLOAT_
+  MPI_Datatype MPI_PRECISION = MPI_FLOAT;
+#else
+  MPI_Datatype MPI_PRECISION = MPI_DOUBLE;
+#endif
+
 struct lr_s{
+  pe_t *pe;
   data_t *data;
   precision *dot;
   precision lhood;
@@ -30,9 +37,7 @@ precision reduce_lhood(precision *REST dot, int *REST y, int n);
 // void nvidia_mvmul(int rows, int cols, precision *REST mat, precision *REST vec, precision *REST dot);
 
 void lr_create_device_dot(precision *dot, int start, int end){
-  TIMER_start(TIMER_CREATE_DOT);
   #pragma acc enter data create(dot[start:end])
-  TIMER_stop(TIMER_CREATE_DOT);
 }
 
 void lr_free_device_dot(precision *dot){
@@ -57,6 +62,7 @@ int lr_lhood_create(pe_t *pe, data_t *data, lr_t **plr){
   if(lr == NULL) pe_fatal(pe, "calloc(lr_t) failed\n");
 
   lr->data = data;
+  lr->pe = pe;
 
   data_dimx(data, &lr->dim);
   data_N(data, &lr->N);
@@ -70,14 +76,16 @@ int lr_lhood_create(pe_t *pe, data_t *data, lr_t **plr){
   dc_nthreads(dc, &nthreads);
   dc_tbound(dc, &tlow, &thi);
 
+  TIMER_start(TIMER_CREATE_DOT);
   #pragma omp parallel default(shared) num_threads(nthreads)
   {
     int tid = omp_get_thread_num();
     int size = thi[tid] - tlow[tid];
     /* Switch to the appropriate device and allocate memory on it */
     #pragma acc set device_num(tid) device_type(acc_device_nvidia)
-    lr_create_device_dot(lr->dot, 0, size);
+    lr_create_device_dot(lr->dot, tlow[tid], thi[tid]);
   }
+  TIMER_stop(TIMER_CREATE_DOT);
 
   *plr = lr;
 
@@ -125,11 +133,16 @@ precision lr_lhood(lr_t *lr, precision *sample){
 
   assert(lr);
 
+  MPI_Comm comm;
+  precision global_lhood = 0.0;
+
   precision *x = NULL;
   int * y = NULL;
   int dim = lr->dim, N = lr->N;
   precision lhood = 0.0f;
   dc_t *dc = NULL;
+
+  pe_mpi_comm(lr->pe, &comm);
 
   data_x(lr->data, &x);
   data_y(lr->data, &y);
@@ -150,7 +163,7 @@ precision lr_lhood(lr_t *lr, precision *sample){
     int size = thi[tid] - tlow[tid];
     /* Switch to the appropriate device and allocate memory on it */
     #pragma acc set device_num(tid) device_type(acc_device_nvidia)
-    mvmul(size, dim, &x[tlow[tid]*dim], sample, lr->dot);
+    mvmul(size, dim, &x[tlow[tid]*dim], sample, &lr->dot[tlow[tid]]);
   }
 
   // mvmul(lr->N, lr->dim, x, sample, lr->dot);
@@ -165,14 +178,16 @@ precision lr_lhood(lr_t *lr, precision *sample){
     int size = thi[tid] - tlow[tid];
     /* Switch to the appropriate device and allocate memory on it */
     #pragma acc set device_num(tid) device_type(acc_device_nvidia)
-    lhood = reduce_lhood(lr->dot, &y[tlow[tid]], size);
+    lhood = reduce_lhood(&lr->dot[tlow[tid]], &y[tlow[tid]], size);
   }
-  // lhood = reduce_lhood(lr->dot, y, lr->N);
+
   TIMER_stop(TIMER_REDUCE);
+
+  MPI_Allreduce(&lhood, &global_lhood, 1, MPI_PRECISION, MPI_SUM, comm);
 
   TIMER_stop(TIMER_LIKELIHOOD);
 
-  return lhood;
+  return global_lhood;
 }
 
 void mvmul(int rows, int cols, precision *REST mat, precision *REST vec, precision *REST dot){
