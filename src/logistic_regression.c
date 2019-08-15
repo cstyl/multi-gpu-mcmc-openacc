@@ -19,12 +19,12 @@ struct lr_s{
 };
 
 extern void GEMV(char trans, int m, int n,
-                 const precision *alpha, const precision *A, int lda,
-                 const precision *x, int incx, const precision  *beta,
+                 const precision alpha, const precision *A, int lda,
+                 const precision *x, int incx, const precision  beta,
                  precision *y, int incy);
 
 void lr_create_device_dot(precision *dot, int size);
-void mvmul(int rows, int cols, precision *REST mat, precision *REST vec, precision *REST dot);
+
 void nvidia_mvmul(int rows, int cols, precision *REST mat, precision *REST vec, precision *REST dot);
 precision reduce_lhood(precision *REST dot, int *REST y, int n);
 
@@ -105,48 +105,25 @@ precision lr_lhood(lr_t *lr, precision *sample){
   int dim = lr->dim, N = lr->N;
   precision lhood = 0.0f;
   precision alpha = 1.0f, beta = 0.0f;
-
+  precision *dot = lr->dot;
   data_x(lr->data, &x);
   data_y(lr->data, &y);
 
   TIMER_start(TIMER_LIKELIHOOD);
 
   TIMER_start(TIMER_MATVECMUL);
-  // mvmul(lr->N, lr->dim, x, sample, lr->dot);
+
   nvidia_mvmul(lr->N, lr->dim, x, sample, lr->dot);
 
   TIMER_stop(TIMER_MATVECMUL);
 
   TIMER_start(TIMER_REDUCE);
-  lhood = reduce_lhood(lr->dot, y, lr->N);
+  lhood = reduce_lhood(dot, y, lr->N);
   TIMER_stop(TIMER_REDUCE);
 
   TIMER_stop(TIMER_LIKELIHOOD);
 
   return lhood;
-}
-
-void mvmul(int rows, int cols, precision *REST mat, precision *REST vec, precision *REST dot){
-
-  int i, j;
-
-  #pragma acc kernels present(dot[:rows]) \
-                      present(vec[:cols]) \
-                      present(mat[:rows*cols])
-  {
-    #pragma acc loop
-    for(i=0; i<rows; i++)
-    {
-      precision dot_local = 0.0f;
-      #pragma acc loop seq
-      for(j=0; j<cols; j++)
-      {
-        dot_local += vec[j] * mat[i*cols+j];
-      }
-      dot[i] = dot_local;
-    }
-  }
-
 }
 
 void nvidia_mvmul(int rows, int cols, precision *REST mat, precision *REST vec, precision *REST dot){
@@ -155,7 +132,7 @@ void nvidia_mvmul(int rows, int cols, precision *REST mat, precision *REST vec, 
 
   #pragma acc data present(mat[:rows*cols],vec[:cols],dot[:rows])
   #pragma acc host_data use_device(mat, vec, dot)
-  GEMV('T', cols, rows, &alpha, mat, cols, vec, 1, &beta, dot, 1);
+  GEMV('T', cols, rows, alpha, mat, cols, vec, 1, beta, dot, 1);
 }
 
 precision reduce_lhood(precision *REST dot, int *REST y, int n){
