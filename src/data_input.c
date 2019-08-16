@@ -12,6 +12,7 @@
 #define SKIP_HEADER 1
 
 struct data_s{
+  pe_t *pe;
   dc_t *dc;     /* Data decomposition */
   int dimx;
   int dimy;
@@ -20,6 +21,9 @@ struct data_s{
   int *y;
   char fx[FILENAME_MAX];
   char fy[FILENAME_MAX];
+  int rank;
+  int nprocs;
+  int nthreads;
 };
 
 static int data_csvread(pe_t *pe, char *filename, int rowSz, int colSz, int skip_header,
@@ -52,6 +56,8 @@ int data_create_train(pe_t *pe, data_t **pdata){
   assert(data);
   if(data == NULL) pe_fatal(pe, "calloc(data_t) failed\n");
 
+  data->pe = pe;
+
   data_dimx_set(data, DIMX_DEFAULT);
   data_dimy_set(data, DIMY_DEFAULT);
   data_N_set(data, N_TRAIN_DEFAULT);
@@ -79,6 +85,8 @@ int data_create_test(pe_t *pe, data_t **pdata){
    assert(data);
    if(data == NULL) pe_fatal(pe, "calloc(data_t) failed\n");
 
+   data->pe = pe;
+
    data_dimx_set(data, DIMX_DEFAULT);
    data_dimy_set(data, DIMY_DEFAULT);
    data_N_set(data, N_TEST_DEFAULT);
@@ -102,16 +110,19 @@ int data_free(data_t *data){
 
    if(data->dc)
    {
-     int nthreads;
-     dc_nthreads(data->dc, &nthreads);
+     int nthreads = data->nthreads;
      /* Make sure each device memory is deleted */
      #pragma omp parallel default(shared) num_threads(nthreads)
      {
        int tid = omp_get_thread_num();
+       int gpuid = tid + nthreads*(data->rank%data->nprocs);
+       printf("[%d] free data: t %d gpu %d\n", data->rank, tid, gpuid);
        /* Switch to the appropriate device and deallocate memory on it */
-       #pragma acc set device_num(tid) device_type(acc_device_nvidia)
+       #pragma acc set device_num(gpuid) device_type(acc_device_nvidia)
        data_free_device_x(data->x);
+       printf("[%d] free x: t %d gpu %d done\n", data->rank, tid, gpuid);
        data_free_device_y(data->y);
+       printf("[%d] free y: t %d gpu %d done\n", data->rank, tid, gpuid);
      }
      dc_free(data->dc);  /* Do that after the devices are dealloacated */
    }
@@ -168,6 +179,10 @@ int data_init_train_rt(pe_t *pe, rt_t *rt, data_t *train){
   dc_print_info(pe, train->dc);
   dc_decompose(train->N, train->dc);
 
+  train->rank = pe_mpi_rank(train->pe);
+  dc_nprocs(train->dc, &train->nprocs);
+  dc_nthreads(train->dc, &train->nthreads);
+
   data_allocate_x(train);
   data_allocate_y(train);
 
@@ -217,6 +232,10 @@ int data_init_test_rt(pe_t *pe, rt_t *rt, data_t *test){
   dc_init_rt(pe, rt, test->dc);
   dc_print_info(pe, test->dc);
   dc_decompose(test->N, test->dc);
+
+  test->rank = pe_mpi_rank(test->pe);
+  dc_nprocs(test->dc, &test->nprocs);
+  dc_nthreads(test->dc, &test->nthreads);
 
   data_allocate_x(test);
   data_allocate_y(test);
@@ -538,7 +557,6 @@ int data_dc(data_t *data, dc_t **pdc){
 
 int data_read_file(pe_t *pe, data_t *data){
 
-  int nthreads;
   int *tlow = NULL, *thi = NULL;
 
   assert(data);
@@ -550,21 +568,24 @@ int data_read_file(pe_t *pe, data_t *data){
 
   /*  Use OpenMP to split the data and send to appropriate devices
   */
-  dc_nthreads(data->dc, &nthreads);
   dc_tbound(data->dc, &tlow, &thi);
-
+  int nthreads = data->nthreads;
   TIMER_start(TIMER_UPDATE_DATA);
   #pragma omp parallel default(shared) num_threads(nthreads)
   {
     int tid = omp_get_thread_num();
+    int gpuid = tid + nthreads*(data->rank%data->nprocs);
     /* Switch to the appropriate device
     *  Need to make sure each device is allocate the correct portion of the data
     *  Since the whole matrix is available on each process,
     *  no offset is required to be subtracted
     */
-    #pragma acc set device_num(tid) device_type(acc_device_nvidia)
+    printf("[%d] update data: t %d gpu %d low %d hi %d\n", data->rank, tid, gpuid, tlow[tid], thi[tid]);
+    #pragma acc set device_num(gpuid) device_type(acc_device_nvidia)
     data_update_device_x(data->x, tlow[tid]*data->dimx, thi[tid]*data->dimx);
+    printf("[%d] update x: t %d gpu %d done\n", data->rank, tid, gpuid);
     data_update_device_y(data->y, tlow[tid]*data->dimy, thi[tid]*data->dimy);
+    printf("[%d] update y: t %d gpu %d done\n", data->rank, tid, gpuid);
   }
   TIMER_stop(TIMER_UPDATE_DATA);
 
@@ -701,24 +722,29 @@ static void data_rmheader(char* line, FILE *fp, int skip_num){
 
 static int data_allocate_x(data_t *data){
 
-  int nthreads;
   int *tlow = NULL, *thi = NULL;
 
   assert(data);
 
   mem_malloc_precision(&data->x, data->dimx * data->N);
 
-  dc_nthreads(data->dc, &nthreads);
   dc_tbound(data->dc, &tlow, &thi);
 
   TIMER_start(TIMER_CREATE_DATA);
+  int nthreads = data->nthreads;
   #pragma omp parallel default(shared) num_threads(nthreads)
   {
     int tid = omp_get_thread_num();
+    int gpuid = tid + nthreads*(data->rank%data->nprocs);
+    printf("[%d] alloc x: t %d gpu %d low %d hi %d\n", data->rank, tid, gpuid, tlow[tid], thi[tid]);
     /* Switch to the appropriate device and allocate memory on it */
-    #pragma acc set device_num(tid) device_type(acc_device_nvidia)
+    #pragma acc set device_num(gpuid) device_type(acc_device_nvidia)
     data_create_device_x(data->x, tlow[tid]*data->dimx, thi[tid]*data->dimx);
+    printf("[%d] alloc x: t %d gpu %d done\n", data->rank, tid, gpuid);
   }
+  MPI_Comm comm;
+  pe_mpi_comm(data->pe, &comm);
+  MPI_Barrier(comm);
   TIMER_stop(TIMER_CREATE_DATA);
 
   return 0;
@@ -732,23 +758,25 @@ static int data_allocate_x(data_t *data){
 
 static int data_allocate_y(data_t *data){
 
-  int nthreads;
   int *tlow = NULL, *thi = NULL;
 
   assert(data);
 
   mem_malloc_integers(&data->y, data->dimy * data->N);
 
-  dc_nthreads(data->dc, &nthreads);
   dc_tbound(data->dc, &tlow, &thi);
 
   TIMER_start(TIMER_CREATE_DATA);
+  int nthreads = data->nthreads;
   #pragma omp parallel default(shared) num_threads(nthreads)
   {
     int tid = omp_get_thread_num();
+    int gpuid = tid + nthreads*(data->rank%data->nprocs);
+    printf("[%d] alloc y: t %d gpu %d low %d hi %d\n", data->rank, tid, gpuid, tlow[tid], thi[tid]);
     /* Switch to the appropriate device and allocate memory on it */
-    #pragma acc set device_num(tid) device_type(acc_device_nvidia)
+    #pragma acc set device_num(gpuid) device_type(acc_device_nvidia)
     data_create_device_y(data->y, tlow[tid]*data->dimy, thi[tid]*data->dimy);
+    printf("[%d] alloc y: t %d gpu %d done\n", data->rank, tid, gpuid);
   }
   TIMER_stop(TIMER_CREATE_DATA);
   return 0;

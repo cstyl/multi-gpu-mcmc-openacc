@@ -2,7 +2,10 @@
 #define __DEFINITIONS_H__
 
 #include <float.h>
+
+#if _OPENACC
 #include "openacc.h"
+#endif
 
 #ifdef _FLOAT_
   typedef float precision;
@@ -28,6 +31,7 @@
 //   #define DEVICE acc_device_host
 // #endif
 
+static const int DEFAULT_NODES = 1;
 static const int DEFAULT_PROCS = 1;
 static const int DEFAULT_THREADS = 1;
 static const int DEFAULT_GPUS = 0;

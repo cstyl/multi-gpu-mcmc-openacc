@@ -20,7 +20,9 @@ struct sample_s{
   precision likelihood;
   precision posterior;
   int dim;
-  int devices;
+  int rank;
+  int nthreads;
+  int nprocs;
 };
 
 static int sample_allocate_values(sample_t *sample);
@@ -62,7 +64,7 @@ int sample_create(pe_t *pe, sample_t **psample){
   sample->pe = pe;
 
   sample_dim_set(sample, DIMX_DEFAULT);
-  sample_devices_set(sample, DEFAULT_THREADS);  /* Each device should correspond to a thread */
+  sample_nthreads_set(sample, DEFAULT_THREADS);  /* Each device should correspond to a thread */
 
   *psample = sample;
 
@@ -79,12 +81,16 @@ int sample_free(sample_t *sample){
 
   assert(sample);
 
-  int devices = sample->devices;
-  #pragma omp parallel default(shared) num_threads(devices)
+  int rank = pe_mpi_rank(sample->pe);
+  int nthreads = sample->nthreads;
+  int nprocs = sample->nprocs;
+
+  #pragma omp parallel default(shared) num_threads(nthreads)
   {
     int tid = omp_get_thread_num();
+    int gpuid = tid + nthreads*(rank%nprocs);
     /* Switch to the appropriate device and deallocate memory */
-    #pragma acc set device_num(tid) device_type(acc_device_nvidia)
+    #pragma acc set device_num(gpuid) device_type(acc_device_nvidia)
     sample_free_device_values(sample->values);
   }
 
@@ -102,7 +108,7 @@ int sample_free(sample_t *sample){
 
 int sample_init_rt(rt_t *rt, sample_t *sample){
 
-  int dim, nthreads;
+  int dim, nthreads, nprocs;
 
   assert(rt);
   assert(sample);
@@ -112,10 +118,17 @@ int sample_init_rt(rt_t *rt, sample_t *sample){
     sample_dim_set(sample, dim);
   }
 
+  if(rt_int_parameter(rt, "nprocs", &nprocs))
+  {
+    sample_nprocs_set(sample, nprocs);
+  }
+
   if(rt_int_parameter(rt, "nthreads", &nthreads))
   {
-    sample_devices_set(sample, nthreads);
+    sample_nthreads_set(sample, nthreads);
   }
+
+  int rank = pe_mpi_rank(sample->pe);
 
   sample_allocate_values(sample);
 
@@ -145,11 +158,13 @@ int sample_propose_mvnb(mvnb_t *mvnb, sample_t *cur, sample_t *pro){
 
   mvn_block_sample(mvnb, current, proposed);
 
-  int devices = pro->devices;
+
+  int nthreads = pro->nthreads;
   TIMER_start(TIMER_UPDATE_VALUES);
-  #pragma omp parallel default(shared) num_threads(devices)
+  #pragma omp parallel default(shared) num_threads(nthreads)
   {
     int tid = omp_get_thread_num();
+    int gpuid = tid + nthreads*(pro->rank%pro->nprocs);
     /* Switch to the appropriate device and update data */
     #pragma acc set device_num(tid) device_type(acc_device_nvidia)
     sample_update_device_values(pro->values, 0, pro->dim);
@@ -277,12 +292,13 @@ int sample_init_zero(sample_t *sample){
   for(i=0; i<sample->dim; i++)
     sample->values[i] = 0.0;
 
-  int devices = sample->devices;
-  #pragma omp parallel default(shared) num_threads(devices)
+  int nthreads = sample->nthreads;
+  #pragma omp parallel default(shared) num_threads(nthreads)
   {
     int tid = omp_get_thread_num();
+    int gpuid = tid + nthreads*(sample->rank%sample->nprocs);
     /* Switch to the appropriate device and update data */
-    #pragma acc set device_num(tid) device_type(acc_device_nvidia)
+    #pragma acc set device_num(gpuid) device_type(acc_device_nvidia)
     sample_update_device_values(sample->values, 0, sample->dim);
   }
 
@@ -355,15 +371,30 @@ int sample_posterior_set(sample_t *sample, precision posterior){
 
 /*****************************************************************************
  *
- *  sample_devices_set
+ *  sample_nprocs_set
  *
  *****************************************************************************/
 
-int sample_devices_set(sample_t *sample, int devices){
+int sample_nprocs_set(sample_t *sample, int nprocs){
 
   assert(sample);
 
-  sample->devices = devices;
+  sample->nprocs = nprocs;
+
+  return 0;
+}
+
+/*****************************************************************************
+ *
+ *  sample_nthreads_set
+ *
+ *****************************************************************************/
+
+int sample_nthreads_set(sample_t *sample, int nthreads){
+
+  assert(sample);
+
+  sample->nthreads = nthreads;
 
   return 0;
 }
@@ -473,13 +504,14 @@ static int sample_allocate_values(sample_t *sample){
 
   mem_malloc_precision(&sample->values, sample->dim);
 
-  int devices = sample->devices;
+  int nthreads = sample->nthreads;
   TIMER_start(TIMER_CREATE_VALUES);
-  #pragma omp parallel default(shared) num_threads(devices)
+  #pragma omp parallel default(shared) num_threads(nthreads)
   {
     int tid = omp_get_thread_num();
+    int gpuid = tid + nthreads*(sample->rank%sample->nprocs);
     /* Switch to the appropriate device and allocate memory */
-    #pragma acc set device_num(tid) device_type(acc_device_nvidia)
+    #pragma acc set device_num(gpuid) device_type(acc_device_nvidia)
     sample_create_device_values(sample->values, sample->dim);
   }
   TIMER_stop(TIMER_CREATE_VALUES);

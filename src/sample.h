@@ -14,18 +14,18 @@ int sample_create(pe_t *pe, sample_t **psample);
 int sample_free(sample_t *sample);
 int sample_init_rt(rt_t *rt, sample_t *sample);
 
-int sample_dim_set(sample_t *sample, int dim);
-int sample_prior_set(sample_t *sample, precision prior);
-int sample_likelihood_set(sample_t *sample, precision likelihood);
-int sample_posterior_set(sample_t *sample, precision posterior);
-int sample_devices_set(sample_t *sample, int devices);
-
 int sample_copy_values(sample_t *sample, precision *values);
 int sample_values(sample_t *sample, precision **pvalues);
+int sample_dim_set(sample_t *sample, int dim);
 int sample_dim(sample_t *sample, int *dim);
+int sample_prior_set(sample_t *sample, precision prior);
 int sample_prior(sample_t *sample, precision *prior);
+int sample_likelihood_set(sample_t *sample, precision likelihood);
 int sample_likelihood(sample_t *sample, precision *likelihood);
+int sample_posterior_set(sample_t *sample, precision posterior);
 int sample_posterior(sample_t *sample, precision *posterior);
+int sample_nprocs_set(sample_t *sample, int nprocs);
+int sample_nthreads_set(sample_t *sample, int nthreads);
 
 int sample_init_zero(sample_t *sample);
 int sample_propose_mvnb(mvnb_t *mvnb, sample_t *cur, sample_t *pro);
