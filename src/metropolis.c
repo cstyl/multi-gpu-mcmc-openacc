@@ -47,12 +47,21 @@ int met_free(met_t *met){
 
   assert(met);
 
+  MPI_Comm comm;
+  pe_mpi_comm(met->pe, &comm);
+  MPI_Barrier(comm);
   if(met->mvnb) mvn_block_free(met->mvnb);
+  // printf("block ok\n");
   if(met->lr) lr_lhood_free(met->lr);
+  // printf("lhood ok\n");
   if(met->current) sample_free(met->current);
+  // printf("current ok\n");
   if(met->proposed) sample_free(met->proposed);
+  // printf("prop ok\n");
   if(met->data) data_free(met->data);
+  // printf("data ok\n");
   mem_free((void**)&met);
+  // printf("met ok\n");
 
   return 0;
 }

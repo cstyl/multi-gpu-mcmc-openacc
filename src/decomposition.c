@@ -87,23 +87,10 @@ int dc_init_rt(pe_t *pe, rt_t *rt, dc_t *dc){
   dc->rank = pe_mpi_rank(dc->pe);
   dc->size = pe_mpi_size(dc->pe);
 
-  // // int devnum = acc_get_num_devices(acc_device_nvidia);
-  // int devnum = 0;
-  // nthreads = dc->nthreads;
-  // pe_verbose(pe, "Process %d sees %d gpus and runs on %d threads\n", dc->rank, devnum, nthreads);
-  //
-  // /* Decompose over OMP threads */
-  // #pragma omp parallel default(shared) num_threads(nthreads)
-  // {
-  //   int tid = omp_get_thread_num();
-  //   int gpuid = tid + nthreads*(dc->rank%dc->nprocs);
-  //   // printf("Process %d sees %d gpus. Thread %d selects device %d\n", dc->rank, acc_get_num_devices(acc_device_nvidia), tid, gpuid);
-  //   printf("Process %d sees %d gpus. Thread %d selects device %d\n", dc->rank, 0, tid, gpuid);
-  // }
-
   // dc_check_inputs(pe, dc->nprocs, dc->nthreads, dc->ngpus);
   mem_malloc_integers(&dc->tlow, dc->nthreads);
   mem_malloc_integers(&dc->thi, dc->nthreads);
+
   return 0;
 }
 
@@ -125,7 +112,6 @@ int dc_print_info(pe_t *pe, dc_t *dc){
   dc_nthreads(dc, &nthreads);
   dc_ngpus(dc, &ngpus);
 
-
   pe_info(pe, "\n");
   pe_info(pe, "Decomposition Properties\n");
   pe_info(pe, "------------------------\n");
@@ -145,7 +131,7 @@ int dc_decompose(int N, dc_t *dc){
   /* Decompose over MPI-processes */
   // printf("[%d] Start decomposing", dc->rank);
   dc_setwork(N, dc->size, dc->rank, &dc->plow, &dc->phi);
-  // printf("[%d] low:%d hi:%d", dc->rank, dc->plow, dc->phi);
+  // printf("[%d] low:%d hi:%d\n", dc->rank, dc->plow, dc->phi);
   int nthreads = dc->nthreads;
   /* Decompose over OMP threads */
   #pragma omp parallel default(shared) num_threads(nthreads)
@@ -156,7 +142,7 @@ int dc_decompose(int N, dc_t *dc){
     dc_setwork(dc->phi - dc->plow, omp_get_num_threads(), tid, &low, &hi);
     dc->tlow[tid] = dc->plow + low;
     dc->thi[tid] = dc->plow + hi;
-    // printf("[%d][%d] low:%d hi:%d", dc->rank, tid, dc->tlow[tid], dc->thi[tid]);
+    // printf("[%d][%d] low:%d hi:%d\n", dc->rank, tid, dc->tlow[tid], dc->thi[tid]);
   }
 
   return 0;

@@ -128,7 +128,7 @@ int sample_init_rt(rt_t *rt, sample_t *sample){
     sample_nthreads_set(sample, nthreads);
   }
 
-  int rank = pe_mpi_rank(sample->pe);
+  sample->rank = pe_mpi_rank(sample->pe);
 
   sample_allocate_values(sample);
 
@@ -166,7 +166,7 @@ int sample_propose_mvnb(mvnb_t *mvnb, sample_t *cur, sample_t *pro){
     int tid = omp_get_thread_num();
     int gpuid = tid + nthreads*(pro->rank%pro->nprocs);
     /* Switch to the appropriate device and update data */
-    #pragma acc set device_num(tid) device_type(acc_device_nvidia)
+    #pragma acc set device_num(gpuid) device_type(acc_device_nvidia)
     sample_update_device_values(pro->values, 0, pro->dim);
   }
   TIMER_stop(TIMER_UPDATE_VALUES);

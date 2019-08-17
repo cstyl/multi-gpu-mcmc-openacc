@@ -19,28 +19,23 @@
 
 struct lr_s{
   pe_t *pe;
+  dc_t *dc;
   data_t *data;
   precision *dot;
-  precision lhood;
   int dim;
   int N;
   MPI_Comm comm;
   int rank;
   int nprocs;
   int nthreads;
+  int offset;
 };
 
-void lr_create_device_dot(precision *dot, int start, int end);
-void mvmul(int rows, int cols, precision *REST mat, precision *REST vec, precision *REST dot);
-precision reduce_lhood(precision *REST dot, int *REST y, int n);
+void mvmul(lr_t *lr, precision *REST mat, precision *REST vec);
+precision reduce_lhood(lr_t *lr, int *REST y);
 
-void lr_create_device_dot(precision *dot, int start, int end){
-  #pragma acc enter data create(dot[start:end])
-}
-
-void lr_free_device_dot(precision *dot){
-  #pragma acc exit data delete(dot[:1])
-}
+void lr_create_device_dot(lr_t *lr, int start, int end);
+void lr_free_device_dot(lr_t *lr);
 
 /*****************************************************************************
 *
@@ -63,32 +58,23 @@ int lr_lhood_create(pe_t *pe, data_t *data, lr_t **plr){
   lr->pe = pe;
 
   data_dimx(data, &lr->dim);
-  data_N(data, &lr->N);
-
-  mem_malloc_precision(&lr->dot, lr->N);
-
-  int *tlow = NULL, *thi = NULL;
-  dc_t *dc = NULL;
+  data_dc(lr->data, &lr->dc);
 
   lr->rank = pe_mpi_rank(lr->pe);
   pe_mpi_comm(lr->pe, &lr->comm);
 
-  data_dc(lr->data, &dc);
-  dc_nprocs(dc, &lr->nprocs);
-  dc_nthreads(dc, &lr->nthreads);
-  dc_tbound(dc, &tlow, &thi);
+  int plow, phi;
+  dc_nprocs(lr->dc, &lr->nprocs);
+  dc_pbound(lr->dc, &plow, &phi);
+  dc_nthreads(lr->dc, &lr->nthreads);
+
+  lr->N = phi-plow;
+  lr->offset = plow;
+
+  mem_malloc_precision(&lr->dot, lr->N);
 
   TIMER_start(TIMER_CREATE_DOT);
-  int nthreads = lr->nthreads;
-  #pragma omp parallel default(shared) num_threads(nthreads)
-  {
-    int tid = omp_get_thread_num();
-    int gpuid = tid + lr->nthreads*(lr->rank%lr->nprocs);
-    int size = thi[tid] - tlow[tid];
-    /* Switch to the appropriate device and allocate memory on it */
-    #pragma acc set device_num(gpuid) device_type(acc_device_nvidia)
-    lr_create_device_dot(lr->dot, tlow[tid], thi[tid]);
-  }
+  lr_create_device_dot(lr, plow, phi);
   TIMER_stop(TIMER_CREATE_DOT);
 
   *plr = lr;
@@ -106,15 +92,7 @@ int lr_lhood_free(lr_t *lr){
 
   assert(lr);
 
-  int nthreads = lr->nthreads;
-  #pragma omp parallel default(shared) num_threads(nthreads)
-  {
-    int tid = omp_get_thread_num();
-    int gpuid = tid + lr->nthreads*(lr->rank%lr->nprocs);
-    /* Switch to the appropriate device and allocate memory on it */
-    #pragma acc set device_num(gpuid) device_type(acc_device_nvidia)
-    lr_free_device_dot(lr->dot);
-  }
+  lr_free_device_dot(lr);
 
   mem_free((void**)&lr->dot);
   mem_free((void**)&lr);
@@ -135,95 +113,104 @@ precision lr_lhood(lr_t *lr, precision *sample){
 
   assert(lr);
 
-  precision global_lhood = 0.0f, lhood = 0.0f;
-  int dim = lr->dim, N = lr->N;
-
+  precision lhood = 0.0f;
   precision *x = NULL;
   int *y = NULL;
-  dc_t *dc = NULL;
-  int *tlow = NULL, *thi = NULL;
 
   data_x(lr->data, &x);
   data_y(lr->data, &y);
-  data_dc(lr->data, &dc);
-  dc_tbound(dc, &tlow, &thi);
-
-  int nthreads = lr->nthreads;
 
   TIMER_start(TIMER_LIKELIHOOD);
-  TIMER_start(TIMER_MATVECMUL);
 
+  TIMER_start(TIMER_MATVECMUL);
+  mvmul(lr, x, sample);
+  TIMER_stop(TIMER_MATVECMUL);
+
+  TIMER_start(TIMER_REDUCE);
+  lhood = reduce_lhood(lr, y);
+  TIMER_stop(TIMER_REDUCE);
+
+  TIMER_stop(TIMER_LIKELIHOOD);
+
+  return lhood;
+}
+
+void mvmul(lr_t *lr, precision *REST mat, precision *REST vec){
+
+  int i, j, dim=lr->dim;
+  int *tlow = NULL, *thi = NULL;
+  precision *REST dot = lr->dot;
+  dc_tbound(lr->dc, &tlow, &thi);
+
+  int offset = lr->offset;
+  int nthreads = lr->nthreads;
   #pragma omp parallel default(shared) num_threads(nthreads)
   {
     int tid = omp_get_thread_num();
     int gpuid = tid + lr->nthreads*(lr->rank%lr->nprocs);
     int size = thi[tid] - tlow[tid];
+    int low = tlow[tid];
+    int hi = thi[tid];
+    // printf("[%d][%d] mvmul low:%d hi:%d\n", gpuid, tid, tlow[tid], thi[tid]);
     /* Switch to the appropriate device and allocate memory on it */
     #pragma acc set device_num(gpuid) device_type(acc_device_nvidia)
-    mvmul(size, dim, &x[tlow[tid]*dim], sample, &lr->dot[tlow[tid]]);
+    #pragma acc kernels present(dot[:size]) \
+                        present(vec[:dim]) \
+                        present(mat[low*dim:hi*dim])
+    {
+      #pragma acc loop
+      for(i=low; i<hi; i++)
+      {
+        precision dot_local = 0.0f;
+        #pragma acc loop seq
+        for(j=0; j<dim; j++)
+        {
+          dot_local += vec[j] * mat[i*dim+j];
+        }
+        dot[i-offset] = dot_local;
+      }
+    }
+    // printf("[%d][%d] mvmul\n", gpuid, tid);
   }
 
-  TIMER_stop(TIMER_MATVECMUL);
+}
 
-  TIMER_start(TIMER_REDUCE);
+precision reduce_lhood(lr_t *lr, int *REST y){
+
+  int i, j;
+  precision global_lhood = 0.0f, lhood = 0.0f;
+
+  int *tlow = NULL, *thi = NULL;
+  precision *REST dot = lr->dot;
+  dc_tbound(lr->dc, &tlow, &thi);
+
+  int offset = lr->offset;
+  int nthreads = lr->nthreads;
   #pragma omp parallel default(shared) num_threads(nthreads) reduction(+:lhood)
   {
     int tid = omp_get_thread_num();
     int gpuid = tid + lr->nthreads*(lr->rank%lr->nprocs);
     int size = thi[tid] - tlow[tid];
+    int low = tlow[tid];
+    int hi = thi[tid];
+    // printf("[%d][%d] red low:%d hi:%d\n", gpuid, tid, tlow[tid], thi[tid]);
     /* Switch to the appropriate device and allocate memory on it */
     #pragma acc set device_num(gpuid) device_type(acc_device_nvidia)
-    lhood = reduce_lhood(&lr->dot[tlow[tid]], &y[tlow[tid]], size);
+    #pragma acc kernels present(dot[:size], y[low:hi]) \
+                        copyout(lhood)
+    {
+      lhood = 0.0f;
+      #pragma acc loop reduction(+:lhood)
+      for(i=low; i<hi; i++)
+      {
+        lhood -= log(1.0f + exp(-(precision)y[i] * dot[i-offset]));
+      }
+    }
+    // printf("[%d][%d] red\n", gpuid, tid);
   }
-  TIMER_stop(TIMER_REDUCE);
-
   MPI_Allreduce(&lhood, &global_lhood, 1, MPI_PRECISION, MPI_SUM, lr->comm);
 
-  TIMER_stop(TIMER_LIKELIHOOD);
-
   return global_lhood;
-}
-
-void mvmul(int rows, int cols, precision *REST mat, precision *REST vec, precision *REST dot){
-
-  int i, j;
-
-  #pragma acc kernels present(dot[:rows]) \
-                      present(vec[:cols]) \
-                      present(mat[:rows*cols])
-  {
-    #pragma acc loop
-    for(i=0; i<rows; i++)
-    {
-      precision dot_local = 0.0f;
-      #pragma acc loop seq
-      for(j=0; j<cols; j++)
-      {
-        dot_local += vec[j] * mat[i*cols+j];
-      }
-      dot[i] = dot_local;
-    }
-  }
-
-}
-
-precision reduce_lhood(precision *REST dot, int *REST y, int n){
-
-  int i;
-  precision lhood = 0.0f;
-
-  #pragma acc kernels present(dot[:n], y[:n]) \
-                      copyout(lhood)
-  {
-    lhood = 0.0f;
-    #pragma acc loop reduction(+:lhood)
-    for(i=0; i<n; i++)
-    {
-      lhood -= log(1.0f + exp(-(precision)y[i] * dot[i]));
-    }
-  }
-
-  return lhood;
 }
 
 /*****************************************************************************
@@ -252,6 +239,56 @@ precision lr_logistic_regression(precision *sample, precision *x, int dim){
   TIMER_stop(TIMER_LOGISTIC_REGRESSION);
 
   return probability;
+}
+
+/*****************************************************************************
+*
+*  lr_create_device_dot
+*
+*****************************************************************************/
+
+void lr_create_device_dot(lr_t *lr, int start, int end){
+
+  precision *REST dot = lr->dot;
+  int *tlow = NULL, *thi = NULL;
+
+  dc_tbound(lr->dc, &tlow, &thi);
+  int nthreads = lr->nthreads;
+
+  #pragma omp parallel default(shared) num_threads(nthreads)
+  {
+    int tid = omp_get_thread_num();
+    int size = thi[tid] - tlow[tid];
+    int gpuid = tid + lr->nthreads*(lr->rank%lr->nprocs);
+    // printf("[%d][%d] dot size:%d\n", gpuid, tid, size);
+    /* Switch to the appropriate device and allocate memory on it */
+    #pragma acc set device_num(gpuid) device_type(acc_device_nvidia)
+    #pragma acc enter data create(dot[:size])
+    // printf("[%d][%d] allocated dot\n", gpuid, tid);
+  }
+
+}
+
+/*****************************************************************************
+*
+*  lr_free_device_dot
+*
+*****************************************************************************/
+
+void lr_free_device_dot(lr_t *lr){
+
+  precision *REST dot = lr->dot;
+
+  int nthreads = lr->nthreads;
+  #pragma omp parallel default(shared) num_threads(nthreads)
+  {
+    int tid = omp_get_thread_num();
+    int gpuid = tid + lr->nthreads*(lr->rank%lr->nprocs);
+    /* Switch to the appropriate device and allocate memory on it */
+    #pragma acc set device_num(gpuid) device_type(acc_device_nvidia)
+    #pragma acc exit data delete(dot[:1])
+  }
+
 }
 
 int lr_data(lr_t *lr, data_t **pdata){
