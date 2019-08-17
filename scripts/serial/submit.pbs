@@ -1,0 +1,17 @@
+#!/bin/bash --login
+
+module load pgi
+
+cd $PBS_O_WORKDIR
+
+cd $EXECDIR
+
+./mcmc.exe $INFILE > $OUTFILE
+
+if [ ! -d $OUTDIR ]
+then
+  echo "$OUTDIR doesn't exist. Skipped files."
+else
+  mv $INFILE $OUTDIR/input.dat
+  mv $OUTFILE $OUTDIR/out.txt
+fi

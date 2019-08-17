@@ -15,15 +15,15 @@ N_test = int(args.Ntest)
 N = N_train + N_test
 
 # choose model parameters from the command line
-if args.beta == 0.0:
+if args.beta != 0.0:
     beta = np.array(args.beta)
     beta = np.reshape(beta, (1, beta.shape[0]))
 else:
     # generate model parameters
-    beta = s.get_model_parameters(beta_range, args.dim+1)
+    beta = s.get_model_parameters(beta_range, args.dim)
 
 # generate data
-X = s.generate_data(x_range, N, args.dim)
+X = s.generate_data(x_range, N, args.dim-1)
 # split data into train and test and normalize
 X_train, X_test = s.split_data(X, N_train)
 X_train, X_test = s.normalize_sets(X_train, X_test)

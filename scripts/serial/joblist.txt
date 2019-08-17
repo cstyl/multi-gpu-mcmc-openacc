@@ -1,0 +1,26 @@
+Experiment Directory: ../../experiments/serial
+Data Directory: ../../data/synthetic
+Submitting ./mcmc.exe for 4000 points of dim 3
+1092638.indy2-login0
+Submitting ./mcmc.exe for 4000 points of dim 10
+1092639.indy2-login0
+Submitting ./mcmc.exe for 4000 points of dim 50
+1092640.indy2-login0
+Submitting ./mcmc.exe for 40000 points of dim 3
+1092641.indy2-login0
+Submitting ./mcmc.exe for 40000 points of dim 10
+1092642.indy2-login0
+Submitting ./mcmc.exe for 40000 points of dim 50
+1092643.indy2-login0
+Submitting ./mcmc.exe for 400000 points of dim 3
+1092644.indy2-login0
+Submitting ./mcmc.exe for 400000 points of dim 10
+1092645.indy2-login0
+Submitting ./mcmc.exe for 400000 points of dim 50
+1092646.indy2-login0
+Submitting ./mcmc.exe for 4000000 points of dim 3
+1092647.indy2-login0
+Submitting ./mcmc.exe for 4000000 points of dim 10
+1092648.indy2-login0
+Submitting ./mcmc.exe for 4000000 points of dim 50
+1092649.indy2-login0

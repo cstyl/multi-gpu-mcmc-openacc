@@ -77,8 +77,8 @@ serial-model:
 # OpenACC Serial Version
 
 acc-host:
-	$(MAKE) lib "CFLAGS=$(CFLAGS) –ta=host -Minfo=all"
-	$(MAKE) code "CFLAGS=$(CFLAGS) –ta=host -Minfo=all" "INC=$(INC) -I../mpi_s" "LIBS=$(LIBS) -L../mpi_s -lmpi"
+	$(MAKE) lib "CFLAGS=$(CFLAGS) –ta=host"
+	$(MAKE) code "CFLAGS=$(CFLAGS) –ta=host" "INC=$(INC) -I../mpi_s" "LIBS=$(LIBS) -L../mpi_s -lmpi"
 
 # MPI versions
 
