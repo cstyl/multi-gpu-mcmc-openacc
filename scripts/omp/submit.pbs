@@ -1,0 +1,19 @@
+#!/bin/bash --login
+
+module load pgi
+
+cd $PBS_O_WORKDIR
+
+cd $EXECDIR
+
+export OMP_NUM_THREADS=$THREADS
+
+./mcmc.exe $INFILE > $OUTFILE
+
+if [ ! -d $OUTDIR ]
+then
+  echo "$OUTDIR doesn't exist. Skipped files."
+else
+  mv $INFILE $OUTDIR/input.dat
+  mv $OUTFILE $OUTDIR/out.txt
+fi

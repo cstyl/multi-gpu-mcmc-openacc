@@ -20,14 +20,7 @@
   #define PRINT_PREC DBL_DIG+3
 #endif
 
-// #if ACCEL == NVIDIA
-//   #define DEVICE acc_device_nvidia
-// #elif ACCEL == AMD
-//   #define DEVICE acc_device_radeon
-// #elif ACCEL == MULTI
-//   #define DEVICE acc_device_host
-// #endif
-
+static const int DEFAULT_NODES = 1;
 static const int DEFAULT_PROCS = 1;
 static const int DEFAULT_THREADS = 1;
 static const int DEFAULT_GPUS = 0;

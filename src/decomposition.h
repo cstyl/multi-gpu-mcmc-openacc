@@ -16,6 +16,8 @@ int dc_decompose(int N, dc_t *dc);
 int dc_check_inputs(pe_t *pe, int nprocs, int nthreads, int ngpus);
 
 /* Interface */
+int dc_nnodes_set(dc_t *dc, int nnodes);
+int dc_nnodes(dc_t *dc, int *nnodes);
 int dc_nprocs_set(dc_t *dc, int nprocs);
 int dc_nprocs(dc_t *dc, int *nprocs);
 int dc_nthreads_set(dc_t *dc, int nthreads);

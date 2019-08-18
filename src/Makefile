@@ -65,12 +65,12 @@ code:	$(MAIN).o
 # OpenACC versions
 
 acc-host:
-	$(MAKE) lib "CFLAGS=$(CFLAGS) -mp –ta=host"
-	$(MAKE) code "CFLAGS=$(CFLAGS) -mp –ta=host" "INC=$(INC) -I../mpi_s" "LIBS=$(LIBS) -L../mpi_s -lmpi"
+	$(MAKE) lib "CFLAGS=$(CFLAGS) –ta=host"
+	$(MAKE) code "CFLAGS=$(CFLAGS) –ta=host" "INC=$(INC) -I../mpi_s" "LIBS=$(LIBS) -L../mpi_s -lmpi"
 
 acc-host-omp:
-	$(MAKE) lib "CFLAGS=$(CFLAGS) -mp –ta=host"
-	$(MAKE) code "CFLAGS=$(CFLAGS) -mp –ta=host" \
+	$(MAKE) lib "CFLAGS=$(CFLAGS) –ta=host"
+	$(MAKE) code "CFLAGS=$(CFLAGS) –ta=host" \
 							 "INC=$(INC) -I../mpi_s" "LIBS=$(LIBS) -L../mpi_s -lmpi"
 
 acc-multi:
@@ -78,21 +78,22 @@ acc-multi:
 	$(MAKE) code "CFLAGS=$(CFLAGS) -acc -ta=multicore -Minfo=accel" "INC=$(INC) -I../mpi_s" "LIBS=$(LIBS) -L../mpi_s -lmpi"
 
 acc-simple:
-	$(MAKE) lib "CFLAGS=$(CFLAGS) -acc -mp –ta=tesla -Minfo=accel"
-	$(MAKE) code "CFLAGS=$(CFLAGS) -acc -mp –ta=tesla -Minfo=accel" "INC=$(INC) -I../mpi_s" "LIBS=$(LIBS) -L../mpi_s -lmpi"
+	$(MAKE) lib "CFLAGS=$(CFLAGS) -acc –ta=tesla -Minfo=accel"
+	$(MAKE) code "CFLAGS=$(CFLAGS) -acc –ta=tesla -Minfo=accel" "INC=$(INC) -I../mpi_s" "LIBS=$(LIBS) -L../mpi_s -lmpi"
 
 acc-cublas:
 	$(MAKE) lib "CFLAGS=$(CFLAGS) -acc –ta=tesla -Minfo=accel" "LIBS=$(LIBS) -L/lustre/sw/cuda/9.1/lib64 -lcublas -Mcuda"
 	$(MAKE) code "CFLAGS=$(CFLAGS) -acc –ta=tesla -Minfo=accel" "INC=$(INC) -I../mpi_s" "LIBS=$(LIBS) -L../mpi_s -lmpi -L/lustre/sw/cuda/9.1/lib64 -lcublas -Mcuda"
 
-# MPI versions
+acc-mpi-host:
+	$(MAKE) libmpi "CFLAGS=$(CFLAGS) –ta=host"
+	$(MAKE) code "CC=$(MPICC) -cc=$(CC)" "CFLAGS=$(CFLAGS) -mp –ta=host" \
+	 						 "INC=$(INC) $(MPI_INCL)" "LIBS=$(LIBS) $(MPI_LIBS)"
 
 mpi:
-	$(MAKE) mpi-model
-
-mpi-model:
-	$(MAKE) libmpi
-	$(MAKE) code "CC=$(MPICC)" "INC=$(INC) $(MPI_INCL)" "LIBS=$(LIBS) $(MPI_LIBS)"
+	$(MAKE) libmpi "CFLAGS=$(CFLAGS) -acc –ta=tesla -Minfo=accel"
+	$(MAKE) code "CC=$(MPICC) -cc=$(CC)" "CFLAGS=$(CFLAGS) -acc -mp –ta=tesla -Minfo=accel" \
+	 						 "INC=$(INC) $(MPI_INCL)" "LIBS=$(LIBS) $(MPI_LIBS)"
 
 # Libraries
 
@@ -102,7 +103,7 @@ libar:	$(OBJS)
 lib:
 	$(MAKE) libar "INC=$(INC) -I../mpi_s" "LIBS= -L../mpi_s -lmpi $(LIBS)"
 libmpi:
-	$(MAKE) libar "CC=$(MPICC)" "INC=$(INC) $(MPI_INCL)"
+	$(MAKE) libar "CC=$(CC)" "INC=$(INC) $(MPI_INCL)"
 
 ###############################################################################
 #

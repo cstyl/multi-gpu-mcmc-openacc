@@ -12,7 +12,8 @@ struct dc_s{
   rt_t *rt;
   int rank;
   int size;
-  int nprocs;      /* Number of MPI processes (same as MPI_Size) */
+  int nnodes;      /* Number of Nodes */
+  int nprocs;      /* Number of MPI processes per node */
   int nthreads;    /* Number of OMP threads per node */
   int ngpus;       /* Number of GPUs per node */
   int plow;        /* Local lower MPI bound of a datapoint */
@@ -35,6 +36,7 @@ int dc_create(pe_t *pe, dc_t **pdc){
 
   dc->pe = pe;
 
+  dc_nnodes_set(dc, DEFAULT_NODES);
   dc_nprocs_set(dc, DEFAULT_PROCS);
   dc_nthreads_set(dc, DEFAULT_THREADS);
   dc_ngpus_set(dc, DEFAULT_GPUS);
@@ -57,10 +59,15 @@ int dc_free(dc_t *dc){
 
 int dc_init_rt(pe_t *pe, rt_t *rt, dc_t *dc){
 
-  int nprocs, nthreads, ngpus;
+  int nnodes, nprocs, nthreads, ngpus;
 
   assert(pe);
   assert(rt);
+
+  if(rt_int_parameter(rt, "nnodes", &nnodes))
+  {
+    dc_nnodes_set(dc, nnodes);
+  }
 
   if(rt_int_parameter(rt, "nprocs", &nprocs))
   {
@@ -80,7 +87,7 @@ int dc_init_rt(pe_t *pe, rt_t *rt, dc_t *dc){
   dc->rank = pe_mpi_rank(dc->pe);
   dc->size = pe_mpi_size(dc->pe);
 
-  dc_check_inputs(pe, dc->nprocs, dc->nthreads, dc->ngpus);
+  // dc_check_inputs(pe, dc->nprocs, dc->nthreads, dc->ngpus);
 
   mem_malloc_integers(&dc->tlow, dc->nthreads);
   mem_malloc_integers(&dc->thi, dc->nthreads);
@@ -96,22 +103,17 @@ int dc_init_rt(pe_t *pe, rt_t *rt, dc_t *dc){
 
 int dc_print_info(pe_t *pe, dc_t *dc){
 
-  int nprocs, nthreads, ngpus;
-
   assert(pe);
   assert(dc);
-
-  dc_nprocs(dc, &nprocs);
-  dc_nthreads(dc, &nthreads);
-  dc_ngpus(dc, &ngpus);
-
 
   pe_info(pe, "\n");
   pe_info(pe, "Decomposition Properties\n");
   pe_info(pe, "------------------------\n");
-  pe_info(pe, "%30s\t\t%d\n", "Number of Processes:", nprocs);
-  pe_info(pe, "%30s\t\t%d\n", "Number of Threads:", nthreads);
-  pe_info(pe, "%30s\t\t%d\n", "Number of GPUs:", ngpus);
+  pe_info(pe, "%30s\t\t%d\n", "Communicator size:", dc->size);
+  pe_info(pe, "%30s\t\t%d\n", "Number of Nodes:", dc->nnodes);
+  pe_info(pe, "%30s\t\t%d\n", "Number of Processes/node:", dc->nprocs);
+  pe_info(pe, "%30s\t\t%d\n", "Number of Threads:", dc->nthreads);
+  pe_info(pe, "%30s\t\t%d\n", "Number of GPUs:", dc->ngpus);
 
   return 0;
 }
@@ -179,6 +181,36 @@ static int dc_setwork(int totalWork, int  workers, int id, int *low, int *hi){
   }
 
 	return 0;
+}
+
+/*****************************************************************************
+ *
+ *  dc_nnodes_set
+ *
+ *****************************************************************************/
+
+int dc_nnodes_set(dc_t *dc, int nnodes){
+
+  assert(dc);
+
+  dc->nnodes = nnodes;
+
+  return 0;
+}
+
+/*****************************************************************************
+ *
+ *  dc_nnodes
+ *
+ *****************************************************************************/
+
+int dc_nnodes(dc_t *dc, int *nnodes){
+
+  assert(dc);
+
+  *nnodes = dc->nnodes;
+
+  return 0;
 }
 
 /*****************************************************************************
