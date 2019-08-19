@@ -129,14 +129,14 @@ void mvmul(lr_t *REST lr, precision *REST x, precision *REST sample){
   precision *REST dot = lr->dot;
   int *tlow = NULL, *thi = NULL;
   int dim = lr->dim;
-  int i, j;
+  int i,j;
 
   dc_tbound(lr->dc, &tlow, &thi);
   int nthreads=lr->nthreads;
 
   TIMER_start(TIMER_MATVECMUL);
 
-  #pragma omp parallel default(shared) num_threads(nthreads)
+  #pragma omp parallel default(shared) private(i, j) num_threads(nthreads)
   {
     int tid = omp_get_thread_num();
     int gpuid = tid + lr->nthreads*(lr->rank%lr->nprocs);
@@ -176,7 +176,7 @@ precision reduce_lhood(lr_t *REST lr, int *REST y){
 
   TIMER_start(TIMER_REDUCE);
 
-  #pragma omp parallel default(shared) num_threads(nthreads) reduction(+:lhood)
+  #pragma omp parallel default(shared) private(i) num_threads(nthreads) reduction(+:lhood)
   {
     int tid = omp_get_thread_num();
     int gpuid = tid + lr->nthreads*(lr->rank%lr->nprocs);
