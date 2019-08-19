@@ -64,35 +64,23 @@ code:	$(MAIN).o
 
 # OpenACC versions
 
-acc-host:
+host:
 	$(MAKE) lib "CFLAGS=$(CFLAGS) –ta=host"
 	$(MAKE) code "CFLAGS=$(CFLAGS) –ta=host" "INC=$(INC) -I../mpi_s" "LIBS=$(LIBS) -L../mpi_s -lmpi"
 
-acc-host-omp:
+host-omp:
 	$(MAKE) lib "CFLAGS=$(CFLAGS) –ta=host"
 	$(MAKE) code "CFLAGS=$(CFLAGS) –ta=host" \
 							 "INC=$(INC) -I../mpi_s" "LIBS=$(LIBS) -L../mpi_s -lmpi"
 
-acc-multi:
-	$(MAKE) lib "CFLAGS=$(CFLAGS) -acc -ta=multicore -Minfo=accel"
-	$(MAKE) code "CFLAGS=$(CFLAGS) -acc -ta=multicore -Minfo=accel" "INC=$(INC) -I../mpi_s" "LIBS=$(LIBS) -L../mpi_s -lmpi"
-
-acc-simple:
-	$(MAKE) lib "CFLAGS=$(CFLAGS) -acc –ta=tesla -Minfo=accel"
-	$(MAKE) code "CFLAGS=$(CFLAGS) -acc –ta=tesla -Minfo=accel" "INC=$(INC) -I../mpi_s" "LIBS=$(LIBS) -L../mpi_s -lmpi"
-
-acc-cublas:
-	$(MAKE) lib "CFLAGS=$(CFLAGS) -acc –ta=tesla -Minfo=accel" "LIBS=$(LIBS) -L/lustre/sw/cuda/9.1/lib64 -lcublas -Mcuda"
-	$(MAKE) code "CFLAGS=$(CFLAGS) -acc –ta=tesla -Minfo=accel" "INC=$(INC) -I../mpi_s" "LIBS=$(LIBS) -L../mpi_s -lmpi -L/lustre/sw/cuda/9.1/lib64 -lcublas -Mcuda"
-
-acc-mpi-host:
+host-mpi:
 	$(MAKE) libmpi "CFLAGS=$(CFLAGS) –ta=host"
-	$(MAKE) code "CC=$(MPICC) -cc=$(CC)" "CFLAGS=$(CFLAGS) -mp –ta=host" \
+	$(MAKE) code "CC=$(MPICC) -cc=$(CC)" "CFLAGS=$(CFLAGS) –ta=host" \
 	 						 "INC=$(INC) $(MPI_INCL)" "LIBS=$(LIBS) $(MPI_LIBS)"
 
-mpi:
+mpi-gpu:
 	$(MAKE) libmpi "CFLAGS=$(CFLAGS) -acc –ta=tesla -Minfo=accel"
-	$(MAKE) code "CC=$(MPICC) -cc=$(CC)" "CFLAGS=$(CFLAGS) -acc -mp –ta=tesla -Minfo=accel" \
+	$(MAKE) code "CC=$(MPICC) -cc=$(CC)" "CFLAGS=$(CFLAGS) -acc –ta=tesla -Minfo=accel" \
 	 						 "INC=$(INC) $(MPI_INCL)" "LIBS=$(LIBS) $(MPI_LIBS)"
 
 # Libraries
