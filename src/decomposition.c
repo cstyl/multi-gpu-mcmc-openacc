@@ -137,6 +137,8 @@ int dc_decompose(int N, dc_t *dc){
     dc->thi[tid] = dc->plow + hi;
   }
 
+  // pe_verbose(dc->pe, "plow:%d phi:%d low:%d hi:%d\n", dc->plow, dc->phi, dc->tlow[0], dc->thi[0]);
+
   return 0;
 }
 

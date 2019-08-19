@@ -114,10 +114,11 @@ precision lr_lhood(lr_t *lr, precision *sample){
   data_y(lr->data, &y);
 
   TIMER_start(TIMER_LIKELIHOOD);
-
+  // pe_verbose(lr->pe, "starting mvmul\n");
   mvmul(lr, x, sample);
+  // pe_verbose(lr->pe, "mvmul completed\n");
   lhood = reduce_lhood(lr, y);
-
+  // pe_verbose(lr->pe, "red completed\n");
   TIMER_stop(TIMER_LIKELIHOOD);
 
   return lhood;
@@ -135,7 +136,7 @@ void mvmul(lr_t *REST lr, precision *REST x, precision *REST sample){
 
   TIMER_start(TIMER_MATVECMUL);
 
-  #pragma omp parallel default(shared) private(i, j) num_threads(nthreads)
+  #pragma omp parallel default(shared) num_threads(nthreads)
   {
     int tid = omp_get_thread_num();
     int gpuid = tid + lr->nthreads*(lr->rank%lr->nprocs);
@@ -175,7 +176,7 @@ precision reduce_lhood(lr_t *REST lr, int *REST y){
 
   TIMER_start(TIMER_REDUCE);
 
-  #pragma omp parallel default(shared) private(i) num_threads(nthreads) reduction(+:lhood)
+  #pragma omp parallel default(shared) num_threads(nthreads) reduction(+:lhood)
   {
     int tid = omp_get_thread_num();
     int gpuid = tid + lr->nthreads*(lr->rank%lr->nprocs);
