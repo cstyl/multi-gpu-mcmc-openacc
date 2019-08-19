@@ -29,12 +29,13 @@ static int infr_allocate_labels(infr_t *infr);
  *
  *****************************************************************************/
 
-int infr_create(pe_t *pe, ch_t *chain, infr_t **pinfr){
+int infr_create(pe_t *pe, ch_t *chain, dc_t *dc, infr_t **pinfr){
 
   infr_t *infr = NULL;
 
   assert(pe);
   assert(chain);
+  assert(dc);
 
   infr = (infr_t *) calloc(1, sizeof(infr_t));
   assert(infr);
@@ -43,7 +44,7 @@ int infr_create(pe_t *pe, ch_t *chain, infr_t **pinfr){
   infr->pe = pe;
   infr->chain = chain;
 
-  data_create_test(pe, &infr->data);
+  data_create_test(pe, dc, &infr->data);
   infr_mc_case_set(infr, MC_CASE_DEFAULT);
 
   *pinfr = infr;

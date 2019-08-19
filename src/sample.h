@@ -19,7 +19,6 @@ int sample_prior_set(sample_t *sample, precision prior);
 int sample_likelihood_set(sample_t *sample, precision likelihood);
 int sample_posterior_set(sample_t *sample, precision posterior);
 int sample_nprocs_set(sample_t *sample, int nprocs);
-int sample_nthreads_set(sample_t *sample, int nthreads);
 
 int sample_copy_values(sample_t *sample, precision *values);
 int sample_values(sample_t *sample, precision **pvalues);

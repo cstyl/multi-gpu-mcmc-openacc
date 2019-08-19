@@ -13,6 +13,7 @@
 struct met_s{
   pe_t *pe;
   rt_t *rt;
+  dc_t *dc;             /* Decomposition on the train data */
   ch_t *chain;          /* Generated Chain */
   data_t *data;         /* Data structure to be used during sampling */
   mvnb_t *mvnb;         /* Multivariate Normal Proposal kernel with block update */
@@ -52,6 +53,7 @@ int met_free(met_t *met){
   if(met->current) sample_free(met->current);
   if(met->proposed) sample_free(met->proposed);
   if(met->data) data_free(met->data);
+  if(met->dc) dc_free(met->dc);
   mem_free((void**)&met);
 
   return 0;
@@ -72,18 +74,32 @@ int met_init_rt(pe_t *pe, rt_t *rt, met_t *met){
 
   ran_init_rt(pe, rt); /* initialize state of the random number generator */
 
-  pe_verbose(pe, "Sample init.\n");
+  dc_create(pe, &met->dc);
+  dc_init_rt(pe,rt, met->dc);
+  dc_print_info(pe, met->dc);
+
+  /* Decompose based on the training set */
+  int work = N_TRAIN_DEFAULT;
+  if(rt_int_parameter(rt, "train_N", &work))
+  {
+    dc_work_set(met->dc, work);
+  }
+  dc_decompose(met->dc);
+
+  // pe_verbose(pe, "Sample init.\n");
   sample_create(pe, &met->current);
   sample_create(pe, &met->proposed);
 
   sample_init_rt(rt, met->current);
   sample_init_rt(rt, met->proposed);
+  // pe_verbose(pe, "sample init completed\n");
 
-  pe_verbose(pe, "Init data rt.\n");
-  data_create_train(pe, &met->data);
+  // pe_verbose(pe, "Init data rt.\n");
+  data_create_train(pe, met->dc, &met->data);
   data_init_train_rt(pe, rt, met->data);
   data_input_train_info(pe, met->data);
-  pe_verbose(pe, "Init data rt completed.\n");
+  // pe_verbose(pe, "Init data rt completed.\n");
+
   rt_string_parameter(rt, "kernel", kernel_value, BUFSIZ);
   if(strcmp(kernel_value, "mvn_block") == 0)
   {
@@ -95,9 +111,9 @@ int met_init_rt(pe_t *pe, rt_t *rt, met_t *met){
   rt_string_parameter(rt, "lhood", lhood_value, BUFSIZ);
   if(strcmp(lhood_value, "logistic_regression") == 0)
   {
-    pe_verbose(pe, "Create lr.\n");
+    // pe_verbose(pe, "Create lr.\n");
     lr_lhood_create(pe, met->data, &met->lr);
-    pe_verbose(pe, "Create lr done.\n");
+    // pe_verbose(pe, "Create lr done.\n");
   }
 
   if(rt_switch(rt, "random_init"))
@@ -150,22 +166,18 @@ int met_init(pe_t *pe, met_t *met){
 
   TIMER_start(TIMER_METROPOLIS_INIT);
 
-  pe_verbose(pe, "Reading data.\n");
   TIMER_start(TIMER_LOAD_TRAIN);
   data_read_file(pe, met->data);  /* Load data */
   TIMER_stop(TIMER_LOAD_TRAIN);
-  pe_verbose(pe, "Read completed.\n");
+
   /* Initialise first sample */
-  pe_verbose(pe, "Sample init zero.\n");
   sample_init_zero(met->current);
-  pe_verbose(pe, "Sample init zero completed.\n");
+
   if(met->random_init)
   {
     if(met->mvnb)
     {
-      pe_verbose(pe, "Proposing sample.\n");
       sample_propose_mvnb(met->mvnb, met->current, met->current);
-      pe_verbose(pe, "Proposal completed.\n");
     }
   }
 
@@ -176,9 +188,7 @@ int met_init(pe_t *pe, met_t *met){
   ch_init_stats(0, met->chain);
 
   /* Ensure sample update is completed before evaluating lhood */
-  pe_verbose(pe, "Lhood eval.\n");
   if(met->lr) lhood = lr_lhood(met->lr, sample);
-  pe_verbose(pe, "Lhood eval completed.\n");
   prior = pr_log_prob(sample, dim);
   posterior = prior + lhood;
 
@@ -291,6 +301,15 @@ int met_lr(met_t *met, lr_t **plr){
   assert(met);
 
   *plr = met->lr;
+
+  return 0;
+}
+
+int met_dc(met_t *met, dc_t **pdc){
+
+  assert(met);
+
+  *pdc = met->dc;
 
   return 0;
 }

@@ -9,8 +9,6 @@
 #include "memory.h"
 #include "timer.h"
 
-#define REST __restrict__
-
 #ifdef _FLOAT_
   MPI_Datatype MPI_PRECISION = MPI_FLOAT;
 #else
@@ -28,7 +26,7 @@ struct lr_s{
   MPI_Comm comm;
   int rank;
   int nprocs;
-  int nthreads;
+  int size;
 };
 
 void lr_create_device_dot(lr_t *lr);
@@ -61,13 +59,16 @@ int lr_lhood_create(pe_t *pe, data_t *data, lr_t **plr){
   data_N(data, &lr->N);
   data_dc(lr->data, &lr->dc);
 
+  int plow, phi;
+  dc_pbound(lr->dc, &plow, &phi);
   dc_nprocs(lr->dc, &lr->nprocs);
-  dc_nthreads(lr->dc, &lr->nthreads);
+
+  lr->size = phi-plow;
 
   lr->rank = pe_mpi_rank(lr->pe);
   pe_mpi_comm(lr->pe, &lr->comm);
 
-  mem_malloc_precision(&lr->dot, lr->N);
+  mem_malloc_precision(&lr->dot, lr->size);
   lr_create_device_dot(lr);
 
   *plr = lr;
@@ -106,19 +107,20 @@ precision lr_lhood(lr_t *lr, precision *sample){
 
   assert(lr);
 
+  int plow, phi;
   precision lhood = 0.0f;
   precision *x = NULL;
   int * y = NULL;
 
   data_x(lr->data, &x);
   data_y(lr->data, &y);
+  dc_pbound(lr->dc, &plow, &phi);
 
   TIMER_start(TIMER_LIKELIHOOD);
-  pe_verbose(lr->pe, "starting mvmul\n");
-  mvmul(lr, x, sample);
-  pe_verbose(lr->pe, "mvmul completed\n");
-  lhood = reduce_lhood(lr, y);
-  pe_verbose(lr->pe, "red completed\n");
+
+  mvmul(lr, &x[plow*lr->dim], sample);
+  lhood = reduce_lhood(lr, &y[plow]);
+
   TIMER_stop(TIMER_LIKELIHOOD);
 
   return lhood;
@@ -127,37 +129,29 @@ precision lr_lhood(lr_t *lr, precision *sample){
 void mvmul(lr_t *REST lr, precision *REST x, precision *REST sample){
 
   precision *REST dot = lr->dot;
-  int *tlow = NULL, *thi = NULL;
-  int dim = lr->dim;
-  int i,j;
 
-  dc_tbound(lr->dc, &tlow, &thi);
-  int nthreads=lr->nthreads;
+  int dim = lr->dim;
+  int i,j, size = lr->size;
 
   TIMER_start(TIMER_MATVECMUL);
 
-  #pragma omp parallel default(shared) private(i, j) num_threads(nthreads)
+
+  int gpuid = lr->rank%lr->nprocs;
+  #pragma acc set device_num(gpuid) device_type(acc_device_nvidia)
+  #pragma acc kernels present(dot[:size]) \
+                      present(sample[:dim]) \
+                      present(x[:size*dim])
   {
-    int tid = omp_get_thread_num();
-    int gpuid = tid + lr->nthreads*(lr->rank%lr->nprocs);
-    int low = tlow[tid], hi = thi[tid];
-    /* Switch to the appropriate device and allocate memory on it */
-    #pragma acc set device_num(gpuid) device_type(acc_device_nvidia)
-    #pragma acc kernels present(dot[low:hi]) \
-                        present(sample[:dim]) \
-                        present(x[low*dim:hi*dim])
+    #pragma acc loop
+    for(i=0; i<size; i++)
     {
-      #pragma acc loop
-      for(i=low; i<hi; i++)
+      precision dot_local = 0.0f;
+      #pragma acc loop seq
+      for(j=0; j<dim; j++)
       {
-        precision dot_local = 0.0f;
-        #pragma acc loop seq
-        for(j=0; j<dim; j++)
-        {
-          dot_local += sample[j] * x[i*dim+j];
-        }
-        dot[i] = dot_local;
+        dot_local += sample[j] * x[i*dim+j];
       }
+      dot[i] = dot_local;
     }
   }
 
@@ -167,34 +161,23 @@ void mvmul(lr_t *REST lr, precision *REST x, precision *REST sample){
 precision reduce_lhood(lr_t *REST lr, int *REST y){
 
   precision *REST dot = lr->dot;
-  int *tlow = NULL, *thi = NULL;
+  int size = lr->size;
   precision global_lhood = 0.0f, lhood = 0.0f;
   int i;
 
-  dc_tbound(lr->dc, &tlow, &thi);
-  int nthreads=lr->nthreads;
-
   TIMER_start(TIMER_REDUCE);
 
-  #pragma omp parallel default(shared) private(i) num_threads(nthreads) reduction(+:lhood)
+  int gpuid = lr->rank%lr->nprocs;
+  #pragma acc set device_num(gpuid) device_type(acc_device_nvidia)
+  #pragma acc kernels present(dot[:size], y[:size]) \
+                      copyout(lhood)
   {
-    int tid = omp_get_thread_num();
-    int gpuid = tid + lr->nthreads*(lr->rank%lr->nprocs);
-    int low = tlow[tid], hi = thi[tid];
-    precision lhood_d = 0.0;
-    /* Switch to the appropriate device and allocate memory on it */
-    #pragma acc set device_num(gpuid) device_type(acc_device_nvidia)
-    #pragma acc kernels present(dot[low:hi], y[low:hi]) \
-                        copyout(lhood_d)
+    lhood = 0.0f;
+    #pragma acc loop reduction(+:lhood)
+    for(i=0; i<size; i++)
     {
-      lhood_d = 0.0f;
-      #pragma acc loop reduction(+:lhood_d)
-      for(i=low; i<hi; i++)
-      {
-        lhood_d -= log(1.0f + exp(-(precision)y[i] * dot[i]));
-      }
+      lhood -= log(1.0f + exp(-(precision)y[i] * dot[i]));
     }
-    lhood += lhood_d;
   }
   MPI_Allreduce(&lhood, &global_lhood, 1, MPI_PRECISION, MPI_SUM, lr->comm);
 
@@ -213,21 +196,14 @@ void lr_create_device_dot(lr_t *lr){
 
   TIMER_start(TIMER_CREATE_DOT);
 
-  int *tlow = NULL, *thi = NULL;
+  int plow, phi;
+
+  dc_pbound(lr->dc, &plow, &phi);
   precision *dot = lr->dot;
-  int nthreads = lr->nthreads;
 
-  dc_tbound(lr->dc, &tlow, &thi);
-
-  #pragma omp parallel default(shared) num_threads(nthreads)
-  {
-    int tid = omp_get_thread_num();
-    int gpuid = tid + lr->nthreads*(lr->rank%lr->nprocs);
-    int low = tlow[tid], hi = thi[tid];
-    /* Switch to the appropriate device and allocate memory on it */
-    #pragma acc set device_num(gpuid) device_type(acc_device_nvidia)
-    #pragma acc enter data create(dot[low:hi])
-  }
+  int gpuid = lr->rank%lr->nprocs;
+  #pragma acc set device_num(gpuid) device_type(acc_device_nvidia)
+  #pragma acc enter data create(dot[:phi-plow])
 
   TIMER_stop(TIMER_CREATE_DOT);
 }
@@ -241,17 +217,10 @@ void lr_create_device_dot(lr_t *lr){
 void lr_free_device_dot(lr_t *lr){
 
   precision *dot = lr->dot;
-  int nthreads=lr->nthreads;
 
-  #pragma omp parallel default(shared) num_threads(nthreads)
-  {
-    int tid = omp_get_thread_num();
-    int gpuid = tid + lr->nthreads*(lr->rank%lr->nprocs);
-    /* Switch to the appropriate device and allocate memory on it */
-    #pragma acc set device_num(gpuid) device_type(acc_device_nvidia)
-    #pragma acc exit data delete(dot[:1])
-  }
-
+  int gpuid = lr->rank%lr->nprocs;
+  #pragma acc set device_num(gpuid) device_type(acc_device_nvidia)
+  #pragma acc exit data delete(dot)
 }
 
 /*****************************************************************************

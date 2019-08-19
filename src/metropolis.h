@@ -29,6 +29,7 @@ int met_chain(met_t *met, ch_t **pchain);
 int met_data(met_t *met, data_t **pdata);
 int met_mvnb(met_t *met, mvnb_t **pmvnb);
 int met_lr(met_t *met, lr_t **plr);
+int met_dc(met_t *met, dc_t **pdc);
 int met_current(met_t *met, sample_t **pcurrent);
 int met_proposed(met_t *met, sample_t **pproposed);
 

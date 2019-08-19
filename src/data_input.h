@@ -8,12 +8,9 @@
 
 typedef struct data_s data_t;
 
-int data_create_train(pe_t *pe, data_t **pdata);
-int data_create_test(pe_t *pe, data_t **pdata);
+int data_create_train(pe_t *pe, dc_t *dc, data_t **pdata);
+int data_create_test(pe_t *pe, dc_t *dc, data_t **pdata);
 int data_free(data_t *data);
-
-void data_send_to_device(data_t *data);
-void data_delete_from_device(data_t *data);
 
 int data_init_train_rt(pe_t *pe, rt_t *rt, data_t *train);
 int data_init_test_rt(pe_t *pe, rt_t *rt, data_t *test);
@@ -37,6 +34,7 @@ int data_x(data_t *data, precision **px);
 int data_y(data_t *data, int **py);
 int data_dc(data_t *data, dc_t **pdc);
 int data_dc_set(data_t *data, dc_t *dc);
+int data_nprocs_set(data_t *data, int nprocs);
 
 int data_read_file(pe_t *pe, data_t *data);
 int data_print_file(data_t *data);

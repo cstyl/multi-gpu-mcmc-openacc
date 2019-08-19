@@ -15,6 +15,7 @@
 #include "effective_sample_size.h"
 #include "inference.h"
 #include "timer.h"
+#include "decomposition.h"
 
 #include "mcmc.h"
 
@@ -55,9 +56,8 @@ static int mcmc_rt(mcmc_t *mcmc);
    rt_read_input_file(mcmc->rt, inputfile);
    rt_info(mcmc->rt);
 
-   pe_verbose(mcmc->pe, "initialising rt\n");
    mcmc_rt(mcmc);
-   pe_verbose(mcmc->pe, "rt init done\n");
+
    if(mcmc->met)
    {
      TIMER_start(TIMER_MCMC_METROPOLIS);
@@ -146,6 +146,8 @@ static int mcmc_rt(mcmc_t *mcmc);
 
    pe_t  *pe  = NULL;
    rt_t  *rt  = NULL;
+   dc_t *dc = NULL;
+
    char algorithm_value[BUFSIZ];
 
    assert(mcmc);
@@ -155,14 +157,12 @@ static int mcmc_rt(mcmc_t *mcmc);
 
    TIMER_start(TIMER_RUNTIME_SETUP);
 
-   pe_verbose(mcmc->pe, "bef acc init\n");
-   /* Initiate all target devices */
-   // TIMER_start(TIMER_ACC_INIT);
-   // #pragma acc init device_type(acc_device_not_host)
-   // TIMER_stop(TIMER_ACC_INIT);
-   pe_verbose(mcmc->pe, "acc init done\n");
    pe = mcmc->pe;
    rt = mcmc->rt;
+
+   TIMER_start(TIMER_ACC_INIT);
+   #pragma acc init device_type(acc_device_nvidia)
+   TIMER_stop(TIMER_ACC_INIT);
 
    sprintf(algorithm_value, "%s", ALGORITHM_DEFAULT);
 
@@ -180,6 +180,7 @@ static int mcmc_rt(mcmc_t *mcmc);
      met_create(pe, mcmc->burn, &mcmc->met);
      met_init_rt(pe, rt, mcmc->met);
      met_info_rt(pe, mcmc->met);
+     met_dc(mcmc->met, &dc);
    }
 
    acr_create(pe, mcmc->chain, &mcmc->acr);
@@ -192,7 +193,7 @@ static int mcmc_rt(mcmc_t *mcmc);
 
    if(rt_switch(rt, "inference"))
    {
-     infr_create(pe, mcmc->chain, &mcmc->infr);
+     infr_create(pe, mcmc->chain, dc, &mcmc->infr);
      infr_init_rt(pe, rt, mcmc->infr);
      infr_info(pe, mcmc->infr);
    }

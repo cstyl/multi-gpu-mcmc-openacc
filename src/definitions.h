@@ -2,7 +2,11 @@
 #define __DEFINITIONS_H__
 
 #include <float.h>
+#ifdef _OPENACC
 #include "openacc.h"
+#endif
+
+#define REST __restrict__
 
 #ifdef _FLOAT_
   typedef float precision;

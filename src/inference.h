@@ -6,8 +6,9 @@ typedef struct infr_s infr_t;
 #include "pe.h"
 #include "runtime.h"
 #include "chain.h"
+#include "decomposition.h"
 
-int infr_create(pe_t *pe, ch_t *chain, infr_t **pinfr);
+int infr_create(pe_t *pe, ch_t *chain, dc_t *dc, infr_t **pinfr);
 int infr_free(infr_t *infr);
 int infr_init_rt(pe_t *pe, rt_t *rt, infr_t *infr);
 int infr_init(pe_t *pe, infr_t *infr);

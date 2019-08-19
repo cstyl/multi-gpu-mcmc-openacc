@@ -23,7 +23,6 @@ struct data_s{
   char fy[FILENAME_MAX];
   int rank;
   int nprocs;
-  int nthreads;
 };
 
 static int data_csvread(pe_t *pe, char *filename, int rowSz, int colSz, int skip_header,
@@ -46,17 +45,22 @@ void data_free_device_y(data_t *data);
  *
  *****************************************************************************/
 
-int data_create_train(pe_t *pe, data_t **pdata){
+int data_create_train(pe_t *pe, dc_t *dc, data_t **pdata){
 
   data_t *data = NULL;
 
   assert(pe);
+  assert(dc);
 
   data = (data_t *) calloc(1, sizeof(data_t));
   assert(data);
   if(data == NULL) pe_fatal(pe, "calloc(data_t) failed\n");
 
   data->pe = pe;
+  data->dc = dc;
+
+  data->rank = pe_mpi_rank(pe);
+  data->nprocs = DEFAULT_PROCS;
 
   data_dimx_set(data, DIMX_DEFAULT);
   data_dimy_set(data, DIMY_DEFAULT);
@@ -75,17 +79,22 @@ int data_create_train(pe_t *pe, data_t **pdata){
  *
  *****************************************************************************/
 
-int data_create_test(pe_t *pe, data_t **pdata){
+int data_create_test(pe_t *pe, dc_t *dc, data_t **pdata){
 
    data_t *data = NULL;
 
    assert(pe);
+   assert(dc);
 
    data = (data_t *) calloc(1, sizeof(data_t));
    assert(data);
    if(data == NULL) pe_fatal(pe, "calloc(data_t) failed\n");
 
    data->pe = pe;
+   data->dc = dc;
+
+   data->rank = pe_mpi_rank(pe);
+   data->nprocs = DEFAULT_PROCS;
 
    data_dimx_set(data, DIMX_DEFAULT);
    data_dimy_set(data, DIMY_DEFAULT);
@@ -108,8 +117,6 @@ int data_free(data_t *data){
 
    assert(data);
 
-   if(data->dc) dc_free(data->dc);
-
    data_free_device_x(data);
    data_free_device_y(data);
 
@@ -129,7 +136,7 @@ int data_free(data_t *data){
 
 int data_init_train_rt(pe_t *pe, rt_t *rt, data_t *train){
 
-  int dimx, dimy, N;
+  int dimx, dimy, N, nprocs;
   char x[FILENAME_MAX], y[FILENAME_MAX];
 
   assert(rt);
@@ -160,14 +167,10 @@ int data_init_train_rt(pe_t *pe, rt_t *rt, data_t *train){
     data_fy_set(train, y);
   }
 
-  dc_create(pe, &train->dc);
-  dc_init_rt(pe, rt, train->dc);
-  dc_print_info(pe, train->dc);
-  dc_decompose(train->N, train->dc);
-
-  train->rank = pe_mpi_rank(train->pe);
-  dc_nprocs(train->dc, &train->nprocs);
-  dc_nthreads(train->dc, &train->nthreads);
+  if(rt_int_parameter(rt, "nprocs", &nprocs))
+  {
+    data_nprocs_set(train, nprocs);
+  }
 
   data_allocate_x(train);
   data_allocate_y(train);
@@ -183,7 +186,7 @@ int data_init_train_rt(pe_t *pe, rt_t *rt, data_t *train){
 
 int data_init_test_rt(pe_t *pe, rt_t *rt, data_t *test){
 
-  int dimx, dimy, N;
+  int dimx, dimy, N, nprocs;
   char x[FILENAME_MAX], y[FILENAME_MAX];
 
   assert(rt);
@@ -214,14 +217,10 @@ int data_init_test_rt(pe_t *pe, rt_t *rt, data_t *test){
     data_fy_set(test, y);
   }
 
-  dc_create(pe, &test->dc);
-  dc_init_rt(pe, rt, test->dc);
-  dc_print_info(pe, test->dc);
-  dc_decompose(test->N, test->dc);
-
-  test->rank = pe_mpi_rank(test->pe);
-  dc_nprocs(test->dc, &test->nprocs);
-  dc_nthreads(test->dc, &test->nthreads);
+  if(rt_int_parameter(rt, "nprocs", &nprocs))
+  {
+    data_nprocs_set(test, nprocs);
+  }
 
   data_allocate_x(test);
   data_allocate_y(test);
@@ -230,11 +229,11 @@ int data_init_test_rt(pe_t *pe, rt_t *rt, data_t *test){
 }
 
 /*****************************************************************************
- *
- *  data_read_file
- *  at the moment each process reads the entire dataset
- *
- *****************************************************************************/
+*
+*  data_read_file
+*  at the moment each process reads the entire dataset
+*
+*****************************************************************************/
 
 int data_read_file(pe_t *pe, data_t *data){
 
@@ -244,6 +243,7 @@ int data_read_file(pe_t *pe, data_t *data){
 
   data_csvread(pe, data->fx, data->dimx, data->N, SKIP_HEADER, ",", "precision", data->x);
   data_update_device_x(data);
+
   data_csvread(pe, data->fy, data->dimy, data->N, SKIP_HEADER, ",", "int", data->y);
   data_update_device_y(data);
 
@@ -251,471 +251,447 @@ int data_read_file(pe_t *pe, data_t *data){
 }
 
 /*****************************************************************************
- *
- *  data_create_device_x
- *
- *****************************************************************************/
+*
+*  data_create_device_x
+*
+*****************************************************************************/
 
 void data_create_device_x(data_t *data){
 
   TIMER_start(TIMER_CREATE_DATA);
 
-  int *tlow = NULL, *thi = NULL;
-  precision *x = data->x;
+  int plow, phi;
   int dimx = data->dimx;
 
-  dc_tbound(data->dc, &tlow, &thi);
+  dc_pbound(data->dc, &plow, &phi);
+  precision *REST x = &data->x[plow*dimx];
 
-  int nthreads = data->nthreads;
-  #pragma omp parallel default(shared) num_threads(nthreads)
-  {
-    int tid = omp_get_thread_num();
-    int gpuid = tid + data->nthreads*(data->rank%data->nprocs);
-    int size = thi[tid] - tlow[tid];
-    /* Switch to the appropriate device and allocate memory on it */
-    #pragma acc set device_num(gpuid) device_type(acc_device_nvidia)
-    #pragma acc enter data create(x[:size*dimx])
-  }
+  int gpuid = data->rank%data->nprocs;
+  #pragma acc set device_num(gpuid) device_type(acc_device_nvidia)
+  #pragma acc enter data create(x[:(phi-plow)*dimx])
 
   TIMER_stop(TIMER_CREATE_DATA);
 }
 
 /*****************************************************************************
- *
- *  data_create_device_y
- *
- *****************************************************************************/
+*
+*  data_create_device_y
+*
+*****************************************************************************/
 
 void data_create_device_y(data_t *data){
 
   TIMER_start(TIMER_CREATE_DATA);
 
-  int *tlow = NULL, *thi = NULL;
-  int *y = data->y;
+  int plow, phi;
   int dimy = data->dimy;
 
-  dc_tbound(data->dc, &tlow, &thi);
+  dc_pbound(data->dc, &plow, &phi);
+  int *REST y = &data->y[plow*dimy];
 
-  int nthreads = data->nthreads;
-  #pragma omp parallel default(shared) num_threads(nthreads)
-  {
-    int tid = omp_get_thread_num();
-    int gpuid = tid + data->nthreads*(data->rank%data->nprocs);
-    int size = thi[tid] - tlow[tid];
-    /* Switch to the appropriate device and allocate memory on it */
-    #pragma acc set device_num(gpuid) device_type(acc_device_nvidia)
-    #pragma acc enter data create(y[:size*dimy])
-  }
+  int gpuid = data->rank%data->nprocs;
+  #pragma acc set device_num(gpuid) device_type(acc_device_nvidia)
+  #pragma acc enter data create(y[:(phi-plow)*dimy])
 
   TIMER_stop(TIMER_CREATE_DATA);
 }
 
 /*****************************************************************************
- *
- *  data_update_device_x
- *
- *****************************************************************************/
+*
+*  data_update_device_x
+*
+*****************************************************************************/
 
 void data_update_device_x(data_t *data){
 
   TIMER_start(TIMER_UPDATE_DATA);
 
-  int *tlow = NULL, *thi = NULL;
-  precision *x = data->x;
+  int plow, phi;
   int dimx = data->dimx;
 
-  dc_tbound(data->dc, &tlow, &thi);
+  dc_pbound(data->dc, &plow, &phi);
+  precision *REST x = &data->x[plow*dimx];
 
-  int nthreads = data->nthreads;
-  #pragma omp parallel default(shared) num_threads(nthreads)
-  {
-    int tid = omp_get_thread_num();
-    int gpuid = tid + data->nthreads*(data->rank%data->nprocs);
-    int low = tlow[tid], hi = thi[tid];
-    /* Switch to the appropriate device and allocate memory on it */
-    #pragma acc set device_num(gpuid) device_type(acc_device_nvidia)
-    #pragma acc update device(x[low*dimx:hi*dimx])
-  }
+  int gpuid = data->rank%data->nprocs;
+  #pragma acc set device_num(gpuid) device_type(acc_device_nvidia)
+  #pragma acc update device(x[:(phi-plow)*dimx])
 
   TIMER_stop(TIMER_UPDATE_DATA);
 }
 
 /*****************************************************************************
- *
- *  data_update_device_y
- *
- *****************************************************************************/
+*
+*  data_update_device_y
+*
+*****************************************************************************/
 
 void data_update_device_y(data_t *data){
 
   TIMER_start(TIMER_UPDATE_DATA);
 
-  int *tlow = NULL, *thi = NULL;
-  int *y = data->y;
+  int plow, phi;
+  dc_pbound(data->dc, &plow, &phi);
+
   int dimy = data->dimy;
+  int *REST y = &data->y[plow*dimy];
 
-  dc_tbound(data->dc, &tlow, &thi);
-
-  int nthreads = data->nthreads;
-  #pragma omp parallel default(shared) num_threads(nthreads)
-  {
-    int tid = omp_get_thread_num();
-    int gpuid = tid + data->nthreads*(data->rank%data->nprocs);
-    int low = tlow[tid], hi = thi[tid];
-    /* Switch to the appropriate device and allocate memory on it */
-    #pragma acc set device_num(gpuid) device_type(acc_device_nvidia)
-    #pragma acc update device(y[low*dimy:hi*dimy])
-  }
+  int gpuid = data->rank%data->nprocs;
+  #pragma acc set device_num(gpuid) device_type(acc_device_nvidia)
+  #pragma acc update device(y[:(phi-plow)*dimy])
 
   TIMER_stop(TIMER_UPDATE_DATA);
 }
 
 /*****************************************************************************
- *
- *  data_free_device_x
- *
- *****************************************************************************/
+*
+*  data_free_device_x
+*
+*****************************************************************************/
 
- void data_free_device_x(data_t *data){
+void data_free_device_x(data_t *data){
 
-    precision *x = data->x;
+  precision *x = data->x;
 
-    int nthreads = data->nthreads;
-    #pragma omp parallel default(shared) num_threads(nthreads)
-    {
-      int tid = omp_get_thread_num();
-      int gpuid = tid + data->nthreads*(data->rank%data->nprocs);
-      /* Switch to the appropriate device and allocate memory on it */
-      #pragma acc set device_num(gpuid) device_type(acc_device_nvidia)
-      #pragma acc exit data delete(x)
-    }
- }
+  int gpuid = data->rank%data->nprocs;
+  #pragma acc set device_num(gpuid) device_type(acc_device_nvidia)
+  #pragma acc exit data delete(x)
+
+}
 
 /*****************************************************************************
- *
- *  data_free_device_y
- *
- *****************************************************************************/
+*
+*  data_free_device_y
+*
+*****************************************************************************/
 
- void data_free_device_y(data_t *data){
+void data_free_device_y(data_t *data){
 
-    int *y = data->y;
+  int *y = data->y;
 
-    int nthreads = data->nthreads;
-    #pragma omp parallel default(shared) num_threads(nthreads)
-    {
-      int tid = omp_get_thread_num();
-      int gpuid = tid + data->nthreads*(data->rank%data->nprocs);
-      /* Switch to the appropriate device and allocate memory on it */
-      #pragma acc set device_num(gpuid) device_type(acc_device_nvidia)
-      #pragma acc exit data delete(y)
-    }
- }
+  int gpuid = data->rank%data->nprocs;
+  #pragma acc set device_num(gpuid) device_type(acc_device_nvidia)
+  #pragma acc exit data delete(y)
 
- /*****************************************************************************
-  *
-  *  data_dimx_set
-  *
-  *****************************************************************************/
+}
 
- int data_dimx_set(data_t *data, int dimx){
+/*****************************************************************************
+*
+*  data_dimx_set
+*
+*****************************************************************************/
 
-   assert(data);
+int data_dimx_set(data_t *data, int dimx){
 
-   data->dimx = dimx;
+ assert(data);
 
-   return 0;
- }
+ data->dimx = dimx;
 
- /*****************************************************************************
-  *
-  *  data_dimy_set
-  *
-  *****************************************************************************/
+ return 0;
+}
 
- int data_dimy_set(data_t *data, int dimy){
+/*****************************************************************************
+*
+*  data_dimy_set
+*
+*****************************************************************************/
 
-   assert(data);
+int data_dimy_set(data_t *data, int dimy){
 
-   data->dimy = dimy;
+ assert(data);
 
-   return 0;
- }
+ data->dimy = dimy;
 
- /*****************************************************************************
-  *
-  *  data_N_set
-  *
-  *****************************************************************************/
+ return 0;
+}
 
- int data_N_set(data_t *data, int N){
+/*****************************************************************************
+*
+*  data_N_set
+*
+*****************************************************************************/
 
-   assert(data);
+int data_N_set(data_t *data, int N){
 
-   data->N = N;
+ assert(data);
 
-   return 0;
- }
+ data->N = N;
 
- /*****************************************************************************
-  *
-  *  data_fx_set
-  *
-  *****************************************************************************/
+ return 0;
+}
 
- int data_fx_set(data_t *data, const char *filename){
+/*****************************************************************************
+*
+*  data_fx_set
+*
+*****************************************************************************/
 
-   assert(data);
+int data_fx_set(data_t *data, const char *filename){
 
-   sprintf(data->fx, "%s", filename);
+ assert(data);
 
-   return 0;
- }
+ sprintf(data->fx, "%s", filename);
 
- /*****************************************************************************
-  *
-  *  data_fy_set
-  *
-  *****************************************************************************/
+ return 0;
+}
 
- int data_fy_set(data_t *data, const char *filename){
+/*****************************************************************************
+*
+*  data_fy_set
+*
+*****************************************************************************/
 
-   assert(data);
+int data_fy_set(data_t *data, const char *filename){
 
-   sprintf(data->fy, "%s", filename);
+ assert(data);
 
-   return 0;
- }
+ sprintf(data->fy, "%s", filename);
 
- /*****************************************************************************
-  *
-  *  data_x_set
-  *
-  *****************************************************************************/
+ return 0;
+}
 
- int data_x_set(data_t *data, precision *x){
+/*****************************************************************************
+*
+*  data_x_set
+*
+*****************************************************************************/
 
-   assert(data);
+int data_x_set(data_t *data, precision *x){
 
-   data->x = x;
+ assert(data);
 
-   return 0;
- }
+ data->x = x;
 
- /*****************************************************************************
-  *
-  *  data_y_set
-  *
-  *****************************************************************************/
+ return 0;
+}
 
- int data_y_set(data_t *data, int *y){
+/*****************************************************************************
+*
+*  data_y_set
+*
+*****************************************************************************/
 
-   assert(data);
+int data_y_set(data_t *data, int *y){
 
-   data->y = y;
+ assert(data);
 
-   return 0;
- }
+ data->y = y;
 
+ return 0;
+}
 
- /*****************************************************************************
-  *
-  *  data_dimx
-  *
-  *****************************************************************************/
+/*****************************************************************************
+*
+*  data_nprocs_set
+*
+*****************************************************************************/
 
- int data_dimx(data_t *data, int *dimx){
+int data_nprocs_set(data_t *data, int nprocs){
 
-   assert(data);
+ assert(data);
 
-   *dimx = data->dimx;
+ data->nprocs = nprocs;
 
-   return 0;
- }
+ return 0;
+}
 
- /*****************************************************************************
-  *
-  *  data_dimy
-  *
-  *****************************************************************************/
+/*****************************************************************************
+*
+*  data_dimx
+*
+*****************************************************************************/
 
- int data_dimy(data_t *data, int *dimy){
+int data_dimx(data_t *data, int *dimx){
 
-   assert(data);
+ assert(data);
 
-   *dimy = data->dimy;
+ *dimx = data->dimx;
 
-   return 0;
- }
+ return 0;
+}
 
- /*****************************************************************************
-  *
-  *  data_N
-  *
-  *****************************************************************************/
+/*****************************************************************************
+*
+*  data_dimy
+*
+*****************************************************************************/
 
- int data_N(data_t *data, int *N){
+int data_dimy(data_t *data, int *dimy){
 
-   assert(data);
+ assert(data);
 
-   *N = data->N;
+ *dimy = data->dimy;
 
-   return 0;
- }
+ return 0;
+}
 
- /*****************************************************************************
-  *
-  *  data_fx
-  *
-  *****************************************************************************/
+/*****************************************************************************
+*
+*  data_N
+*
+*****************************************************************************/
 
- int data_fx(data_t *data, char *fx){
+int data_N(data_t *data, int *N){
 
-   assert(data);
+ assert(data);
 
-   sprintf(fx, "%s", data->fx);
+ *N = data->N;
 
-   return 0;
- }
+ return 0;
+}
 
- /*****************************************************************************
-  *
-  *  data_fy
-  *
-  *****************************************************************************/
+/*****************************************************************************
+*
+*  data_fx
+*
+*****************************************************************************/
 
- int data_fy(data_t *data, char *fy){
+int data_fx(data_t *data, char *fx){
 
-   assert(data);
+ assert(data);
 
-   sprintf(fy, "%s", data->fy);
+ sprintf(fx, "%s", data->fx);
 
-   return 0;
- }
+ return 0;
+}
 
- /*****************************************************************************
-  *
-  *  data_x
-  *
-  *****************************************************************************/
+/*****************************************************************************
+*
+*  data_fy
+*
+*****************************************************************************/
 
- int data_x(data_t *data, precision **px){
+int data_fy(data_t *data, char *fy){
 
-   assert(data);
+ assert(data);
 
-   *px = data->x;
+ sprintf(fy, "%s", data->fy);
 
-   return 0;
- }
+ return 0;
+}
 
- /*****************************************************************************
-  *
-  *  data_y
-  *
-  *****************************************************************************/
+/*****************************************************************************
+*
+*  data_x
+*
+*****************************************************************************/
 
- int data_y(data_t *data, int **py){
+int data_x(data_t *data, precision **px){
 
-   assert(data);
+ assert(data);
 
-   *py = data->y;
+ *px = data->x;
 
-   return 0;
- }
+ return 0;
+}
 
- /*****************************************************************************
-  *
-  *  data_dc_set
-  *
-  *****************************************************************************/
+/*****************************************************************************
+*
+*  data_y
+*
+*****************************************************************************/
 
- int data_dc_set(data_t *data, dc_t *dc){
+int data_y(data_t *data, int **py){
 
-   assert(data);
+ assert(data);
 
-   data->dc = dc;
+ *py = data->y;
 
-   return 0;
- }
+ return 0;
+}
 
- /*****************************************************************************
-  *
-  *  data_dc
-  *
-  *****************************************************************************/
+/*****************************************************************************
+*
+*  data_dc_set
+*
+*****************************************************************************/
 
- int data_dc(data_t *data, dc_t **pdc){
+int data_dc_set(data_t *data, dc_t *dc){
 
-   assert(data);
+ assert(data);
 
-   *pdc = data->dc;
+ data->dc = dc;
 
-   return 0;
- }
+ return 0;
+}
 
- /*****************************************************************************
-  *
-  *  data_input_train_info
-  *
-  *****************************************************************************/
+/*****************************************************************************
+*
+*  data_dc
+*
+*****************************************************************************/
 
- int data_input_train_info(pe_t *pe, data_t *train){
+int data_dc(data_t *data, dc_t **pdc){
 
-   int dimx, dimy, N;
-   char fx[FILENAME_MAX], fy[FILENAME_MAX];
+ assert(data);
 
-   assert(pe);
-   assert(train);
+ *pdc = data->dc;
 
-   data_dimx(train, &dimx);
-   data_dimy(train, &dimy);
-   data_N(train, &N);
-   data_fx(train, fx);
-   data_fy(train, fy);
+ return 0;
+}
 
-   pe_info(pe, "\n");
-   pe_info(pe, "Training Set Properties\n");
-   pe_info(pe, "-----------------------\n");
-   pe_info(pe, "%30s\t\t%d\n", "Number of Datapoints:", N);
-   pe_info(pe, "%30s\t\t%d %s\n", "Datapoints Dimensionality:", dimx, "(includes bias)");
-   pe_info(pe, "%30s\t\t%d\n", "Labels Dimensionality:", dimy);
-   pe_info(pe, "%30s\t\t%s\n", "Datapoints Filename:", fx);
-   pe_info(pe, "%30s\t\t%s\n", "Labels Filename:", fy);
+/*****************************************************************************
+*
+*  data_input_train_info
+*
+*****************************************************************************/
 
-   return 0;
- }
+int data_input_train_info(pe_t *pe, data_t *train){
 
- /*****************************************************************************
-  *
-  *  data_input_test_info
-  *
-  *****************************************************************************/
+ int dimx, dimy, N;
+ char fx[FILENAME_MAX], fy[FILENAME_MAX];
 
- int data_input_test_info(pe_t *pe, data_t *test){
+ assert(pe);
+ assert(train);
 
-   int dimx, dimy, N;
-   char fx[FILENAME_MAX], fy[FILENAME_MAX];
+ data_dimx(train, &dimx);
+ data_dimy(train, &dimy);
+ data_N(train, &N);
+ data_fx(train, fx);
+ data_fy(train, fy);
 
-   assert(pe);
-   assert(test);
+ pe_info(pe, "\n");
+ pe_info(pe, "Training Set Properties\n");
+ pe_info(pe, "-----------------------\n");
+ pe_info(pe, "%30s\t\t%d\n", "Number of Datapoints:", N);
+ pe_info(pe, "%30s\t\t%d %s\n", "Datapoints Dimensionality:", dimx, "(includes bias)");
+ pe_info(pe, "%30s\t\t%d\n", "Labels Dimensionality:", dimy);
+ pe_info(pe, "%30s\t\t%s\n", "Datapoints Filename:", fx);
+ pe_info(pe, "%30s\t\t%s\n", "Labels Filename:", fy);
 
-   data_dimx(test, &dimx);
-   data_dimy(test, &dimy);
-   data_N(test, &N);
-   data_fx(test, fx);
-   data_fy(test, fy);
+ return 0;
+}
 
-   pe_info(pe, "\n");
-   pe_info(pe, "Test Set Properties\n");
-   pe_info(pe, "-------------------\n");
-   pe_info(pe, "%30s\t\t%d\n", "Number of Datapoints:", N);
-   pe_info(pe, "%30s\t\t%d %s\n", "Datapoints Dimensionality:", dimx, "(includes bias)");
-   pe_info(pe, "%30s\t\t%d\n", "Labels Dimensionality:", dimy);
-   pe_info(pe, "%30s\t\t%s\n", "Datapoints Filename:", fx);
-   pe_info(pe, "%30s\t\t%s\n", "Labels Filename:", fy);
+/*****************************************************************************
+*
+*  data_input_test_info
+*
+*****************************************************************************/
 
-   return 0;
- }
+int data_input_test_info(pe_t *pe, data_t *test){
+
+ int dimx, dimy, N;
+ char fx[FILENAME_MAX], fy[FILENAME_MAX];
+
+ assert(pe);
+ assert(test);
+
+ data_dimx(test, &dimx);
+ data_dimy(test, &dimy);
+ data_N(test, &N);
+ data_fx(test, fx);
+ data_fy(test, fy);
+
+ pe_info(pe, "\n");
+ pe_info(pe, "Test Set Properties\n");
+ pe_info(pe, "-------------------\n");
+ pe_info(pe, "%30s\t\t%d\n", "Number of Datapoints:", N);
+ pe_info(pe, "%30s\t\t%d %s\n", "Datapoints Dimensionality:", dimx, "(includes bias)");
+ pe_info(pe, "%30s\t\t%d\n", "Labels Dimensionality:", dimy);
+ pe_info(pe, "%30s\t\t%s\n", "Datapoints Filename:", fx);
+ pe_info(pe, "%30s\t\t%s\n", "Labels Filename:", fy);
+
+ return 0;
+}
 
 /*****************************************************************************
  *

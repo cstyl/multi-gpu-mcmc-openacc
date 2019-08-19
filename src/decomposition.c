@@ -12,17 +12,13 @@ struct dc_s{
   rt_t *rt;
   int rank;
   int size;
-  int nnodes;      /* Number of Nodes */
   int nprocs;      /* Number of MPI processes per node */
-  int nthreads;    /* Number of OMP threads per node */
-  int ngpus;       /* Number of GPUs per node */
+  int work;
   int plow;        /* Local lower MPI bound of a datapoint */
   int phi;         /* Local upper MPI bound of a datapoint */
-  int *tlow;       /* Lower bounds for each OMP thread */
-  int *thi;        /* Lower bounds for each OMP thread */
 };
 
-static int dc_setwork(int totalWork, int  workers, int id, int *low, int *hi);
+static int dc_splitwork(int totalWork, int  workers, int id, int *low, int *hi);
 
 int dc_create(pe_t *pe, dc_t **pdc){
 
@@ -36,10 +32,9 @@ int dc_create(pe_t *pe, dc_t **pdc){
 
   dc->pe = pe;
 
-  dc_nnodes_set(dc, DEFAULT_NODES);
+  dc->rank = pe_mpi_rank(pe);
+  dc->size = pe_mpi_size(pe);
   dc_nprocs_set(dc, DEFAULT_PROCS);
-  dc_nthreads_set(dc, DEFAULT_THREADS);
-  dc_ngpus_set(dc, DEFAULT_GPUS);
 
   *pdc = dc;
 
@@ -50,8 +45,6 @@ int dc_free(dc_t *dc){
 
   assert(dc);
 
-  mem_free((void**)&dc->tlow);
-  mem_free((void**)&dc->thi);
   mem_free((void**)&dc);
 
   return 0;
@@ -59,38 +52,18 @@ int dc_free(dc_t *dc){
 
 int dc_init_rt(pe_t *pe, rt_t *rt, dc_t *dc){
 
-  int nnodes, nprocs, nthreads, ngpus;
+  int nnodes, nprocs;
 
   assert(pe);
   assert(rt);
-
-  if(rt_int_parameter(rt, "nnodes", &nnodes))
-  {
-    dc_nnodes_set(dc, nnodes);
-  }
 
   if(rt_int_parameter(rt, "nprocs", &nprocs))
   {
     dc_nprocs_set(dc, nprocs);
   }
 
-  if(rt_int_parameter(rt, "nthreads", &nthreads))
-  {
-    dc_nthreads_set(dc, nthreads);
-  }
-
-  if(rt_int_parameter(rt, "ngpus", &ngpus))
-  {
-    dc_ngpus_set(dc, ngpus);
-  }
-
-  dc->rank = pe_mpi_rank(dc->pe);
-  dc->size = pe_mpi_size(dc->pe);
-
-  // dc_check_inputs(pe, dc->nprocs, dc->nthreads, dc->ngpus);
-
-  mem_malloc_integers(&dc->tlow, dc->nthreads);
-  mem_malloc_integers(&dc->thi, dc->nthreads);
+  int gpuid = dc->rank%dc->nprocs;
+  #pragma acc set device_num(gpuid) device_type(acc_device_nvidia)
 
   return 0;
 }
@@ -110,64 +83,22 @@ int dc_print_info(pe_t *pe, dc_t *dc){
   pe_info(pe, "Decomposition Properties\n");
   pe_info(pe, "------------------------\n");
   pe_info(pe, "%30s\t\t%d\n", "Communicator size:", dc->size);
-  pe_info(pe, "%30s\t\t%d\n", "Number of Nodes:", dc->nnodes);
   pe_info(pe, "%30s\t\t%d\n", "Number of Processes/node:", dc->nprocs);
-  pe_info(pe, "%30s\t\t%d\n", "Number of Threads:", dc->nthreads);
-  pe_info(pe, "%30s\t\t%d\n", "Number of GPUs:", dc->ngpus);
 
   return 0;
 }
 
-int dc_decompose(int N, dc_t *dc){
+int dc_decompose(dc_t *dc){
 
   assert(dc);
 
   /* Decompose over MPI-processes */
-  dc_setwork(N, dc->size, dc->rank, &dc->plow, &dc->phi);
-
-  int nthreads = dc->nthreads;
-  /* Decompose over OMP threads */
-  #pragma omp parallel default(shared) num_threads(nthreads)
-  {
-    int tid = omp_get_thread_num();
-    int low, hi;
-
-    dc_setwork(dc->phi - dc->plow, omp_get_num_threads(), tid, &low, &hi);
-    dc->tlow[tid] = dc->plow + low;
-    dc->thi[tid] = dc->plow + hi;
-  }
-
-  // pe_verbose(dc->pe, "plow:%d phi:%d low:%d hi:%d\n", dc->plow, dc->phi, dc->tlow[0], dc->thi[0]);
+  dc_splitwork(dc->work, dc->size, dc->rank, &dc->plow, &dc->phi);
 
   return 0;
 }
 
-/*****************************************************************************
- *
- *  dc_check_inputs
- *  Only basic check is performed at the moment
- *  It is up to the user to correctly specify the available hardware
- *  Assumes homegeneous nodes (i.e same number of gpus across nodes)
- *
- *****************************************************************************/
-
-int dc_check_inputs(pe_t *pe, int nprocs, int nthreads, int ngpus){
-
-  if(ngpus != 0 && nthreads != ngpus)
-    pe_fatal(pe, "Select nthreads = ngpus when running on GPUs.");
-
-  int nvidia_gpus = acc_get_num_devices(acc_device_nvidia);
-
-  if((acc_get_device_type() != acc_device_host) && (ngpus > nvidia_gpus))
-    pe_fatal(pe, "Please set a valid number of GPUs per node");
-
-  if(nthreads <= 0)
-    pe_fatal(pe, "Select nthreads to be a positive number. For serial set to 1.");
-
-  return 0;
-}
-
-static int dc_setwork(int totalWork, int  workers, int id, int *low, int *hi){
+static int dc_splitwork(int totalWork, int  workers, int id, int *low, int *hi){
   int part = totalWork/workers;
   int remainWork = totalWork - part*workers;
 
@@ -183,36 +114,6 @@ static int dc_setwork(int totalWork, int  workers, int id, int *low, int *hi){
   }
 
 	return 0;
-}
-
-/*****************************************************************************
- *
- *  dc_nnodes_set
- *
- *****************************************************************************/
-
-int dc_nnodes_set(dc_t *dc, int nnodes){
-
-  assert(dc);
-
-  dc->nnodes = nnodes;
-
-  return 0;
-}
-
-/*****************************************************************************
- *
- *  dc_nnodes
- *
- *****************************************************************************/
-
-int dc_nnodes(dc_t *dc, int *nnodes){
-
-  assert(dc);
-
-  *nnodes = dc->nnodes;
-
-  return 0;
 }
 
 /*****************************************************************************
@@ -241,66 +142,6 @@ int dc_nprocs(dc_t *dc, int *nprocs){
   assert(dc);
 
   *nprocs = dc->nprocs;
-
-  return 0;
-}
-
-/*****************************************************************************
- *
- *  dc_threads_set
- *
- *****************************************************************************/
-
-int dc_nthreads_set(dc_t *dc, int nthreads){
-
-  assert(dc);
-
-  dc->nthreads = nthreads;
-
-  return 0;
-}
-
-/*****************************************************************************
- *
- *  dc_threads
- *
- *****************************************************************************/
-
-int dc_nthreads(dc_t *dc, int *nthreads){
-
-  assert(dc);
-
-  *nthreads = dc->nthreads;
-
-  return 0;
-}
-
-/*****************************************************************************
- *
- *  dc_ngpus_set
- *
- *****************************************************************************/
-
-int dc_ngpus_set(dc_t *dc, int ngpus){
-
-  assert(dc);
-
-  dc->ngpus = ngpus;
-
-  return 0;
-}
-
-/*****************************************************************************
- *
- *  dc_ngpus
- *
- *****************************************************************************/
-
-int dc_ngpus(dc_t *dc, int *ngpus){
-
-  assert(dc);
-
-  *ngpus = dc->ngpus;
 
   return 0;
 }
@@ -339,22 +180,6 @@ int dc_pbound(dc_t *dc, int *plow, int *phi){
 
 /*****************************************************************************
  *
- *  dc_tbound
- *
- *****************************************************************************/
-
-int dc_tbound(dc_t *dc, int **ptlow, int **pthi){
-
-  assert(dc);
-
-  *ptlow = dc->tlow;
-  *pthi = dc->thi;
-
-  return 0;
-}
-
-/*****************************************************************************
- *
  *  dc_rank_set
  *
  *****************************************************************************/
@@ -379,6 +204,21 @@ int dc_size_set(dc_t *dc, int size){
   assert(dc);
 
   dc->size = size;
+
+  return 0;
+}
+
+/*****************************************************************************
+ *
+ *  dc_work_set
+ *
+ *****************************************************************************/
+
+int dc_work_set(dc_t *dc, int work){
+
+  assert(dc);
+
+  dc->work = work;
 
   return 0;
 }
