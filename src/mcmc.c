@@ -55,8 +55,9 @@ static int mcmc_rt(mcmc_t *mcmc);
    rt_read_input_file(mcmc->rt, inputfile);
    rt_info(mcmc->rt);
 
+   pe_verbose(mcmc->pe, "initialising rt\n");
    mcmc_rt(mcmc);
-
+   pe_verbose(mcmc->pe, "rt init done\n");
    if(mcmc->met)
    {
      TIMER_start(TIMER_MCMC_METROPOLIS);
@@ -154,11 +155,12 @@ static int mcmc_rt(mcmc_t *mcmc);
 
    TIMER_start(TIMER_RUNTIME_SETUP);
 
+   pe_verbose(mcmc->pe, "bef acc init\n");
    /* Initiate all target devices */
-   TIMER_start(TIMER_ACC_INIT);
-   #pragma acc init device_type(acc_device_not_host)
-   TIMER_stop(TIMER_ACC_INIT);
-
+   // TIMER_start(TIMER_ACC_INIT);
+   // #pragma acc init device_type(acc_device_not_host)
+   // TIMER_stop(TIMER_ACC_INIT);
+   pe_verbose(mcmc->pe, "acc init done\n");
    pe = mcmc->pe;
    rt = mcmc->rt;
 

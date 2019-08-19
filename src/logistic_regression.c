@@ -114,11 +114,11 @@ precision lr_lhood(lr_t *lr, precision *sample){
   data_y(lr->data, &y);
 
   TIMER_start(TIMER_LIKELIHOOD);
-  // pe_verbose(lr->pe, "starting mvmul\n");
+  pe_verbose(lr->pe, "starting mvmul\n");
   mvmul(lr, x, sample);
-  // pe_verbose(lr->pe, "mvmul completed\n");
+  pe_verbose(lr->pe, "mvmul completed\n");
   lhood = reduce_lhood(lr, y);
-  // pe_verbose(lr->pe, "red completed\n");
+  pe_verbose(lr->pe, "red completed\n");
   TIMER_stop(TIMER_LIKELIHOOD);
 
   return lhood;

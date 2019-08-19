@@ -271,10 +271,10 @@ void data_create_device_x(data_t *data){
   {
     int tid = omp_get_thread_num();
     int gpuid = tid + data->nthreads*(data->rank%data->nprocs);
-    int low = tlow[tid], hi = thi[tid];
+    int size = thi[tid] - tlow[tid];
     /* Switch to the appropriate device and allocate memory on it */
     #pragma acc set device_num(gpuid) device_type(acc_device_nvidia)
-    #pragma acc enter data create(x[low*dimx:hi*dimx])
+    #pragma acc enter data create(x[:size*dimx])
   }
 
   TIMER_stop(TIMER_CREATE_DATA);
@@ -301,10 +301,10 @@ void data_create_device_y(data_t *data){
   {
     int tid = omp_get_thread_num();
     int gpuid = tid + data->nthreads*(data->rank%data->nprocs);
-    int low = tlow[tid], hi = thi[tid];
+    int size = thi[tid] - tlow[tid];
     /* Switch to the appropriate device and allocate memory on it */
     #pragma acc set device_num(gpuid) device_type(acc_device_nvidia)
-    #pragma acc enter data create(y[low*dimy:hi*dimy])
+    #pragma acc enter data create(y[:size*dimy])
   }
 
   TIMER_stop(TIMER_CREATE_DATA);

@@ -72,17 +72,18 @@ int met_init_rt(pe_t *pe, rt_t *rt, met_t *met){
 
   ran_init_rt(pe, rt); /* initialize state of the random number generator */
 
+  pe_verbose(pe, "Sample init.\n");
   sample_create(pe, &met->current);
   sample_create(pe, &met->proposed);
 
   sample_init_rt(rt, met->current);
   sample_init_rt(rt, met->proposed);
 
-  // pe_verbose(pe, "Init data rt.\n");
+  pe_verbose(pe, "Init data rt.\n");
   data_create_train(pe, &met->data);
   data_init_train_rt(pe, rt, met->data);
   data_input_train_info(pe, met->data);
-  // pe_verbose(pe, "Init data rt completed.\n");
+  pe_verbose(pe, "Init data rt completed.\n");
   rt_string_parameter(rt, "kernel", kernel_value, BUFSIZ);
   if(strcmp(kernel_value, "mvn_block") == 0)
   {
@@ -94,9 +95,9 @@ int met_init_rt(pe_t *pe, rt_t *rt, met_t *met){
   rt_string_parameter(rt, "lhood", lhood_value, BUFSIZ);
   if(strcmp(lhood_value, "logistic_regression") == 0)
   {
-    // pe_verbose(pe, "Create lr.\n");
+    pe_verbose(pe, "Create lr.\n");
     lr_lhood_create(pe, met->data, &met->lr);
-    // pe_verbose(pe, "Create lr done.\n");
+    pe_verbose(pe, "Create lr done.\n");
   }
 
   if(rt_switch(rt, "random_init"))
@@ -149,22 +150,22 @@ int met_init(pe_t *pe, met_t *met){
 
   TIMER_start(TIMER_METROPOLIS_INIT);
 
-  // pe_verbose(pe, "Reading data.\n");
+  pe_verbose(pe, "Reading data.\n");
   TIMER_start(TIMER_LOAD_TRAIN);
   data_read_file(pe, met->data);  /* Load data */
   TIMER_stop(TIMER_LOAD_TRAIN);
-  // pe_verbose(pe, "Read completed.\n");
+  pe_verbose(pe, "Read completed.\n");
   /* Initialise first sample */
-  // pe_verbose(pe, "Sample init zero.\n");
+  pe_verbose(pe, "Sample init zero.\n");
   sample_init_zero(met->current);
-  // pe_verbose(pe, "Sample init zero completed.\n");
+  pe_verbose(pe, "Sample init zero completed.\n");
   if(met->random_init)
   {
     if(met->mvnb)
     {
-      // pe_verbose(pe, "Proposing sample.\n");
+      pe_verbose(pe, "Proposing sample.\n");
       sample_propose_mvnb(met->mvnb, met->current, met->current);
-      // pe_verbose(pe, "Proposal completed.\n");
+      pe_verbose(pe, "Proposal completed.\n");
     }
   }
 
@@ -175,9 +176,9 @@ int met_init(pe_t *pe, met_t *met){
   ch_init_stats(0, met->chain);
 
   /* Ensure sample update is completed before evaluating lhood */
-  // pe_verbose(pe, "Lhood eval.\n");
+  pe_verbose(pe, "Lhood eval.\n");
   if(met->lr) lhood = lr_lhood(met->lr, sample);
-  // pe_verbose(pe, "Lhood eval completed.\n");
+  pe_verbose(pe, "Lhood eval completed.\n");
   prior = pr_log_prob(sample, dim);
   posterior = prior + lhood;
 
