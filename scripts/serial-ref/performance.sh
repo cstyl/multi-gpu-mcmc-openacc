@@ -82,7 +82,7 @@ do
       then
         cd $SCRIPT_DIR
         echo "Submitting ./mcmc.exe for $N points of dim $dim"
-        $QSUB -N "${k}_$N_${dim}" \
+        $QSUB -N "${k}_${N}_${dim}" \
               -v INFILE="$infile",OUTFILE="$outfile",OUTDIR="$outdir",EXECDIR="$EXEC_DIR" \
               submit.pbs
       else

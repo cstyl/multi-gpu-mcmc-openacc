@@ -168,6 +168,7 @@ int acr_compute(acr_t *acr){
     acr->mean[i] = acr_compute_mean(&acr->X[offset], N);
     acr->variance[i] = acr_compute_variance(&acr->X[offset], acr->mean[i], N);
 
+    acr->maxlag_act[i] = acr->maxlag;
     for(j=0; j<acr->maxlag; j++)
     {
       lagk = acr_compute_lagk(&acr->X[offset], acr->mean[i], acr->variance[i],

@@ -33,7 +33,7 @@ for N in $DATAPOINTS
 do
   for dim in $DIMS
   do
-    fref="${REF_DIR}/serial-${N}_$dim/progress.csv"
+    fref="${REF_DIR}/serial-${N}_$dim/1/progress.csv"
     for t in $THREADS
     do
       for k in `seq -w 1 $REPS`

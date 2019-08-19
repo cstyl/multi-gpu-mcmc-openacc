@@ -26,7 +26,7 @@ do
     do
       for k in `seq -w 1 $REPS`
       do
-        report="./mpi-${N}_${dim}_${p}/$k"
+        report="./mpi-${N}_${dim}_${p}/$k/out.txt"
         # parse input file
         total=$(awk '/Total:/ {printf "%s",$4}' $report)
         mcmc=$(awk '/MCMC Metropolis:/ {printf "%s",$5}' $report)
@@ -34,13 +34,13 @@ do
         mvmul=$(awk '/MatVec Mult Kernel:/ {printf "%s",$6}' $report)
         red=$(awk '/Reduction Kernel:/ {printf "%s",$5}' $report)
         upd_data=$(awk '/Dev Update Data:/ {printf "%s",$6}' $report)
-        if [ $upd_data -eq ""]; then upd_data="0.0"; fi
+        if [ -z $upd_data ]; then upd_data="0.0"; fi
 
         upd_values=$(awk '/Dev Update Values:/ {print $6}' $report)
-        if [ $upd_values -eq ""]; then upd_values="0.0"; fi
+        if [ -z $upd_values ]; then upd_values="0.0"; fi
 
         open_acc_init=$(awk '/OpenACC Initialisation:/ {printf "%s",$5}' $report)
-        if [ $open_acc_init -eq ""]; then open_acc_init="0.0"; fi
+        if [ -z $open_acc_init ]; then open_acc_init="0.0"; fi
 
         printf "1,$p,1,$N,$dim,$k,$total,$mcmc,$lhood,$mvmul,$red," >> $outfile
         printf "$upd_data,$upd_values,$open_acc_init\n" >> $outfile

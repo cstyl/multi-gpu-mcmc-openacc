@@ -9,8 +9,9 @@ else
   cd $EXEC_DIR
 fi
 
+REPS=3
 outfile="timing.csv"
-DATAPOINTS="1000 10000 100000 1000000 10000000"
+DATAPOINTS="10000 100000 1000000 10000000"
 DIMS="10"
 
 printf "Nodes,Procs,Threads,Datapoints,Dim,Reps," > $outfile
@@ -30,13 +31,13 @@ do
       mvmul=$(awk '/MatVec Mult Kernel:/ {printf "%s",$6}' $report)
       red=$(awk '/Reduction Kernel:/ {printf "%s",$5}' $report)
       upd_data=$(awk '/Dev Update Data:/ {printf "%s",$6}' $report)
-      if [ $upd_data -eq ""]; then upd_data="0.0"; fi
+      if [ -z $upd_data ]; then upd_data="0.0"; fi
 
       upd_values=$(awk '/Dev Update Values:/ {print $6}' $report)
-      if [ $upd_values -eq ""]; then upd_values="0.0"; fi
+      if [ -z $upd_values ]; then upd_values="0.0"; fi
 
       open_acc_init=$(awk '/OpenACC Initialisation:/ {printf "%s",$5}' $report)
-      if [ $open_acc_init -eq ""]; then open_acc_init="0.0"; fi
+      if [ -z $open_acc_init ]; then open_acc_init="0.0"; fi
 
       printf "1,1,1,$N,$dim,$k,$total,$mcmc,$lhood,$mvmul,$red," >> $outfile
       printf "$upd_data,$upd_values,$open_acc_init\n" >> $outfile
