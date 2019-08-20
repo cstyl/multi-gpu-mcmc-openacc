@@ -86,19 +86,15 @@ int met_init_rt(pe_t *pe, rt_t *rt, met_t *met){
   }
   dc_decompose(met->dc);
 
-  // pe_verbose(pe, "Sample init.\n");
   sample_create(pe, &met->current);
   sample_create(pe, &met->proposed);
 
   sample_init_rt(rt, met->current);
   sample_init_rt(rt, met->proposed);
-  // pe_verbose(pe, "sample init completed\n");
 
-  // pe_verbose(pe, "Init data rt.\n");
   data_create_train(pe, met->dc, &met->data);
   data_init_train_rt(pe, rt, met->data);
   data_input_train_info(pe, met->data);
-  // pe_verbose(pe, "Init data rt completed.\n");
 
   rt_string_parameter(rt, "kernel", kernel_value, BUFSIZ);
   if(strcmp(kernel_value, "mvn_block") == 0)
@@ -111,9 +107,7 @@ int met_init_rt(pe_t *pe, rt_t *rt, met_t *met){
   rt_string_parameter(rt, "lhood", lhood_value, BUFSIZ);
   if(strcmp(lhood_value, "logistic_regression") == 0)
   {
-    // pe_verbose(pe, "Create lr.\n");
     lr_lhood_create(pe, met->data, &met->lr);
-    // pe_verbose(pe, "Create lr done.\n");
   }
 
   if(rt_switch(rt, "random_init"))

@@ -24,10 +24,8 @@
   #define PRINT_PREC DBL_DIG+3
 #endif
 
-static const int DEFAULT_NODES = 1;
 static const int DEFAULT_PROCS = 1;
 static const int DEFAULT_THREADS = 1;
-static const int DEFAULT_GPUS = 0;
 
 static const char ALGORITHM_DEFAULT[BUFSIZ] = "metropolis";
 static const char KERNEL_DEFAULT[BUFSIZ] = "mvn_block";

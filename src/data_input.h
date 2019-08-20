@@ -35,6 +35,7 @@ int data_y(data_t *data, int **py);
 int data_dc(data_t *data, dc_t **pdc);
 int data_dc_set(data_t *data, dc_t *dc);
 int data_nprocs_set(data_t *data, int nprocs);
+int data_nthreads_set(data_t *data, int nthreads);
 
 int data_read_file(pe_t *pe, data_t *data);
 int data_print_file(data_t *data);

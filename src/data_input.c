@@ -23,6 +23,7 @@ struct data_s{
   char fy[FILENAME_MAX];
   int rank;
   int nprocs;
+  int nthreads;
 };
 
 static int data_csvread(pe_t *pe, char *filename, int rowSz, int colSz, int skip_header,
@@ -61,6 +62,7 @@ int data_create_train(pe_t *pe, dc_t *dc, data_t **pdata){
 
   data->rank = pe_mpi_rank(pe);
   data->nprocs = DEFAULT_PROCS;
+  data->nthreads = DEFAULT_THREADS;
 
   data_dimx_set(data, DIMX_DEFAULT);
   data_dimy_set(data, DIMY_DEFAULT);
@@ -95,6 +97,7 @@ int data_create_test(pe_t *pe, dc_t *dc, data_t **pdata){
 
    data->rank = pe_mpi_rank(pe);
    data->nprocs = DEFAULT_PROCS;
+   data->nthreads = DEFAULT_THREADS;
 
    data_dimx_set(data, DIMX_DEFAULT);
    data_dimy_set(data, DIMY_DEFAULT);
@@ -136,7 +139,7 @@ int data_free(data_t *data){
 
 int data_init_train_rt(pe_t *pe, rt_t *rt, data_t *train){
 
-  int dimx, dimy, N, nprocs;
+  int dimx, dimy, N, nprocs, nthreads;
   char x[FILENAME_MAX], y[FILENAME_MAX];
 
   assert(rt);
@@ -172,6 +175,11 @@ int data_init_train_rt(pe_t *pe, rt_t *rt, data_t *train){
     data_nprocs_set(train, nprocs);
   }
 
+  if(rt_int_parameter(rt, "nthreads", &nthreads))
+  {
+    data_nthreads_set(train, nthreads);
+  }
+
   data_allocate_x(train);
   data_allocate_y(train);
 
@@ -186,7 +194,7 @@ int data_init_train_rt(pe_t *pe, rt_t *rt, data_t *train){
 
 int data_init_test_rt(pe_t *pe, rt_t *rt, data_t *test){
 
-  int dimx, dimy, N, nprocs;
+  int dimx, dimy, N, nprocs, nthreads;
   char x[FILENAME_MAX], y[FILENAME_MAX];
 
   assert(rt);
@@ -220,6 +228,11 @@ int data_init_test_rt(pe_t *pe, rt_t *rt, data_t *test){
   if(rt_int_parameter(rt, "nprocs", &nprocs))
   {
     data_nprocs_set(test, nprocs);
+  }
+
+  if(rt_int_parameter(rt, "nthreads", &nthreads))
+  {
+    data_nthreads_set(test, nthreads);
   }
 
   data_allocate_x(test);
@@ -260,15 +273,22 @@ void data_create_device_x(data_t *data){
 
   TIMER_start(TIMER_CREATE_DATA);
 
-  int plow, phi;
+  int *tlow=NULL, *thi=NULL;
   int dimx = data->dimx;
 
-  dc_pbound(data->dc, &plow, &phi);
-  precision *REST x = &data->x[plow*dimx];
+  dc_tbound(data->dc, &tlow, &thi);
 
-  int gpuid = data->rank%data->nprocs;
-  #pragma acc set device_num(gpuid) device_type(acc_device_nvidia)
-  #pragma acc enter data create(x[:(phi-plow)*dimx])
+  int nthreads = data->nthreads;
+  #pragma omp parallel default(shared) num_threads(nthreads)
+  {
+    int tid = omp_get_thread_num();
+    int size = thi[tid] - tlow[tid];
+    precision *REST x = &data->x[tlow[tid]*dimx];
+
+    int gpuid = tid + nthreads*(data->rank%data->nprocs);
+    #pragma acc set device_num(gpuid) device_type(acc_device_nvidia)
+    #pragma acc enter data create(x[:size*dimx])
+  }
 
   TIMER_stop(TIMER_CREATE_DATA);
 }
@@ -283,15 +303,22 @@ void data_create_device_y(data_t *data){
 
   TIMER_start(TIMER_CREATE_DATA);
 
-  int plow, phi;
+  int *tlow=NULL, *thi=NULL;
   int dimy = data->dimy;
 
-  dc_pbound(data->dc, &plow, &phi);
-  int *REST y = &data->y[plow*dimy];
+  dc_tbound(data->dc, &tlow, &thi);
 
-  int gpuid = data->rank%data->nprocs;
-  #pragma acc set device_num(gpuid) device_type(acc_device_nvidia)
-  #pragma acc enter data create(y[:(phi-plow)*dimy])
+  int nthreads = data->nthreads;
+  #pragma omp parallel default(shared) num_threads(nthreads)
+  {
+    int tid = omp_get_thread_num();
+    int size = thi[tid] - tlow[tid];
+    int *REST y = &data->y[tlow[tid]*dimy];
+
+    int gpuid = tid + nthreads*(data->rank%data->nprocs);
+    #pragma acc set device_num(gpuid) device_type(acc_device_nvidia)
+    #pragma acc enter data create(y[:size*dimy])
+  }
 
   TIMER_stop(TIMER_CREATE_DATA);
 }
@@ -306,15 +333,22 @@ void data_update_device_x(data_t *data){
 
   TIMER_start(TIMER_UPDATE_DATA);
 
-  int plow, phi;
+  int *tlow=NULL, *thi=NULL;
   int dimx = data->dimx;
 
-  dc_pbound(data->dc, &plow, &phi);
-  precision *REST x = &data->x[plow*dimx];
+  dc_tbound(data->dc, &tlow, &thi);
 
-  int gpuid = data->rank%data->nprocs;
-  #pragma acc set device_num(gpuid) device_type(acc_device_nvidia)
-  #pragma acc update device(x[:(phi-plow)*dimx])
+  int nthreads = data->nthreads;
+  #pragma omp parallel default(shared) num_threads(nthreads)
+  {
+    int tid = omp_get_thread_num();
+    int size = thi[tid] - tlow[tid];
+    precision *REST x = &data->x[tlow[tid]*dimx];
+
+    int gpuid = tid + nthreads*(data->rank%data->nprocs);
+    #pragma acc set device_num(gpuid) device_type(acc_device_nvidia)
+    #pragma acc update device(x[:size*dimx])
+  }
 
   TIMER_stop(TIMER_UPDATE_DATA);
 }
@@ -327,17 +361,24 @@ void data_update_device_x(data_t *data){
 
 void data_update_device_y(data_t *data){
 
+  int *tlow=NULL, *thi=NULL;
+  int dimy = data->dimy;
+
   TIMER_start(TIMER_UPDATE_DATA);
 
-  int plow, phi;
-  dc_pbound(data->dc, &plow, &phi);
+  dc_tbound(data->dc, &tlow, &thi);
 
-  int dimy = data->dimy;
-  int *REST y = &data->y[plow*dimy];
+  int nthreads = data->nthreads;
+  #pragma omp parallel default(shared) num_threads(nthreads)
+  {
+    int tid = omp_get_thread_num();
+    int size = thi[tid] - tlow[tid];
+    int *REST y = &data->y[tlow[tid]*dimy];
 
-  int gpuid = data->rank%data->nprocs;
-  #pragma acc set device_num(gpuid) device_type(acc_device_nvidia)
-  #pragma acc update device(y[:(phi-plow)*dimy])
+    int gpuid = tid + nthreads*(data->rank%data->nprocs);
+    #pragma acc set device_num(gpuid) device_type(acc_device_nvidia)
+    #pragma acc update device(y[:size*dimy])
+  }
 
   TIMER_stop(TIMER_UPDATE_DATA);
 }
@@ -350,11 +391,22 @@ void data_update_device_y(data_t *data){
 
 void data_free_device_x(data_t *data){
 
-  precision *x = data->x;
+  int dimx = data->dimx;
+  int *tlow=NULL, *thi=NULL;
 
-  int gpuid = data->rank%data->nprocs;
-  #pragma acc set device_num(gpuid) device_type(acc_device_nvidia)
-  #pragma acc exit data delete(x)
+  dc_tbound(data->dc, &tlow, &thi);
+
+  int nthreads = data->nthreads;
+  #pragma omp parallel default(shared) num_threads(nthreads)
+  {
+    int tid = omp_get_thread_num();
+    int size = thi[tid] - tlow[tid];
+    precision *REST x = &data->x[tlow[tid]*dimx];
+
+    int gpuid = tid + nthreads*(data->rank%data->nprocs);
+    #pragma acc set device_num(gpuid) device_type(acc_device_nvidia)
+    #pragma acc exit data delete(x)
+  }
 
 }
 
@@ -366,11 +418,22 @@ void data_free_device_x(data_t *data){
 
 void data_free_device_y(data_t *data){
 
-  int *y = data->y;
+  int dimy = data->dimy;
+  int *tlow=NULL, *thi=NULL;
 
-  int gpuid = data->rank%data->nprocs;
-  #pragma acc set device_num(gpuid) device_type(acc_device_nvidia)
-  #pragma acc exit data delete(y)
+  dc_tbound(data->dc, &tlow, &thi);
+
+  int nthreads = data->nthreads;
+  #pragma omp parallel default(shared) num_threads(nthreads)
+  {
+    int tid = omp_get_thread_num();
+    int size = thi[tid] - tlow[tid];
+    int *REST y = &data->y[tlow[tid]*dimy];
+
+    int gpuid = tid + nthreads*(data->rank%data->nprocs);
+    #pragma acc set device_num(gpuid) device_type(acc_device_nvidia)
+    #pragma acc exit data delete(y)
+  }
 
 }
 
@@ -490,6 +553,21 @@ int data_nprocs_set(data_t *data, int nprocs){
  assert(data);
 
  data->nprocs = nprocs;
+
+ return 0;
+}
+
+/*****************************************************************************
+*
+*  data_nthreads_set
+*
+*****************************************************************************/
+
+int data_nthreads_set(data_t *data, int nthreads){
+
+ assert(data);
+
+ data->nthreads = nthreads;
 
  return 0;
 }

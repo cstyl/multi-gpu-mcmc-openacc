@@ -69,14 +69,23 @@ host:
 	$(MAKE) code "CFLAGS=$(CFLAGS) –ta=host" "INC=$(INC) -I../mpi_s" "LIBS=$(LIBS) -L../mpi_s -lmpi"
 
 host-omp:
-	$(MAKE) lib "CFLAGS=$(CFLAGS) –ta=host"
-	$(MAKE) code "CFLAGS=$(CFLAGS) –ta=host" \
+	$(MAKE) lib "CFLAGS=$(CFLAGS) -mp –ta=host"
+	$(MAKE) code "CFLAGS=$(CFLAGS) -mp –ta=host" \
 							 "INC=$(INC) -I../mpi_s" "LIBS=$(LIBS) -L../mpi_s -lmpi"
 
 host-mpi:
 	$(MAKE) libmpi "CFLAGS=$(CFLAGS) –ta=host"
 	$(MAKE) code "CC=$(MPICC) -cc=$(CC)" "CFLAGS=$(CFLAGS) –ta=host" \
 	 						 "INC=$(INC) $(MPI_INCL)" "LIBS=$(LIBS) $(MPI_LIBS)"
+gpu:
+	$(MAKE) lib "CFLAGS=$(CFLAGS) -acc –ta=tesla -Minfo=accel"
+	$(MAKE) code "CFLAGS=$(CFLAGS) -acc –ta=tesla -Minfo=accel" \
+							 "INC=$(INC) -I../mpi_s" "LIBS=$(LIBS) -L../mpi_s -lmpi"
+
+omp-gpu:
+	$(MAKE) lib "CFLAGS=$(CFLAGS) -acc –ta=tesla -Minfo=accel"
+	$(MAKE) code "CFLAGS=$(CFLAGS) -acc –ta=tesla -Minfo=accel" \
+							 "INC=$(INC) -I../mpi_s" "LIBS=$(LIBS) -L../mpi_s -lmpi"
 
 mpi-gpu:
 	$(MAKE) libmpi "CFLAGS=$(CFLAGS) -acc –ta=tesla -Minfo=accel"
