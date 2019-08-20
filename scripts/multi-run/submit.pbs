@@ -1,0 +1,15 @@
+#!/bin/bash --login
+#
+#PBS -N 5k-runs
+#PBS -l place=excl
+#PBS -l select=1:ncpus=36
+#PBS -l walltime=2:0:0
+#PBS -A d167-s1887443
+#PBS -o ./
+#PBS -e ./
+
+module load pgi
+
+cd $PBS_O_WORKDIR
+
+./run.sh

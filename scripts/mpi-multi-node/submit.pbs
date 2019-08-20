@@ -1,0 +1,20 @@
+#!/bin/bash --login
+
+module load pgi
+module load mpt
+
+cd $PBS_O_WORKDIR
+
+cd $EXECDIR
+
+export OMP_NUM_THREADS=1
+
+mpiexec_mpt -ppn 36 -n $PROCS omplace -nt 1 ./mcmc.exe $INFILE > $OUTFILE
+
+if [ ! -d $OUTDIR ]
+then
+  echo "$OUTDIR doesn't exist. Skipped files."
+else
+  mv $INFILE $OUTDIR/input.dat
+  mv $OUTFILE $OUTDIR/out.txt
+fi
