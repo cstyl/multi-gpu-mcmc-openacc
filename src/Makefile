@@ -55,8 +55,18 @@ default:
 	$(MAKE) -s verbose
 
 verbose:
-	echo -e "MCMC make options ...\n"\
-	    "\t make serial \t\t builds serial implementation \n"\
+	@echo -e "MCMC make options ...\n"\
+	    "\t make host \t\t\t builds serial implementation \n"\
+			"\t make host-omp \t\t\t builds OpenMP implementation \n"\
+			"\t make host-mpi \t\t\t builds MPI-only implementation \n"\
+			"\t make host-hybrid \t\t builds MPI+OpenMP implementation \n"\
+			"\t make gpu \t\t\t builds Single GPU implementation \n"\
+			"\t make omp-gpu \t\t\t builds Multi-GPU implementation\n" \
+			"\t \t   \t      \t\t (using OpenMP for single node)\n"\
+			"\t make mpi-gpu \t\t\t builds Multi-GPU implementation\n" \
+			"\t \t   \t      \t\t (using MPI only)\n"\
+			"\t make mpi-hybrid \t\t builds Multi-GPU implementation\n" \
+			"\t \t   \t      \t\t (using MPI+OpenMP) \n"\
       "\t Check the Makefile for further details\n"
 
 code:	$(MAIN).o
@@ -65,8 +75,8 @@ code:	$(MAIN).o
 # OpenACC versions
 
 host:
-	$(MAKE) lib "CFLAGS=$(CFLAGS) –ta=host"
-	$(MAKE) code "CFLAGS=$(CFLAGS) –ta=host" "INC=$(INC) -I../mpi_s" "LIBS=$(LIBS) -L../mpi_s -lmpi"
+	$(MAKE) lib "CFLAGS=$(CFLAGS) -mp –ta=host"
+	$(MAKE) code "CFLAGS=$(CFLAGS) -mp –ta=host" "INC=$(INC) -I../mpi_s" "LIBS=$(LIBS) -L../mpi_s -lmpi"
 
 host-omp:
 	$(MAKE) lib "CFLAGS=$(CFLAGS) -mp –ta=host"
@@ -77,6 +87,12 @@ host-mpi:
 	$(MAKE) libmpi "CFLAGS=$(CFLAGS) –ta=host"
 	$(MAKE) code "CC=$(MPICC) -cc=$(CC)" "CFLAGS=$(CFLAGS) –ta=host" \
 	 						 "INC=$(INC) $(MPI_INCL)" "LIBS=$(LIBS) $(MPI_LIBS)"
+
+host-hybrid:
+	$(MAKE) libmpi "CFLAGS=$(CFLAGS) -mp –ta=host"
+	$(MAKE) code "CC=$(MPICC) -cc=$(CC)" "CFLAGS=$(CFLAGS) –ta=host" \
+	 						 "INC=$(INC) $(MPI_INCL)" "LIBS=$(LIBS) $(MPI_LIBS)"
+
 gpu:
 	$(MAKE) lib "CFLAGS=$(CFLAGS) -acc –ta=tesla -Minfo=accel"
 	$(MAKE) code "CFLAGS=$(CFLAGS) -acc –ta=tesla -Minfo=accel" \
@@ -89,6 +105,11 @@ omp-gpu:
 
 mpi-gpu:
 	$(MAKE) libmpi "CFLAGS=$(CFLAGS) -acc –ta=tesla -Minfo=accel"
+	$(MAKE) code "CC=$(MPICC) -cc=$(CC)" "CFLAGS=$(CFLAGS) -acc –ta=tesla -Minfo=accel" \
+	 						 "INC=$(INC) $(MPI_INCL)" "LIBS=$(LIBS) $(MPI_LIBS)"
+
+mpi-hybrid:
+	$(MAKE) libmpi "CFLAGS=$(CFLAGS) -mp -acc –ta=tesla -Minfo=accel"
 	$(MAKE) code "CC=$(MPICC) -cc=$(CC)" "CFLAGS=$(CFLAGS) -acc –ta=tesla -Minfo=accel" \
 	 						 "INC=$(INC) $(MPI_INCL)" "LIBS=$(LIBS) $(MPI_LIBS)"
 

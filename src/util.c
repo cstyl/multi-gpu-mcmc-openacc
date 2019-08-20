@@ -69,7 +69,7 @@ int util_write_array_precision(precision *data, int N, int dim, const char *dir,
     {
       fprintf(fp, "%.*e,", PRINT_PREC-1,data[i*dim+j]);
     }
-    fprintf(fp, "%.*e,", PRINT_PREC-1, data[i*dim+dim-1]);
+    fprintf(fp, "%.*e\n", PRINT_PREC-1, data[i*dim+dim-1]);
   }
 
   fclose(fp);

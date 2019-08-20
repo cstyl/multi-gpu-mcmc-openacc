@@ -90,13 +90,23 @@ int dc_print_info(pe_t *pe, dc_t *dc){
   assert(pe);
   assert(dc);
 
+  int nvidia_gpus = 0;
+
+#ifdef _OPENACC
+  nvidia_gpus = acc_get_num_devices(acc_device_nvidia);
+#endif
+
   pe_info(pe, "\n");
   pe_info(pe, "Decomposition Properties\n");
   pe_info(pe, "------------------------\n");
-  pe_info(pe, "%30s\t\t%d\n", "Communicator size:", dc->size);
-  pe_info(pe, "%30s\t\t%d\n", "Number of Nodes:", (int)ceil((precision)dc->size/dc->nprocs));
-  pe_info(pe, "%30s\t\t%d\n", "Number of Processes/node:", dc->nprocs);
-  pe_info(pe, "%30s\t\t%d\n", "Number of Threads/process:", dc->nthreads);
+  pe_info(pe, "%30s\t\t %d\n", "Communicator size:", dc->size);
+  pe_info(pe, "%30s\t\t %d\n", "Number of Nodes:", (int)ceil((precision)dc->size/dc->nprocs));
+  pe_info(pe, "%30s\t\t %d\n", "Number of Processes/node:", dc->nprocs);
+  pe_info(pe, "%30s\t\t %d\n", "Number of Threads/process:", dc->nthreads);
+  pe_info(pe, "%30s\t\t %d\n", "Core Count:", dc->size*dc->nthreads);
+    pe_info(pe, "%30s\t\t%s\n", "", "-----");
+  pe_info(pe, "%30s\t\t %d\n", "Number of GPUs/node:",
+              dc->nprocs < nvidia_gpus ? dc->nprocs : nvidia_gpus);
 
   return 0;
 }
@@ -114,7 +124,6 @@ int dc_decompose(dc_t *dc){
   {
     int tid = omp_get_thread_num();
     int low, hi;
-
     dc_splitwork(dc->phi - dc->plow, omp_get_num_threads(), tid, &low, &hi);
     dc->tlow[tid] = dc->plow + low;
     dc->thi[tid] = dc->plow + hi;

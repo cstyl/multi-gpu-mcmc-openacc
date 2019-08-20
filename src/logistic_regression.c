@@ -140,7 +140,7 @@ void mvmul(lr_t *REST lr, precision *REST x, precision *REST sample){
   dc_tbound(lr->dc, &tlow, &thi);
 
   int nthreads = lr->nthreads;
-  #pragma omp parallel default(shared) num_threads(nthreads)
+  #pragma omp parallel default(shared) private(i,j) num_threads(nthreads)
   {
     int tid = omp_get_thread_num();
     int low = tlow[tid] - tlow[0];  /* Make sure first thread starts at zero */
@@ -181,12 +181,12 @@ precision reduce_lhood(lr_t *REST lr, int *REST y){
   dc_tbound(lr->dc, &tlow, &thi);
 
   int nthreads = lr->nthreads;
-  #pragma omp parallel default(shared) num_threads(nthreads) reduction(+:lhood)
+  #pragma omp parallel default(shared) num_threads(nthreads) private(i) reduction(+:lhood)
   {
     int tid = omp_get_thread_num();
     int low = tlow[tid] - tlow[0];  /* Make sure first thread starts at zero */
     int hi = thi[tid] - tlow[0];
-    int dlhood = 0.0f;
+    precision dlhood = 0.0f;
 
     int gpuid = tid + lr->nthreads*(lr->rank%lr->nprocs);
     #pragma acc set device_num(gpuid) device_type(acc_device_nvidia)
