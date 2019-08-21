@@ -4,7 +4,7 @@
 #PBS -q gpu
 #PBS -l place=excl
 #PBS -l select=2:ncpus=40:ngpus=4
-#PBS -l walltime=6:0:0
+#PBS -l walltime=2:0:0
 #PBS -A d167-s1887443
 #PBS -o ./
 #PBS -e ./
@@ -32,7 +32,7 @@ else
 fi
 
 REPS=3
-DATAPOINTS="10000 100000 1000000 10000000"
+DATAPOINTS="1000000 10000000 100000000"
 PROCS=("1" "1" "1" "1" "2" "2")
 THREADS=("1" "2" "3" "4" "3" "4")
 DIMS="10"

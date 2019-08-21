@@ -131,7 +131,6 @@ precision lr_lhood(lr_t *lr, precision *sample){
 void mvmul(lr_t *REST lr, precision *REST x, precision *REST sample){
 
   int *tlow = NULL, *thi = NULL;
-  precision *REST dot = lr->dot;
   int dim = lr->dim;
   int i, j;
 
@@ -145,21 +144,24 @@ void mvmul(lr_t *REST lr, precision *REST x, precision *REST sample){
     int tid = omp_get_thread_num();
     int low = tlow[tid] - tlow[0];  /* Make sure first thread starts at zero */
     int hi = thi[tid] - tlow[0];
+    int size = hi - low;
+    precision *REST dot = &lr->dot[low];
+    precision *REST mat = &x[low*dim];
 
     int gpuid = tid + lr->nthreads*(lr->rank%lr->nprocs);
     #pragma acc set device_num(gpuid) device_type(acc_device_nvidia)
-    #pragma acc kernels present(dot[low:hi]) \
+    #pragma acc kernels present(dot[:size]) \
                         present(sample[:dim]) \
-                        present(x[low*dim:hi*dim])
+                        present(mat[:size*dim])
     {
       #pragma acc loop
-      for(i=low; i<hi; i++)
+      for(i=0; i<size; i++)
       {
         precision dot_local = 0.0f;
         #pragma acc loop seq
         for(j=0; j<dim; j++)
         {
-          dot_local += sample[j] * x[i*dim+j];
+          dot_local += sample[j] * mat[i*dim+j];
         }
         dot[i] = dot_local;
       }
@@ -186,18 +188,22 @@ precision reduce_lhood(lr_t *REST lr, int *REST y){
     int tid = omp_get_thread_num();
     int low = tlow[tid] - tlow[0];  /* Make sure first thread starts at zero */
     int hi = thi[tid] - tlow[0];
+    int size = hi - low;
     precision dlhood = 0.0f;
+
+    precision *REST dot = &lr->dot[low];
+    int *REST lab = &y[low];
 
     int gpuid = tid + lr->nthreads*(lr->rank%lr->nprocs);
     #pragma acc set device_num(gpuid) device_type(acc_device_nvidia)
-    #pragma acc kernels present(dot[low:hi], y[low:hi]) \
+    #pragma acc kernels present(dot[:size], lab[:size]) \
                         copyout(dlhood)
     {
       dlhood = 0.0f;
       #pragma acc loop reduction(+:dlhood)
-      for(i=low; i<hi; i++)
+      for(i=0; i<size; i++)
       {
-        dlhood -= log(1.0f + exp(-(precision)y[i] * dot[i]));
+        dlhood -= log(1.0f + exp(-(precision)lab[i] * dot[i]));
       }
     }
     lhood += dlhood;

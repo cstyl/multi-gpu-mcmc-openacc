@@ -2,6 +2,10 @@ import numpy as np
 import matplotlib.pyplot as plt
 import math
 
+def speed_up_error(T1, Tp, dT1, dTp):
+
+    return np.sqrt(np.power(dT1/Tp,2) + np.power(T1*dTp/np.power(Tp,2),2))
+
 maindir = '../../experiments/mpi/'
 timing = maindir + 'timing.csv'
 
@@ -45,6 +49,17 @@ for nidx,n in enumerate(N):
         time_red[nidx,cidx,0] = data_core[:,10].mean()
         time_red[nidx,cidx,1] = data_core[:,10].std()
 
+    mcmc_error = speed_up_error(time_mcmc[nidx,0,0], time_mcmc[nidx,:,0],
+                                time_mcmc[nidx,0,1], time_mcmc[nidx,:,1])
+
+    lhood_error = speed_up_error(time_lhood[nidx,0,0], time_lhood[nidx,:,0],
+                                time_lhood[nidx,0,1], time_lhood[nidx,:,1])
+
+    mvmul_error = speed_up_error(time_mvmul[nidx,0,0], time_mvmul[nidx,:,0],
+                                time_mvmul[nidx,0,1], time_mvmul[nidx,:,1])
+
+    red_error = speed_up_error(time_red[nidx,0,0], time_red[nidx,:,0],
+                                time_red[nidx,0,1], time_red[nidx,:,1])
 
     plt.figure()
     plt.errorbar(CORES, time_mcmc[nidx,:,0], yerr=time_mcmc[nidx,:,1],
@@ -68,16 +83,16 @@ for nidx,n in enumerate(N):
 
 
     plt.figure()
-    plt.errorbar(CORES, time_mcmc[nidx,0,0]/time_mcmc[nidx,:,0], yerr=time_mcmc[nidx,:,1],
+    plt.errorbar(CORES, time_mcmc[nidx,0,0]/time_mcmc[nidx,:,0], yerr=mcmc_error,
                  marker=markers[0], color=colours[0], label=labels[0])
 
-    plt.errorbar(CORES, time_lhood[nidx,0,0]/time_lhood[nidx,:,0], yerr=time_lhood[nidx,:,1],
+    plt.errorbar(CORES, time_lhood[nidx,0,0]/time_lhood[nidx,:,0], yerr=lhood_error,
                  marker=markers[1], color=colours[1], label=labels[1])
 
-    plt.errorbar(CORES, time_mvmul[nidx,0,0]/time_mvmul[nidx,:,0], yerr=time_mvmul[nidx,:,1],
+    plt.errorbar(CORES, time_mvmul[nidx,0,0]/time_mvmul[nidx,:,0], yerr=mvmul_error,
                  marker=markers[2], color=colours[2], label=labels[2])
 
-    plt.errorbar(CORES, time_red[nidx,0,0]/time_red[nidx,:,0], yerr=time_red[nidx,:,1],
+    plt.errorbar(CORES, time_red[nidx,0,0]/time_red[nidx,:,0], yerr=red_error,
                  marker=markers[3], color=colours[3], label=labels[3])
     plt.plot(CORES, CORES, linestyle='--', color='black', label='ideal')
     plt.xlabel('Cores')

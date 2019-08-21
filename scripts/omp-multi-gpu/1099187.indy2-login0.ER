@@ -1,0 +1,13 @@
+x lives at 0xf92d00 size 800000 partially present
+Present table dump for device[1]: NVIDIA Tesla GPU 0, compute capability 7.0, threadid=2
+host:0xeb7bf0 device:0x2aaadb005000 size:40000 presentcount:0+1 line:236 name:dot
+host:0xf28860 device:0x2aaabbc00000 size:80 presentcount:0+1 line:289 name:values
+host:0xf2ee60 device:0x2aaabbc00200 size:80 presentcount:0+1 line:289 name:values
+host:0xf31280 device:0x2aaabb4fa000 size:400000 presentcount:0+1 line:290 name:x
+host:0xff4b00 device:0x2aaadb000000 size:20000 presentcount:0+1 line:320 name:y
+allocated block device:0x2aaabb4fa000 size:400384 thread:1
+allocated block device:0x2aaabbc00000 size:512 thread:1
+allocated block device:0x2aaabbc00200 size:512 thread:1
+allocated block device:0x2aaadb000000 size:20480 thread:1
+allocated block device:0x2aaadb005000 size:40448 thread:1
+Present table dump for device[2]: NVIDIA Tesla GPU 1, compute capability 7.0, threadid=2

@@ -18,7 +18,7 @@ else
   echo "Data Directory: $DATA_DIR"
 fi
 
-RUNS=5000
+RUNS=1000
 seed=0
 seed_incr=5
 N="500"
@@ -27,7 +27,7 @@ burn="5000"
 postburn="25000"
 max_lag="12499"
 infr="1"
-random_init="1"
+random_init="0"
 
 cd $EXEC_DIR
 
@@ -61,7 +61,7 @@ do
   echo "burn_N        $burn" >> $infile
   echo "postburn_N    $postburn" >> $infile
   echo "kernel        mvn_block" >> $infile
-  echo "tune_sd       0" >> $infile
+  echo "tune_sd       11" >> $infile
   echo "lhood         logistic_regression" >> $infile
   echo "max_lag       $max_lag" >> $infile
   echo "lag_threshold 0.1" >> $infile

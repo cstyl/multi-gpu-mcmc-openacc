@@ -1,0 +1,147 @@
+Welcome to MCMC sampler v0.0.1 (Serial version running on 1 process)
+
+Note assertions via standard C assert() are on.
+
+Read 31 user parameters from serial-1000000_10_2.dat
+
+Burn Chain Properties
+---------------------
+                       Length:		1000
+    Dimensionality of Samples:		10
+             Output Frequency:		100 iterations
+             Output directory:		./serial-1000000_10/2
+
+Chain Properties
+---------------------
+                       Lenght:		1000
+    Dimensionality of Samples:		10
+             Output Frequency:		100 iterations
+             Output directory:		./serial-1000000_10/2
+[User   ] Random number seed: 7361237
+
+Training Set Properties
+-----------------------
+         Number of Datapoints:		1000000
+    Datapoints Dimensionality:		10 (includes bias)
+        Labels Dimensionality:		1
+          Datapoints Filename:		../../data/synthetic/100M_10/X_train.csv
+              Labels Filename:		../../data/synthetic/100M_10/Y_train.csv
+
+Metropolis Properties
+---------------------
+        Sample Dimensionality:		10
+        Random Initialisation:		False
+              Proposal Kernel:
+                         Type 		Multivariate Normal (Block)
+                    Step Size 		0.793333
+                         Tune 		False
+                   Likelihood:		Logistic Regression
+
+Autocorrelation Properties
+--------------------------
+                       Length:		1000
+    Dimensionality of Samples:		10
+                      Max Lag:		499
+    Autocorrelation Threshold:		0.100000
+             Output Frequency:		2000 iterations
+             Output directory:		./serial-1000000_10/2
+
+Effective Sample Size Properties
+--------------------------------
+                Selected Case:		all
+    Dimensionality of Samples:		10
+            Reading data from:	          ../../data/synthetic/100M_10/X_train.csv	Done
+            Reading data from:	          ../../data/synthetic/100M_10/Y_train.csv	Done
+
+Starting metropolis run for 1000 steps..
+Iteration      1:	 Accepted Samples =      0	 Acceptance Ratio = 0.000(%)
+Iteration    100:	 Accepted Samples =      8	 Acceptance Ratio = 8.000(%)
+Iteration    200:	 Accepted Samples =     12	 Acceptance Ratio = 6.000(%)
+Iteration    300:	 Accepted Samples =     13	 Acceptance Ratio = 4.333(%)
+Iteration    400:	 Accepted Samples =     15	 Acceptance Ratio = 3.750(%)
+Iteration    500:	 Accepted Samples =     16	 Acceptance Ratio = 3.200(%)
+Iteration    600:	 Accepted Samples =     16	 Acceptance Ratio = 2.667(%)
+Iteration    700:	 Accepted Samples =     16	 Acceptance Ratio = 2.286(%)
+Iteration    800:	 Accepted Samples =     16	 Acceptance Ratio = 2.000(%)
+Iteration    900:	 Accepted Samples =     16	 Acceptance Ratio = 1.778(%)
+Iteration   1000:	 Accepted Samples =     16	 Acceptance Ratio = 1.600(%)
+
+Starting metropolis run for 1000 steps..
+Iteration      1:	 Accepted Samples =      0	 Acceptance Ratio = 0.000(%)
+Iteration    100:	 Accepted Samples =      0	 Acceptance Ratio = 0.000(%)
+Iteration    200:	 Accepted Samples =      0	 Acceptance Ratio = 0.000(%)
+Iteration    300:	 Accepted Samples =      0	 Acceptance Ratio = 0.000(%)
+Iteration    400:	 Accepted Samples =      0	 Acceptance Ratio = 0.000(%)
+Iteration    500:	 Accepted Samples =      0	 Acceptance Ratio = 0.000(%)
+Iteration    600:	 Accepted Samples =      0	 Acceptance Ratio = 0.000(%)
+Iteration    700:	 Accepted Samples =      0	 Acceptance Ratio = 0.000(%)
+Iteration    800:	 Accepted Samples =      0	 Acceptance Ratio = 0.000(%)
+Iteration    900:	 Accepted Samples =      0	 Acceptance Ratio = 0.000(%)
+Iteration   1000:	 Accepted Samples =      1	 Acceptance Ratio = 0.100(%)
+Autocorrelation Summary:
+------------------------
+	       Dim	      Mean	  Variance	    MaxLag
+	         0	   -3.1271	    0.0180	        70
+	         1	    2.0528	    0.0009	        70
+	         2	   -1.8637	    0.0005	        70
+	         3	    0.4448	    0.0116	        70
+	         4	   -0.0181	    0.0025	        70
+	         5	   -2.9847	    0.0274	        70
+	         6	   -0.9105	    0.0007	        70
+	         7	   -1.1649	    0.0327	        70
+	         8	   -3.7715	    0.0004	        70
+	         9	    3.6144	    0.0103	        70
+
+Effective Sample Size Summary:
+------------------------------
+	Max:	12.393570
+	Min:	12.393570
+	Median:	12.393570
+	Mean:	12.393570
+
+    Creating output directory:	                             ./serial-1000000_10/2	Done
+                      Writing:	            ./serial-1000000_10/2/burn_samples.csv	Done
+                      Writing:	        ./serial-1000000_10/2/burn_probability.csv	Done
+                      Writing:	              ./serial-1000000_10/2/burn_ratio.csv	Done
+                      Writing:	           ./serial-1000000_10/2/burn_accepted.csv	Done
+    Creating output directory:	                             ./serial-1000000_10/2	Done
+                      Writing:	        ./serial-1000000_10/2/postburn_samples.csv	Done
+                      Writing:	    ./serial-1000000_10/2/postburn_probability.csv	Done
+                      Writing:	          ./serial-1000000_10/2/postburn_ratio.csv	Done
+                      Writing:	       ./serial-1000000_10/2/postburn_accepted.csv	Done
+    Creating output directory:	                             ./serial-1000000_10/2	Done
+Writing autocorrelation files:	                                                 
+                      Writing:	                 ./serial-1000000_10/2/rho_000.csv	Done
+                      Writing:	                 ./serial-1000000_10/2/rho_001.csv	Done
+                      Writing:	                 ./serial-1000000_10/2/rho_002.csv	Done
+                      Writing:	                 ./serial-1000000_10/2/rho_003.csv	Done
+                      Writing:	                 ./serial-1000000_10/2/rho_004.csv	Done
+                      Writing:	                 ./serial-1000000_10/2/rho_005.csv	Done
+                      Writing:	                 ./serial-1000000_10/2/rho_006.csv	Done
+                      Writing:	                 ./serial-1000000_10/2/rho_007.csv	Done
+                      Writing:	                 ./serial-1000000_10/2/rho_008.csv	Done
+                      Writing:	                 ./serial-1000000_10/2/rho_009.csv	Done
+
+Timer resolution: 1e-06 second
+
+Timer statistics
+                  Section:       tmin       tmax      total
+                    Total:     48.921     48.921     48.921	      48.920706 (1 call)
+            Runtime Setup:      0.004      0.004      0.004	       0.003550 (1 call)
+          MCMC Metropolis:     48.797     48.797     48.797	      48.796699 (1 call)
+     MCMC Metropolis Init:      3.090      3.090      3.090	       3.089858 (1 call)
+             MCMC Burn-in:     22.849     22.849     22.849	      22.848978 (1 call)
+        MCMC Post Burn-in:     22.851     22.851     22.851	      22.851004 (1 call)
+     MCMC Proposal Kernel:      0.000      0.000      0.004	       0.000002 (2000 calls)
+     MCMC Evaluation Step:      0.023      0.028     45.651	       0.022825 (2000 calls)
+     MCMC Acceptance Step:      0.000      0.010      0.042	       0.000021 (2000 calls)
+               Likelihood:      0.023      0.037     45.685	       0.022831 (2001 calls)
+       MatVec Mult Kernel:      0.013      0.024     25.429	       0.012708 (2001 calls)
+         Reduction Kernel:      0.010      0.013     20.256	       0.010123 (2001 calls)
+                    Prior:      0.000      0.000      0.001	       0.000001 (2001 calls)
+             Sampler Step:      0.023      0.038     45.700	       0.022850 (2000 calls)
+          Autocorrelation:      0.000      0.000      0.000	       0.000296 (1 call)
+    Effective Sample Size:      0.000      0.000      0.000	       0.000004 (1 call)
+        Load Training Set:      3.053      3.053      3.053	       3.052922 (1 call)
+       Write Output Files:      0.120      0.120      0.120	       0.120122 (1 call)
+MCMC finished normally.

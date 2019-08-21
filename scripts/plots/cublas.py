@@ -2,6 +2,10 @@ import numpy as np
 import matplotlib.pyplot as plt
 import math
 
+def speed_up_error(T1, Tp, dT1, dTp):
+
+    return np.sqrt(np.power(dT1/Tp,2) + np.power(T1*dTp/np.power(Tp,2),2))
+
 maindir = '../../experiments/'
 gpu_timing = maindir + 'single-gpu/timing.csv'
 cublas_timing = maindir + 'cublas/timing.csv'
@@ -18,10 +22,7 @@ cublas_data = np.genfromtxt(cublas_timing, delimiter=',', skip_header=1)
 gpu_data = np.genfromtxt(gpu_timing, delimiter=',', skip_header=1)
 
 # 2 is for mean, std, 3 is for the implementations
-time_mcmc = np.zeros((2, 2, len(N)))
-time_lhood = np.zeros((2, 2, len(N)))
 time_mvmul = np.zeros((2, 2, len(N)))
-time_red = np.zeros((2, 2, len(N)))
 
 # Single GPU first
 for nidx,n in enumerate(N):
@@ -29,49 +30,24 @@ for nidx,n in enumerate(N):
     block_N = gpu_data[:,3]
     data_N = gpu_data[block_N==n,:]
 
-    time_mcmc[0,0,nidx] = data_N[:,7].mean()
-    time_mcmc[0,1,nidx] = data_N[:,7].std()
-
-    time_lhood[0,0,nidx] = data_N[:,8].mean()
-    time_lhood[0,1,nidx] = data_N[:,8].std()
-
     time_mvmul[0,0,nidx] = data_N[:,9].mean()
     time_mvmul[0,1,nidx] = data_N[:,9].std()
-
-    time_red[0,0,nidx] = data_N[:,10].mean()
-    time_red[0,1,nidx] = data_N[:,10].std()
 
 for nidx,n in enumerate(N):
 
     block_N = cublas_data[:,3]
     data_N = cublas_data[block_N==n,:]
 
-    time_mcmc[1,0,nidx] = data_N[:,7].mean()
-    time_mcmc[1,1,nidx] = data_N[:,7].std()
-
-    time_lhood[1,0,nidx] = data_N[:,8].mean()
-    time_lhood[1,1,nidx] = data_N[:,8].std()
-
     time_mvmul[1,0,nidx] = data_N[:,9].mean()
     time_mvmul[1,1,nidx] = data_N[:,9].std()
 
-    time_red[1,0,nidx] = data_N[:,10].mean()
-    time_red[1,1,nidx] = data_N[:,10].std()
+error = speed_up_error(time_mvmul[0,0], time_mvmul[1,0], time_mvmul[0,1], time_mvmul[1,1])
 
 # CUBLAS Execution time
 
 plt.figure()
-plt.errorbar(N, time_mcmc[1,0,:], yerr=time_mcmc[1,1,:],
-             marker=markers[0], color=colours[0], label=labels[0])
-
-plt.errorbar(N, time_lhood[1,0,:], yerr=time_lhood[1,1,:],
-             marker=markers[1], color=colours[1], label=labels[1])
-
 plt.errorbar(N, time_mvmul[1,0,:], yerr=time_mvmul[1,1,:],
              marker=markers[2], color=colours[2], label=labels[2])
-
-plt.errorbar(N, time_red[1,0,:], yerr=time_red[1,1,:],
-             marker=markers[3], color=colours[3], label=labels[3])
 plt.xlabel('Datapoints')
 plt.ylabel('Execution Time (s)')
 plt.yscale('log')
@@ -83,17 +59,8 @@ plt.close()
 
 
 plt.figure()
-plt.errorbar(N, time_mcmc[0,0,:]/time_mcmc[1,0,:], yerr=time_mcmc[1,1,:],
-             marker=markers[0], color=colours[0], label=labels[0])
-
-plt.errorbar(N, time_lhood[0,0,:]/time_lhood[1,0,:], yerr=time_lhood[1,1,:],
-             marker=markers[1], color=colours[1], label=labels[1])
-
-plt.errorbar(N, time_mvmul[0,0,:]/time_mvmul[1,0,:], yerr=time_mvmul[1,1,:],
+plt.errorbar(N, time_mvmul[0,0,:]/time_mvmul[1,0,:], yerr=error,
              marker=markers[2], color=colours[2], label=labels[2])
-
-plt.errorbar(N, time_red[0,0,:]/time_red[1,0,:], yerr=time_red[1,1,:],
-             marker=markers[3], color=colours[3], label=labels[3])
 plt.xlabel('Datapoints')
 plt.ylabel('Speed Up ' + r'$\frac{T_{GPU}}{T_{CU}}$' + ' (Times)')
 plt.yscale('log')

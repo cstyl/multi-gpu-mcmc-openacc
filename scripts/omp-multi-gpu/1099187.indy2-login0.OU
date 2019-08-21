@@ -1,0 +1,7 @@
+Experiment Directory: ../../experiments/omp-multi-gpu
+Data Directory: ../../data/synthetic
+Running ./mcmc.exe for 10000 points of dim 10 on 1 threads
+./omp-multi-gpu-10000_10_1/1 doesn't exist. Skipped files.
+Running ./mcmc.exe for 10000 points of dim 10 on 1 threads
+Running ./mcmc.exe for 10000 points of dim 10 on 1 threads
+Running ./mcmc.exe for 10000 points of dim 10 on 2 threads

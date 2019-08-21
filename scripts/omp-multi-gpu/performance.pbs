@@ -4,7 +4,7 @@
 #PBS -q gpu
 #PBS -l place=excl
 #PBS -l select=1:ncpus=40:ngpus=4
-#PBS -l walltime=6:0:0
+#PBS -l walltime=1:0:0
 #PBS -A d167-s1887443
 #PBS -o ./
 #PBS -e ./
