@@ -6,13 +6,13 @@ def speed_up_error(T1, Tp, dT1, dTp):
 
     return np.sqrt(np.power(dT1/Tp,2) + np.power(T1*dTp/np.power(Tp,2),2))
 
-maindir = '../../experiments/mpi/'
+maindir = '../../experiments/omp-multi-gpu/'
 timing = maindir + 'timing.csv'
 
 N_LABEL=('10k', '100k', '1M', '10M')
 N=(10000, 100000, 1000000, 10000000)
 DIMS=10
-CORES=(1, 2, 4, 8, 10, 15, 17, 21, 24, 28, 32, 36)
+CORES=(1, 2, 3, 4)
 
 
 labels = ('mcmc', 'lhood', 'mvmul', 'reduction')
@@ -34,11 +34,11 @@ for nidx,n in enumerate(N):
 
     for cidx,c in enumerate(CORES):
 
-        block_core = data_N[:,1]
+        block_core = data_N[:,2]
         data_core = data_N[block_core==c,:]
 
-        time_mcmc[nidx,cidx,0] = data_core[:,7].mean()- data_core[:,14].mean()
-        time_mcmc[nidx,cidx,1] = data_core[:,7].std()- data_core[:,14].std()
+        time_mcmc[nidx,cidx,0] = data_core[:,7].mean()
+        time_mcmc[nidx,cidx,1] = data_core[:,7].std()
 
         time_lhood[nidx,cidx,0] = data_core[:,8].mean()
         time_lhood[nidx,cidx,1] = data_core[:,8].std()
@@ -78,7 +78,7 @@ for nidx,n in enumerate(N):
     # plt.yscale('log')
     plt.legend()
     plt.grid(True)
-    plt.savefig(maindir + 'mpi_runtime_' + N_LABEL[nidx] + '.eps', format='eps', dpi=1000)
+    plt.savefig(maindir + 'omp-multi-gpu_runtime_' + N_LABEL[nidx] + '.eps', format='eps', dpi=1000)
     plt.close()
 
 
@@ -100,5 +100,5 @@ for nidx,n in enumerate(N):
     # plt.yscale('log')
     plt.legend()
     plt.grid(True)
-    plt.savefig(maindir + 'mpi_speedup_' + N_LABEL[nidx] + '.eps', format='eps', dpi=1000)
+    plt.savefig(maindir + 'omp-multi-gpu_speedup_' + N_LABEL[nidx] + '.eps', format='eps', dpi=1000)
     plt.close()

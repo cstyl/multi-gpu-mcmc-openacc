@@ -1,10 +1,10 @@
 #!/bin/bash --login
 #
-#PBS -N hybrid-multi-gpu
+#PBS -N mpi-multi-gpu
 #PBS -q gpu
 #PBS -l place=excl
-#PBS -l select=2:ncpus=40:ngpus=4
-#PBS -l walltime=6:0:0
+#PBS -l select=1:ncpus=40:ngpus=4
+#PBS -l walltime=2:0:0
 #PBS -A d167-s1887443
 #PBS -o ./
 #PBS -e ./
@@ -15,7 +15,7 @@ module load pgi cuda mpt
 
 export OMP_NUM_THREADS=1
 
-EXEC_DIR="../../experiments/mpi-hybrid"
+EXEC_DIR="../../experiments/mpi-single-node"
 if [ ! -d $EXEC_DIR ];
 then
   echo "$EXEC_DIR doesn't exist"
@@ -32,9 +32,9 @@ else
 fi
 
 REPS=3
-DATAPOINTS="1000000 10000000 100000000"
-PROCS=("1" "1" "1" "1" "2" "2")
-THREADS=("1" "2" "3" "4" "3" "4")
+DATAPOINTS="100000 1000000 10000000 100000000"
+NODES=("1" "1" "1" "1")
+PROCS=("1" "2" "3" "4")
 DIMS="10"
 burn="10000"
 postburn="10000"
@@ -49,15 +49,16 @@ do
   do
     for i in `seq -w 0 $((${#PROCS[@]}-1))`
     do
+      PPN=$(( ${PROCS[$i]} / ${NODES[$i]} ))
       for k in `seq -w 1 $REPS`
       do
         indir="$DATA_DIR/100M_${dim}"
-        outdir="./mpi-hybrid-${N}_${dim}_${PROCS[$i]}_${THREADS[$i]}/$k"
+        outdir="./mpi-single-node-${N}_${dim}_${PROCS[$i]}/$k"
         # generate input file for the test
-        infile="mpi-hybrid-${N}_${dim}_${PROCS[$i]}_${THREADS[$i]}_${k}.dat"
-        outfile="mpi-hybrid-${N}_${dim}_${PROCS[$i]}_${THREADS[$i]}_${k}.txt"
-        echo "nprocs        ${PROCS[$i]}" >> $infile
-        echo "nthreads      ${THREADS[$i]}" >> $infile
+        infile="mpi-single-node-${N}_${dim}_${PROCS[$i]}_${k}.dat"
+        outfile="mpi-single-node-${N}_${dim}_${PROCS[$i]}_${k}.txt"
+        echo "nprocs        ${PPN}" >> $infile
+        echo "nthreads      1" >> $infile
         echo "train_x       $indir/X_train.csv" >> $infile
         echo "train_y       $indir/Y_train.csv" >> $infile
         echo "test_x        $indir/X_test.csv" >> $infile
@@ -92,9 +93,9 @@ do
 
         if [ -d $indir ];
         then
-          echo "Running ./mcmc.exe for $N points of dim $dim on ${PROCS[$i]} procs each with ${THREADS[$i]} threads"
+          echo "Running ./mcmc.exe for $N points of dim $dim "
 
-          mpiexec_mpt -ppn 1 -n ${PROCS[$i]} omplace -nt ${THREADS[$i]} ./mcmc.exe $infile > $outfile
+          mpiexec_mpt -ppn ${PPN} -n ${PROCS[$i]} omplace -nt 1 ./mcmc.exe $infile > $outfile
 
           if [ ! -d $outdir ]
           then

@@ -34,6 +34,8 @@ time_lhood = np.zeros((3, 2, len(N)))
 time_mvmul = np.zeros((3, 2, len(N)))
 time_red = np.zeros((3, 2, len(N)))
 
+data_load_mu = np.zeros(len(N))
+data_load_std = np.zeros(len(N))
 # OMP data first (need only the 36 cores)
 for nidx,n in enumerate(N):
 
@@ -43,8 +45,12 @@ for nidx,n in enumerate(N):
     block_core = data_N[:,2]
     data_core = data_N[block_core==36,:]
 
-    time_mcmc[0,0,nidx] = data_core[:,7].mean()
-    time_mcmc[0,1,nidx] = data_core[:,7].std()
+    data_load_mu[nidx]  = data_core[:,14].mean()
+    data_load_std[nidx]  = data_core[:,14].std()
+
+
+    time_mcmc[0,0,nidx] = data_core[:,7].mean() - data_core[:,14].mean() + data_core[:,11].mean() + data_core[:,10].mean()
+    time_mcmc[0,1,nidx] = data_core[:,7].std() - data_core[:,14].std() + data_core[:,11].std() + data_core[:,10].std()
 
     time_lhood[0,0,nidx] = data_core[:,8].mean()
     time_lhood[0,1,nidx] = data_core[:,8].std()
@@ -64,8 +70,8 @@ for nidx,n in enumerate(N):
     block_core = data_N[:,1]
     data_core = data_N[block_core==36,:]
 
-    time_mcmc[1,0,nidx] = data_core[:,7].mean()
-    time_mcmc[1,1,nidx] = data_core[:,7].std()
+    time_mcmc[1,0,nidx] = data_core[:,7].mean() - data_core[:,14].mean() + data_core[:,11].mean() + data_core[:,10].mean()
+    time_mcmc[1,1,nidx] = data_core[:,7].std() - data_core[:,14].std() + data_core[:,11].std() + data_core[:,10].std()
 
     time_lhood[1,0,nidx] = data_core[:,8].mean()
     time_lhood[1,1,nidx] = data_core[:,8].std()
@@ -85,8 +91,8 @@ for nidx,n in enumerate(N):
     block_core = data_N[:,2]
     data_core = data_N[block_core==1,:]
 
-    time_mcmc[2,0,nidx] = data_core[:,7].mean()
-    time_mcmc[2,1,nidx] = data_core[:,7].std()
+    time_mcmc[2,0,nidx] = data_core[:,7].mean() - data_load_mu[nidx] + data_core[:,11].mean() + data_core[:,10].mean()
+    time_mcmc[2,1,nidx] = data_core[:,7].std():q
 
     time_lhood[2,0,nidx] = data_core[:,8].mean()
     time_lhood[2,1,nidx] = data_core[:,8].std()
@@ -161,7 +167,6 @@ plt.errorbar(N, time_red[0,0,:]/time_red[2,0,:], yerr=omp_red_error,
              marker=markers[3], color=colours[3], label=labels[3])
 plt.xlabel('Datapoints')
 plt.ylabel('Speed Up ' + r'$\frac{T_{OMP}}{T_{GPU}}$' + ' (Times)')
-plt.yscale('log')
 plt.xscale('log')
 plt.legend()
 plt.grid(True)
@@ -182,7 +187,6 @@ plt.errorbar(N, time_red[1,0,:]/time_red[2,0,:], yerr=mpi_red_error,
              marker=markers[3], color=colours[3], label=labels[3])
 plt.xlabel('Datapoints')
 plt.ylabel('Speed Up ' + r'$\frac{T_{MPI}}{T_{GPU}}$' + ' (Times)')
-plt.yscale('log')
 plt.xscale('log')
 plt.legend()
 plt.grid(True)

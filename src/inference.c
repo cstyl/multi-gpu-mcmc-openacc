@@ -11,12 +11,12 @@
 #include "timer.h"
 
 struct infr_s{
-  pe_t *pe;
-  ch_t *chain;
-  data_t *data;
-  precision *sum;
-  int *labels;
-  precision accuracy;
+  pe_t *pe;             /* Parallel Environment */
+  ch_t *chain;          /* Generated chain */
+  data_t *data;         /* Test data */
+  precision *sum;       /* MC Integration out */
+  int *labels;          /* Infered labels */
+  precision accuracy;   /* Resulted accuracy */
   char mc_case[BUFSIZ];
 };
 

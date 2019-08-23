@@ -1,6 +1,6 @@
 #!/bin/sh
 
-EXEC_DIR="../../experiments/mpi-multi-gpu"
+EXEC_DIR="../../experiments/mpi-single-node"
 if [ ! -d $EXEC_DIR ];
 then
   echo "$EXEC_DIR doesn't exist"
@@ -11,10 +11,7 @@ fi
 
 REPS=3
 outfile="timing.csv"
-# NODES=("1" "1" "1" "1" "2" "2")
-# PROCS=("1" "2" "3" "4" "6" "8")
-NODES=("2" "2")
-PROCS=("6" "8")
+THREADS="1 2 3 4"
 DATAPOINTS="100000 1000000 10000000 100000000"
 DIMS="10"
 
@@ -25,11 +22,11 @@ for N in $DATAPOINTS
 do
   for dim in $DIMS
   do
-    for i in `seq -w 0 $((${#PROCS[@]}-1))`
+    for t in $THREADS
     do
       for k in `seq -w 1 $REPS`
       do
-        report="./mpi-multi-gpu-${N}_${dim}_${PROCS[$i]}/$k/out.txt"
+        report="./mpi-single-node-${N}_${dim}_${t}/$k/out.txt"
         # parse input file
         total=$(awk '/Total:/ {printf "%s",$4}' $report)
         read_data=$(awk '/Load Training Set:/ {printf "%s",$6}' $report)
@@ -46,7 +43,7 @@ do
         open_acc_init=$(awk '/OpenACC Initialisation:/ {printf "%s",$5}' $report)
         if [ -z $open_acc_init ]; then open_acc_init="0.0"; fi
 
-        printf "${NODES[$i]},${PROCS[$i]},1,$N,$dim,$k,$total,$mcmc,$lhood,$mvmul,$red," >> $outfile
+        printf "1,${t},1,$N,$dim,$k,$total,$mcmc,$lhood,$mvmul,$red," >> $outfile
         printf "$upd_data,$upd_values,$open_acc_init,$read_data\n" >> $outfile
       done
     done

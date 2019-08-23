@@ -12,15 +12,15 @@
 #define SKIP_HEADER 1
 
 struct data_s{
-  pe_t *pe;
-  dc_t *dc;     /* Data decomposition */
-  int dimx;
-  int dimy;
-  int N;
-  precision *x;
-  int *y;
-  char fx[FILENAME_MAX];
-  char fy[FILENAME_MAX];
+  pe_t *pe;               /* Parallel Environment */
+  dc_t *dc;               /* Data decomposition */
+  int dimx;               /* Datapoints Dimensionality */
+  int dimy;               /* Labels Dimensionality */
+  int N;                  /* Number of Datapoints */
+  precision *x;           /* Datapoints */
+  int *y;                 /* Labels */
+  char fx[FILENAME_MAX];  /* Datapoints filename */
+  char fy[FILENAME_MAX];  /* Lablels filename */
   int rank;
   int nprocs;
   int nthreads;

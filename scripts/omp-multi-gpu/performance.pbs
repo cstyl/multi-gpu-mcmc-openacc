@@ -49,6 +49,8 @@ do
       for k in `seq -w 1 $REPS`
       do
         export OMP_NUM_THREADS=${t}
+        export OMP_PROC_BIND=true
+        export OMP_PLACES={0},{1},{2},{3}
         indir="$DATA_DIR/100M_${dim}"
         outdir="./omp-multi-gpu-${N}_${dim}_${t}/$k"
         # generate input file for the test

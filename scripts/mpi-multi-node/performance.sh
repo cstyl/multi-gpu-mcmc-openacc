@@ -3,7 +3,7 @@
 SCRIPT_DIR=$(pwd)
 ACCOUNT="d167-s1887443"
 
-TIME="walltime=00:40:00"
+TIME="walltime=06:00:00"
 PLACE="place=scatter:excl"
 
 EXEC_DIR="../../experiments/mpi-multi-node"
@@ -23,7 +23,7 @@ else
 fi
 
 REPS=3
-DATAPOINTS="10000 100000 1000000 10000000"
+DATAPOINTS="100000 1000000 10000000 100000000"
 NODES=("1" "2" "3" "4" "6" "8")
 DIMS="10"
 burn="10000"

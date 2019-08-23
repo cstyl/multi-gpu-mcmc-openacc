@@ -12,7 +12,7 @@
 struct acr_s{
   pe_t *pe;
   ch_t *chain;
-  int N;                      /* Number of samples per dimension */
+  int N;                      /* Number of samples */
   int dim;                    /* Dimensionality of samples */
   int maxlag;                 /* Default Max lag limit */
   precision threshold;        /* Maximum autocorrelation threshold */

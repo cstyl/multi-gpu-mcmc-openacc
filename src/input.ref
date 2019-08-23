@@ -21,6 +21,17 @@
 
 ##############################################################################
 #
+#  Decomposition
+#
+#  nprocs           Number of processes per node
+#  nthreads         Number of threads per process
+#
+###############################################################################
+nprocs        1
+nthreads      1
+
+##############################################################################
+#
 #  Data related
 #
 #  train_x          Filename of the training datapoints
@@ -40,14 +51,14 @@
 #
 ###############################################################################
 
-train_x          ../data/synthetic/500_3_100/X_train.csv
-train_y          ../data/synthetic/500_3_100/Y_train.csv
+train_x          ../data/synthetic/500_3/X_train.csv
+train_y          ../data/synthetic/500_3/Y_train.csv
 train_dimx       3
 train_dimy       1
 train_N          500
 
-test_x           ../data/synthetic/500_3_100/X_test.csv
-test_y           ../data/synthetic/500_3_100/Y_test.csv
+test_x           ../data/synthetic/500_3/X_test.csv
+test_y           ../data/synthetic/500_3/Y_test.csv
 test_dimx        3
 test_dimy        1
 test_N           100

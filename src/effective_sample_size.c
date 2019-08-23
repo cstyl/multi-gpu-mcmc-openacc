@@ -10,15 +10,16 @@
 #include "timer.h"
 
 struct ess_s{
-  pe_t *pe;
-  acr_t *acr;
-  char ess_case[BUFSIZ];
-  precision *ess;
-  precision *max;
-  precision *min;
-  precision *median;
-  precision *mean;
-  int dim;
+  pe_t *pe;               /* Parallel Environment*/
+  acr_t *acr;             /* Autocorrelation */
+  char ess_case[BUFSIZ];  /* Choise between max, min,
+                           * median, mean ESS*/
+  precision *ess;         /* ESS case out*/
+  precision *max;         /* Max ESS */
+  precision *min;         /* Min ESS */
+  precision *median;      /* Median ESS */
+  precision *mean;        /* Mean ESS */
+  int dim;                /* Dimensionality of Samples */
 };
 
 static int ess_max(ess_t *ess);

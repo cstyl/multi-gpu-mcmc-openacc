@@ -16,7 +16,7 @@ DATAPOINTS="10000 100000 1000000 10000000"
 DIMS="10"
 
 printf "Nodes,Procs,Threads,Datapoints,Dim,Reps," > $outfile
-printf "Total,MCMC,lhood,mvmul,reduction,upd_data,upd_values,acc_init\n" >> $outfile
+printf "Total,MCMC,lhood,mvmul,reduction,upd_data,upd_values,acc_init,read_data\n" >> $outfile
 
 for N in $DATAPOINTS
 do
@@ -29,6 +29,7 @@ do
         report="./mpi-multi-node-${N}_${dim}_${NODES[$i]}/$k/out.txt"
         # parse input file
         total=$(awk '/Total:/ {printf "%s",$4}' $report)
+        read_data=$(awk '/Load Training Set:/ {printf "%s",$6}' $report)
         mcmc=$(awk '/MCMC Metropolis:/ {printf "%s",$5}' $report)
         lhood=$(awk '/Likelihood:/ {printf "%s",$4}' $report)
         mvmul=$(awk '/MatVec Mult Kernel:/ {printf "%s",$6}' $report)
@@ -43,7 +44,7 @@ do
         if [ -z $open_acc_init ]; then open_acc_init="0.0"; fi
 
         printf "${NODES[$i]},36,1,$N,$dim,$k,$total,$mcmc,$lhood,$mvmul,$red," >> $outfile
-        printf "$upd_data,$upd_values,$open_acc_init\n" >> $outfile
+        printf "$upd_data,$upd_values,$open_acc_init,$read_data\n" >> $outfile
       done
     done
   done

@@ -11,8 +11,8 @@
 #include "timer.h"
 
 struct met_s{
-  pe_t *pe;
-  rt_t *rt;
+  pe_t *pe;             /* Parallel Environment */
+  rt_t *rt;             /* Runtime */
   dc_t *dc;             /* Decomposition on the train data */
   ch_t *chain;          /* Generated Chain */
   data_t *data;         /* Data structure to be used during sampling */
