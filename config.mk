@@ -20,5 +20,5 @@ LAUNCH_SERIAL_CMD=
 LAUNCH_MPI_CMD=mpirun
 
 # Change accordingly to specify location of OPENBLAS Library
-BLAS_INC = ${HOME}/include
-BLAS_LIB = ${HOME}/lib -lopenblas
+BLAS_INC = ${HOME}/lib-blas/include
+BLAS_LIB = ${HOME}/lib-blas/lib -lopenblas

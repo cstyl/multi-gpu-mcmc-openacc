@@ -62,8 +62,6 @@ static int test_decomposition_rt_default(pe_t *pe){
   test_assert(nprocs == DEFAULT_PROCS);
   dc_nthreads(dc, &nthreads);
   test_assert(nthreads == DEFAULT_THREADS);
-  dc_ngpus(dc, &ngpus);
-  test_assert(ngpus == DEFAULT_GPUS);
 
   dc_free(dc);
   rt_free(rt);
@@ -95,11 +93,9 @@ static int test_decomposition_rt(pe_t *pe){
   dc_init_rt(pe, rt, dc);
 
   dc_nprocs(dc, &nprocs);
-  test_assert(nprocs == 2);
+  test_assert(nprocs == 1);
   dc_nthreads(dc, &nthreads);
-  test_assert(nthreads == 4);
-  dc_ngpus(dc, &ngpus);
-  test_assert(ngpus == 4);
+  test_assert(nthreads == 1);
 
   dc_tbound(dc, &tlow, &thi);
   test_assert(tlow != NULL && thi != NULL);
@@ -129,13 +125,12 @@ static int test_decomposition_1_1_0(pe_t *pe){
   dc_create(pe, &dc);
   assert(dc);
 
-  data_create_train(pe, &data);
+  data_create_train(pe, dc, &data);
   assert(data);
   test_assert(1);
 
   dc_nprocs_set(dc, nprocs);
   dc_nthreads_set(dc, nthreads);
-  dc_ngpus_set(dc, ngpus);
   dc_init_rt(pe, rt, dc); /* Initialise to allocate memory for parameters */
   dc_size_set(dc, nprocs);
 
@@ -171,13 +166,12 @@ static int test_decomposition_4_1_0(pe_t *pe){
   dc_create(pe, &dc);
   assert(dc);
 
-  data_create_train(pe, &data);
+  data_create_train(pe, dc, &data);
   assert(data);
   test_assert(1);
 
   dc_nprocs_set(dc, nprocs);
   dc_nthreads_set(dc, nthreads);
-  dc_ngpus_set(dc, ngpus);
   dc_init_rt(pe, rt, dc); /* Initialise to allocate memory for parameters */
   dc_size_set(dc, nprocs);
 
@@ -213,13 +207,12 @@ static int test_decomposition_1_4_0(pe_t *pe){
   dc_create(pe, &dc);
   assert(dc);
 
-  data_create_train(pe, &data);
+  data_create_train(pe, dc, &data);
   assert(data);
   test_assert(1);
 
   dc_nprocs_set(dc, nprocs);
   dc_nthreads_set(dc, nthreads);
-  dc_ngpus_set(dc, ngpus);
   dc_init_rt(pe, rt, dc); /* Initialise to allocate memory for parameters */
   dc_size_set(dc, nprocs);
 
@@ -255,13 +248,12 @@ static int test_decomposition_4_3_0(pe_t *pe){
   dc_create(pe, &dc);
   assert(dc);
 
-  data_create_train(pe, &data);
+  data_create_train(pe, dc, &data);
   assert(data);
   test_assert(1);
 
   dc_nprocs_set(dc, nprocs);
   dc_nthreads_set(dc, nthreads);
-  dc_ngpus_set(dc, ngpus);
   dc_init_rt(pe, rt, dc); /* Initialise to allocate memory for parameters */
   dc_size_set(dc, nprocs);
 
@@ -297,13 +289,12 @@ static int test_decomposition_4_4_4(pe_t *pe){
   dc_create(pe, &dc);
   assert(dc);
 
-  data_create_train(pe, &data);
+  data_create_train(pe, dc, &data);
   assert(data);
   test_assert(1);
 
   dc_nprocs_set(dc, nprocs);
   dc_nthreads_set(dc, nthreads);
-  dc_ngpus_set(dc, ngpus);
   dc_init_rt(pe, rt, dc); /* Initialise to allocate memory for parameters */
   dc_size_set(dc, nprocs);
 
@@ -333,7 +324,8 @@ static int run_decomposition(dc_t *dc, int N, int nprocs, int nthreads){
   for(i=0; i<nprocs; i++)
   {
     dc_rank_set(dc, i);
-    dc_decompose(N, dc);
+    dc_work_set(dc, N);
+    dc_decompose(dc);
 
     dc_pbound(dc, &plow, &phi);
     dc_tbound(dc, &tlow, &thi);

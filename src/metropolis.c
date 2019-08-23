@@ -80,6 +80,7 @@ int met_init_rt(pe_t *pe, rt_t *rt, met_t *met){
 
   /* Decompose based on the training set */
   int work = N_TRAIN_DEFAULT;
+  dc_work_set(met->dc, work);
   if(rt_int_parameter(rt, "train_N", &work))
   {
     dc_work_set(met->dc, work);

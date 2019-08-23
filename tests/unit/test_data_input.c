@@ -48,12 +48,16 @@ static int test_data_train_rt_default(pe_t *pe){
   int *y = NULL;
 
   rt_t *rt = NULL;
+  dc_t *dc = NULL;
   data_t *train = NULL;
+
+  dc_create(pe, &dc);
+  assert(dc);
 
   rt_create(pe, &rt);
   assert(rt);
 
-  data_create_train(pe, &train);
+  data_create_train(pe, dc, &train);
   assert(train);
   test_assert(1);
 
@@ -74,6 +78,7 @@ static int test_data_train_rt_default(pe_t *pe){
 
   data_free(train);
   rt_free(rt);
+  dc_free(dc);
 
   return 0;
 }
@@ -88,12 +93,16 @@ static int test_data_test_rt_default(pe_t *pe){
   int *y = NULL;
 
   rt_t *rt = NULL;
+  dc_t *dc = NULL;
   data_t *test = NULL;
+
+  dc_create(pe, &dc);
+  assert(dc);
 
   rt_create(pe, &rt);
   assert(rt);
 
-  data_create_test(pe, &test);
+  data_create_test(pe, dc, &test);
   assert(test);
   test_assert(1);
 
@@ -114,7 +123,7 @@ static int test_data_test_rt_default(pe_t *pe){
 
   data_free(test);
   rt_free(rt);
-
+  dc_free(dc);
   return 0;
 }
 
@@ -129,12 +138,16 @@ static int test_data_train_rt(pe_t *pe){
 
   rt_t *rt = NULL;
   data_t *train = NULL;
+  dc_t *dc = NULL;
 
   rt_create(pe, &rt);
   assert(rt);
   rt_read_input_file(rt, "test.dat");
 
-  data_create_train(pe, &train);
+  dc_create(pe, &dc);
+  assert(dc);
+
+  data_create_train(pe, dc, &train);
   assert(train);
   test_assert(1);
 
@@ -158,7 +171,7 @@ static int test_data_train_rt(pe_t *pe){
 
   data_free(train);
   rt_free(rt);
-
+  dc_free(dc);
   return 0;
 }
 
@@ -173,12 +186,16 @@ static int test_data_test_rt(pe_t *pe){
 
   rt_t *rt = NULL;
   data_t *test = NULL;
+  dc_t *dc = NULL;
 
   rt_create(pe, &rt);
   assert(rt);
   rt_read_input_file(rt, "test.dat");
 
-  data_create_test(pe, &test);
+  dc_create(pe, &dc);
+  assert(dc);
+
+  data_create_test(pe, dc, &test);
   assert(test);
   test_assert(1);
 
@@ -202,7 +219,7 @@ static int test_data_test_rt(pe_t *pe){
 
   data_free(test);
   rt_free(rt);
-
+  dc_free(dc);
   return 0;
 }
 
@@ -238,12 +255,16 @@ static int test_data_train_input_file(pe_t *pe){
 
   rt_t *rt = NULL;
   data_t *train = NULL;
+  dc_t *dc = NULL;
 
   rt_create(pe, &rt);
   assert(rt);
   rt_read_input_file(rt, "test.dat");
 
-  data_create_train(pe, &train);
+  dc_create(pe, &dc);
+  assert(dc);
+
+  data_create_train(pe, dc, &train);
   assert(train);
   test_assert(1);
   data_init_train_rt(pe, rt, train);
@@ -263,6 +284,7 @@ static int test_data_train_input_file(pe_t *pe){
 
   data_free(train);
   rt_free(rt);
+  dc_free(dc);
 
   return 0;
 }
@@ -289,12 +311,16 @@ static int test_data_test_input_file(pe_t *pe){
 
   rt_t *rt = NULL;
   data_t *test = NULL;
+  dc_t *dc = NULL;
 
   rt_create(pe, &rt);
   assert(rt);
   rt_read_input_file(rt, "test.dat");
 
-  data_create_test(pe, &test);
+  dc_create(pe, &dc);
+  assert(dc);
+
+  data_create_test(pe, dc, &test);
   assert(test);
   test_assert(1);
   data_init_test_rt(pe, rt, test);
@@ -314,6 +340,6 @@ static int test_data_test_input_file(pe_t *pe){
 
   data_free(test);
   rt_free(rt);
-
+  dc_free(dc);
   return 0;
 }

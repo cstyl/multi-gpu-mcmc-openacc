@@ -28,11 +28,17 @@ int test_metropolis_suite(void){
   test_assert(1);
 
   test_metropolis_create(pe);
+  printf("(here)\n");
   test_metropolis_rt_default(pe);
+  printf("(here)\n");
   test_metropolis_rt(pe);
+  printf("(here)\n");
   test_metropolis_init_zero(pe);
+  printf("(here)\n");
   test_metropolis_init_rand(pe);
+  printf("(here)\n");
   test_metropolist_init_post_burn(pe);
+  printf("(here)\n");
   test_metropolis_run(pe);
 
   pe_info(pe, "PASS\t./unit/test_metropolis\n");
@@ -452,7 +458,7 @@ static int test_metropolis_init_rand(pe_t *pe){
   sample_t *sample = NULL;
   met_current(met, &sample);
   sample_values(sample, &s_values);
-  
+
   test_assert(fabs(s_values[0] - 1.3910370147747524) < TEST_PRECISION_TOLERANCE);
   test_assert(fabs(s_values[1] - -1.3777210391708956) < TEST_PRECISION_TOLERANCE);
   test_assert(fabs(s_values[2] - 1.4964499886234111) < TEST_PRECISION_TOLERANCE);

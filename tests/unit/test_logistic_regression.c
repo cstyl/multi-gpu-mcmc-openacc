@@ -45,22 +45,19 @@ int test_lr_suite(void){
   rt_create(pe, &rt);
   assert(rt);
 
-  data_create_train(pe, &data);
-  assert(data);
-  test_assert(1);
-
   dc_create(pe, &dc);
   assert(dc);
   test_assert(1);
 
-  dc_nprocs_set(dc, DEFAULT_PROCS);
-  dc_nthreads_set(dc, DEFAULT_THREADS);
-  dc_ngpus_set(dc, DEFAULT_GPUS);
+  data_create_train(pe, dc, &data);
+  assert(data);
+  test_assert(1);
+
   dc_init_rt(pe, rt, dc);
-  dc_decompose(N, dc);
+  dc_work_set(dc, N);
+  dc_decompose(dc);
 
   /* Initialize data struct */
-  data_dc_set(data, dc);
   data_dimx_set(data, dimx);
   data_dimy_set(data, dimy);
   data_N_set(data, N);
@@ -100,6 +97,7 @@ int test_lr_suite(void){
   data_free(data);
   lr_lhood_free(lr);
   rt_free(rt);
+  dc_free(dc);
 
   pe_info(pe, "PASS\t./unit/test_logistic_regression\n");
   pe_free(pe);

@@ -236,22 +236,19 @@ static int test_sample_evaluate_lr(pe_t *pe){
   rt_create(pe, &rt);
   assert(rt);
 
-  data_create_train(pe, &data);
-  assert(data);
-  test_assert(1);
-
   dc_create(pe, &dc);
   assert(dc);
   test_assert(1);
 
-  dc_nprocs_set(dc, DEFAULT_PROCS);
-  dc_nthreads_set(dc, DEFAULT_THREADS);
-  dc_ngpus_set(dc, DEFAULT_GPUS);
   dc_init_rt(pe, rt, dc);
-  dc_decompose(N, dc);
+  dc_work_set(dc, N);
+  dc_decompose(dc);
+
+  data_create_train(pe, dc, &data);
+  assert(data);
+  test_assert(1);
 
   /* Initialize data struct */
-  data_dc_set(data, dc);
   data_dimx_set(data, dimx);
   data_dimy_set(data, dimy);
   data_N_set(data, N);
@@ -320,6 +317,7 @@ static int test_sample_evaluate_lr(pe_t *pe){
   sample_free(cur);
   sample_free(pro);
   data_free(data);
+  dc_free(dc);
   lr_lhood_free(lr);
   rt_free(rt);
 
